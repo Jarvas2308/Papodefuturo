@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import { Bell, Menu } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { getPageCopyFromPath } from '../../lib/navigation'
@@ -5,10 +6,11 @@ import { Button } from '../ui/Button'
 import { PageHeader } from '../ui/PageHeader'
 
 type HeaderProps = {
+  menuButtonRef: RefObject<HTMLButtonElement | null>
   onOpenMobileMenu: () => void
 }
 
-export function Header({ onOpenMobileMenu }: HeaderProps) {
+export function Header({ menuButtonRef, onOpenMobileMenu }: HeaderProps) {
   const location = useLocation()
   const pageCopy = getPageCopyFromPath(location.pathname)
 
@@ -16,6 +18,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
     <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-surface)_92%,white)]/95 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <Button
+          ref={menuButtonRef}
           type="button"
           variant="ghost"
           size="icon"
