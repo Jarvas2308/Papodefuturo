@@ -15,16 +15,21 @@ export function MobileSidebar({
   triggerRef,
 }: MobileSidebarProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const wasOpenRef = useRef(false)
   const titleId = useId()
 
   useEffect(() => {
     if (!isOpen) {
       document.body.style.overflow = ''
-      triggerRef.current?.focus()
+      if (wasOpenRef.current) {
+        triggerRef.current?.focus()
+        wasOpenRef.current = false
+      }
       return
     }
 
     const previousOverflow = document.body.style.overflow
+    wasOpenRef.current = true
     document.body.style.overflow = 'hidden'
     closeButtonRef.current?.focus()
 
