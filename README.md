@@ -77,7 +77,7 @@ src/
 
 ## Estado do projeto
 
-`Fundação visual em construção`
+`Fundação visual concluída, com a primeira versão visual da Visão Geral disponível em dados demonstrativos e sem integrações reais.`
 
 ## Funcionalidades deliberadamente não implementadas
 
