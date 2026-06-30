@@ -1,17 +1,25 @@
-import { ComingSoonCard } from '../components/ui/ComingSoonCard'
-import { PageHeader } from '../components/ui/PageHeader'
+import { PortfolioAllocation } from '../features/portfolio/components/PortfolioAllocation'
+import { PortfolioHeader } from '../features/portfolio/components/PortfolioHeader'
+import { PortfolioPositions } from '../features/portfolio/components/PortfolioPositions'
+import { PortfolioSummaryCard } from '../features/portfolio/components/PortfolioSummaryCard'
+import { portfolioMock } from '../mocks/portfolio'
 
 export function PortfolioPage() {
   return (
     <section className="space-y-6">
-      <PageHeader
-        title="Minha Carteira"
-        description="Visualize suas posições, compras e resultados consolidados."
+      <PortfolioHeader
+        disclaimer={portfolioMock.disclaimer}
+        header={portfolioMock.header}
       />
-      <ComingSoonCard
-        message="A estrutura da carteira será construída em uma etapa específica."
-        detail="A base visual foi desenhada para receber tabelas, agrupamentos e indicadores com clareza, sem misturar regras financeiras nesta primeira entrega."
-      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {portfolioMock.summary.map((item) => (
+          <PortfolioSummaryCard key={item.id} item={item} />
+        ))}
+      </div>
+
+      <PortfolioAllocation allocation={portfolioMock.allocation} />
+      <PortfolioPositions positions={portfolioMock.positions} />
     </section>
   )
 }
