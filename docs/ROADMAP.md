@@ -24,8 +24,6 @@
 - acessibilidade;
 - mocks centralizados.
 
-## Em andamento
-
 ### Fundação documental
 
 - visão de produto;
@@ -33,9 +31,6 @@
 - decisões;
 - roadmap;
 - reorganização do README e AGENTS.
-
-Essa etapa não deve ser considerada concluída antes da implementação,
-validação, revisão e integração da branch correspondente.
 
 ## Próximo
 
