@@ -24,6 +24,19 @@
 - acessibilidade;
 - mocks centralizados.
 
+### Fundação da tela Minha Carteira (UI demonstrativa)
+
+- cards de resumo;
+- distribuição por categoria;
+- comparação entre participação atual e meta monitorada;
+- filtros locais por categoria;
+- tabela semântica para desktop;
+- cards responsivos para telas menores;
+- 12 ativos do universo documentado;
+- estados visuais de ganho, perda e sobrealocação;
+- acessibilidade;
+- mocks centralizados.
+
 ### Fundação documental
 
 - visão de produto;
@@ -38,12 +51,11 @@
 
 Ordem planejada:
 
-1. Minha Carteira;
-2. Novo Aporte;
-3. Histórico;
-4. Estratégia;
-5. Configurações;
-6. revisão conjunta de responsividade e consistência.
+1. Novo Aporte;
+2. Histórico;
+3. Estratégia;
+4. Configurações;
+5. revisão conjunta de responsividade e consistência.
 
 Todas ainda com dados demonstrativos quando necessário.
 
