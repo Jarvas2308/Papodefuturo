@@ -21,11 +21,9 @@ export function AllocationOverview({ allocation }: AllocationOverviewProps) {
         <div className="space-y-5">
           {allocation.items.map((item) => {
             const toneClass =
-              item.tone === 'positive'
-                ? 'text-[var(--color-positive)]'
-                : item.tone === 'alert'
-                  ? 'text-[var(--color-alert)]'
-                  : 'text-[var(--color-text-muted)]'
+              item.tone === 'alert'
+                ? 'text-[var(--color-alert)]'
+                : 'text-[var(--color-text-muted)]'
 
             return (
               <div key={item.id} className="space-y-3">
@@ -58,11 +56,9 @@ export function AllocationOverview({ allocation }: AllocationOverviewProps) {
                 >
                   <div
                     className={`h-full rounded-full ${
-                      item.tone === 'positive'
-                        ? 'bg-[var(--color-positive)]'
-                        : item.tone === 'alert'
-                          ? 'bg-[var(--color-alert)]'
-                          : 'bg-[var(--color-brand)]'
+                      item.tone === 'alert'
+                        ? 'bg-[var(--color-alert)]'
+                        : 'bg-[var(--color-brand)]'
                     }`}
                     style={{ width: `${item.current}%` }}
                   />

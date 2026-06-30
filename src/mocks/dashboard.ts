@@ -77,7 +77,7 @@ export const dashboardMock: DashboardMock = {
         target: 35.3,
         targetLabel: '35,3%',
         differenceLabel: '+2,5 p.p. acima da meta',
-        tone: 'positive',
+        tone: 'alert',
       },
       {
         id: 'reits',

@@ -24,7 +24,7 @@ export type DashboardAllocationItem = {
   target: number
   targetLabel: string
   differenceLabel: string
-  tone: 'neutral' | 'positive' | 'alert'
+  tone: 'neutral' | 'alert'
 }
 
 export type DashboardMovementItem = {
