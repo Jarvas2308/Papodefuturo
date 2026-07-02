@@ -45,17 +45,46 @@
 - roadmap;
 - reorganização do README e AGENTS.
 
+### Fundação da tela Novo Aporte e motor demonstrativo
+
+- formulário de valor e seleção de estratégia;
+- simulação sem persistência;
+- estratégia proporcional;
+- estratégia por déficit projetado com base no total final da carteira;
+- valores monetários representados em centavos;
+- arredondamento pelo método dos maiores restos;
+- preservação do total exato;
+- engine determinístico;
+- validação de metas e tratamento de estratégias inválidas;
+- integração com as 12 posições mockadas;
+- UI responsiva e mensagens de caráter demonstrativo;
+- Vitest com 5 arquivos de teste e 60 testes aprovados.
+
+Ainda não existem compra real, persistência, histórico real, Supabase,
+autenticação, APIs, recomendação financeira ou IA.
+
+### Publicação inicial no Vercel
+
+- aplicação publicada no Vercel;
+- produção ligada à branch `main`;
+- configuração SPA por `vercel.json`;
+- suporte a acesso direto e refresh das rotas;
+- rotas atuais: `/`, `/dashboard`, `/carteira` e `/novo-aporte`;
+- deploy sem variáveis de ambiente e ainda baseado em mocks;
+- produção disponível em `https://papodefuturo.vercel.app`.
+
 ## Próximo
 
 ### Próximas telas
 
 Ordem planejada:
 
-1. Novo Aporte;
-2. Histórico;
-3. Estratégia;
-4. Configurações;
-5. revisão conjunta de responsividade e consistência.
+1. Histórico;
+2. Estratégia;
+3. Configurações;
+4. revisão geral da experiência;
+5. modelo de dados;
+6. Supabase.
 
 Todas ainda com dados demonstrativos quando necessário.
 
