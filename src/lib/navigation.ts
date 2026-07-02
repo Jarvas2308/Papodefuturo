@@ -47,8 +47,8 @@ export const pageCopyByPath: Record<string, PageCopy> = {
     description: 'Planeje a melhor distribuição para o próximo aporte.',
   },
   '/historico': {
-    title: 'Histórico de Compras',
-    description: 'Consulte e gerencie as operações registradas.',
+    title: 'Histórico',
+    description: 'Consulte as movimentações demonstrativas da sua carteira.',
   },
   '/estrategia': {
     title: 'Estratégia de Alocação',
