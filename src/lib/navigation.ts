@@ -51,8 +51,8 @@ export const pageCopyByPath: Record<string, PageCopy> = {
     description: 'Consulte as movimentações demonstrativas da sua carteira.',
   },
   '/estrategia': {
-    title: 'Estratégia de Alocação',
-    description: 'Acompanhe as metas definidas para cada categoria e ativo.',
+    title: 'Estratégia',
+    description: 'Defina e acompanhe metas demonstrativas de alocação.',
   },
   '/configuracoes': {
     title: 'Configurações',
