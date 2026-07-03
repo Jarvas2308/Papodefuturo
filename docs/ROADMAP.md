@@ -73,18 +73,39 @@ autenticação, APIs, recomendação financeira ou IA.
 - deploy sem variáveis de ambiente e ainda baseado em mocks;
 - produção disponível em `https://papodefuturo.vercel.app`.
 
+### Fundação da tela Histórico demonstrativo
+
+- rota `/historico`;
+- 16 movimentações determinísticas;
+- compras, vendas, dividendos, rendimentos e aportes;
+- ações brasileiras, fundos imobiliários e ativos internacionais;
+- moedas BRL e USD;
+- valores monetários representados em centavos;
+- cards de resumo calculados a partir dos mocks;
+- busca por ticker ou nome;
+- filtros por tipo, categoria, mês e status;
+- filtros combináveis e ação para limpeza;
+- estado vazio;
+- tabela semântica no desktop;
+- cards responsivos no mobile sem overflow horizontal;
+- suporte a acesso direto e refresh;
+- Vitest com 6 arquivos de teste e 68 testes aprovados.
+
+Ainda não existem movimentações reais, cadastro, edição, exclusão,
+persistência, paginação, backend, autenticação, Supabase, APIs ou dados
+financeiros reais.
+
 ## Próximo
 
 ### Próximas telas
 
 Ordem planejada:
 
-1. Histórico;
-2. Estratégia;
-3. Configurações;
-4. revisão geral da experiência;
-5. modelo de dados;
-6. Supabase.
+1. Estratégia;
+2. Configurações;
+3. revisão geral da experiência;
+4. modelo de dados;
+5. Supabase.
 
 Todas ainda com dados demonstrativos quando necessário.
 
