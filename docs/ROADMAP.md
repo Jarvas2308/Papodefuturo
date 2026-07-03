@@ -95,17 +95,38 @@ Ainda não existem movimentações reais, cadastro, edição, exclusão,
 persistência, paginação, backend, autenticação, Supabase, APIs ou dados
 financeiros reais.
 
+### Fundação da tela Estratégia demonstrativa
+
+- rota `/estrategia`;
+- 3 categorias: Ações brasileiras, Fundos imobiliários e Internacional;
+- 12 ativos reutilizados da Carteira;
+- metas armazenadas em pontos-base, com 10.000 pontos-base equivalendo a 100%;
+- metas das categorias totalizando exatamente 10.000 pontos-base;
+- metas internas dos ativos de cada categoria totalizando exatamente 10.000 pontos-base;
+- cálculo da participação atual por categoria e da participação atual global por ativo;
+- meta global derivada, cálculo de desvios e classificação abaixo, próximo ou acima da meta;
+- tolerância visual de ±0,50 ponto percentual;
+- cards de resumo calculados e mensagens para estratégias inválidas;
+- edição local das metas de categorias e ativos;
+- ações para aplicar somente na sessão, cancelar alterações e restaurar a estratégia padrão;
+- tabelas semânticas no desktop e cards responsivos no mobile sem overflow horizontal;
+- suporte a acesso direto e refresh;
+- Vitest com 7 arquivos de teste e 85 testes aprovados.
+
+Ainda não existem persistência, `localStorage`, backend, autenticação, Supabase,
+APIs, integração com Novo Aporte, ranking de ativos, plano de compra, confirmação
+de operações, IA ou dados financeiros reais.
+
 ## Próximo
 
 ### Próximas telas
 
 Ordem planejada:
 
-1. Estratégia;
-2. Configurações;
-3. revisão geral da experiência;
-4. modelo de dados;
-5. Supabase.
+1. Configurações;
+2. revisão geral da experiência;
+3. modelo de dados;
+4. Supabase.
 
 Todas ainda com dados demonstrativos quando necessário.
 
