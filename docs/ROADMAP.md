@@ -117,16 +117,41 @@ Ainda não existem persistência, `localStorage`, backend, autenticação, Supab
 APIs, integração com Novo Aporte, ranking de ativos, plano de compra, confirmação
 de operações, IA ou dados financeiros reais.
 
+### Fundação da tela Configurações demonstrativa
+
+- rota `/configuracoes`;
+- seções Perfil, Exibição, Planejamento, Notificações e Dados e privacidade;
+- mock determinístico;
+- moedas BRL e USD;
+- localidade `pt-BR`;
+- casas decimais de percentuais configuráveis;
+- visualização compacta demonstrativa;
+- estratégia padrão de aporte;
+- lembrete mensal configurável entre os dias 1 e 28;
+- notificações demonstrativas;
+- validação de nome e e-mail;
+- edição local das preferências;
+- ações para aplicar somente na sessão, cancelar alterações e restaurar o padrão;
+- refresh recuperando o mock original;
+- resumos calculados;
+- controles e mensagens acessíveis;
+- layout responsivo para desktop e mobile sem overflow horizontal;
+- suporte a acesso direto e refresh;
+- Vitest com 8 arquivos de teste e 101 testes aprovados.
+
+Ainda não existem persistência, `localStorage`, `sessionStorage`, cookies,
+backend, autenticação, Supabase, APIs, notificações reais, tema global,
+integração das preferências com outras telas ou dados financeiros reais.
+
 ## Próximo
 
 ### Próximas telas
 
 Ordem planejada:
 
-1. Configurações;
-2. revisão geral da experiência;
-3. modelo de dados;
-4. Supabase.
+1. revisão geral da experiência;
+2. modelo de dados;
+3. Supabase.
 
 Todas ainda com dados demonstrativos quando necessário.
 
