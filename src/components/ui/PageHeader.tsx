@@ -24,7 +24,9 @@ export function PageHeader({
       <p
         className={cn(
           'max-w-3xl text-[var(--color-text-muted)]',
-          compact ? 'truncate text-sm sm:text-base' : 'text-base leading-7'
+          compact
+            ? 'line-clamp-2 text-sm leading-5 sm:line-clamp-1 sm:text-base sm:leading-normal'
+            : 'text-base leading-7'
         )}
       >
         {description}
