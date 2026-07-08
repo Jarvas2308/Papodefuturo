@@ -19,7 +19,7 @@ export function PortfolioHeader({ disclaimer, header }: PortfolioHeaderProps) {
           </span>
           <div className="mt-4">
             <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-text)]">
-              {header.title}
+              Resumo da carteira
             </h2>
             <p className="mt-2 max-w-3xl text-base leading-7 text-[var(--color-text-muted)]">
               {header.description}
