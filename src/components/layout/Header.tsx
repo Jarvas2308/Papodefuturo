@@ -153,9 +153,10 @@ export function Header({ menuButtonRef, onOpenMobileMenu }: HeaderProps) {
         </div>
         <div
           className="flex size-10 items-center justify-center rounded-full bg-[var(--color-brand)] font-semibold text-white shadow-[var(--shadow-soft)]"
-          aria-label="Avatar do usuário Luis Fernando"
+          role="img"
+          aria-label="Avatar do perfil demonstrativo, com dados de exemplo"
         >
-          LF
+          DE
         </div>
       </div>
     </header>
