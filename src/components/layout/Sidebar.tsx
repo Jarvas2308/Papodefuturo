@@ -115,15 +115,18 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
             collapsed && 'justify-center px-2'
           )}
         >
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] font-semibold text-white">
-            LF
+          <div
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] font-semibold text-white"
+            aria-hidden="true"
+          >
+            DE
           </div>
           <div className={cn('min-w-0', collapsed && 'sr-only')}>
             <p className="truncate text-sm font-semibold text-[var(--color-text)]">
-              Luis Fernando
+              Perfil demonstrativo
             </p>
             <p className="truncate text-sm text-[var(--color-text-muted)]">
-              Minha conta
+              Dados de exemplo
             </p>
           </div>
         </div>
