@@ -15,12 +15,12 @@ export function MobileSidebar({
   triggerRef,
 }: MobileSidebarProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const dialogRef = useRef<HTMLElement | null>(null)
   const wasOpenRef = useRef(false)
   const titleId = useId()
 
   useEffect(() => {
     if (!isOpen) {
-      document.body.style.overflow = ''
       if (wasOpenRef.current) {
         triggerRef.current?.focus()
         wasOpenRef.current = false
@@ -31,20 +31,86 @@ export function MobileSidebar({
     const previousOverflow = document.body.style.overflow
     wasOpenRef.current = true
     document.body.style.overflow = 'hidden'
-    closeButtonRef.current?.focus()
+
+    const dialog = dialogRef.current
+    const focusableSelector = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(',')
+
+    function getFocusableElements() {
+      if (!dialog) {
+        return []
+      }
+
+      return Array.from(
+        dialog.querySelectorAll<HTMLElement>(focusableSelector)
+      ).filter(
+        (element) =>
+          element.tabIndex >= 0 &&
+          element.getAttribute('aria-hidden') !== 'true' &&
+          element.getClientRects().length > 0
+      )
+    }
+
+    const firstFocusableElement = getFocusableElements()[0]
+    ;(firstFocusableElement ?? dialog)?.focus()
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault()
         onClose()
+        return
+      }
+
+      if (event.key !== 'Tab') {
+        return
+      }
+
+      const focusableElements = getFocusableElements()
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements.at(-1)
+
+      if (!firstElement || !lastElement) {
+        event.preventDefault()
+        dialog?.focus()
+        return
+      }
+
+      const activeElement = document.activeElement
+
+      if (
+        event.shiftKey &&
+        (activeElement === firstElement || !dialog?.contains(activeElement))
+      ) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (
+        !event.shiftKey &&
+        (activeElement === lastElement || !dialog?.contains(activeElement))
+      ) {
+        event.preventDefault()
+        firstElement.focus()
+      }
+    }
+
+    function handleFocusIn(event: FocusEvent) {
+      if (!dialog?.contains(event.target as Node)) {
+        ;(getFocusableElements()[0] ?? dialog)?.focus()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('focusin', handleFocusIn)
 
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('focusin', handleFocusIn)
     }
   }, [isOpen, onClose, triggerRef])
 
@@ -59,8 +125,11 @@ export function MobileSidebar({
         className="absolute inset-0 bg-slate-950/35 transition-opacity duration-200"
         onClick={onClose}
         aria-label="Fechar menu ao tocar no fundo"
+        aria-hidden="true"
+        tabIndex={-1}
       />
       <aside
+        ref={dialogRef}
         className="absolute left-0 top-0 flex h-full w-[18rem] max-w-[85vw] flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl transition-transform duration-200"
         role="dialog"
         aria-modal="true"

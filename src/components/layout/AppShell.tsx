@@ -11,15 +11,14 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
-      <div className="flex min-h-screen">
+      <div
+        className="flex min-h-screen"
+        inert={isMobileSidebarOpen ? true : undefined}
+        aria-hidden={isMobileSidebarOpen ? true : undefined}
+      >
         <Sidebar
           collapsed={isSidebarCollapsed}
           onToggle={() => setIsSidebarCollapsed((current) => !current)}
-        />
-        <MobileSidebar
-          isOpen={isMobileSidebarOpen}
-          onClose={() => setIsMobileSidebarOpen(false)}
-          triggerRef={mobileMenuButtonRef}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <Header
@@ -36,6 +35,11 @@ export function AppShell() {
           </main>
         </div>
       </div>
+      <MobileSidebar
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        triggerRef={mobileMenuButtonRef}
+      />
     </div>
   )
 }
