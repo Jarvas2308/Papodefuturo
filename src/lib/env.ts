@@ -45,7 +45,7 @@ export function readSupabaseEnvironment(
     missingKeys.push(SUPABASE_ANON_KEY_ENV_KEY)
   }
 
-  if (missingKeys.length > 0) {
+  if (!url || !anonKey) {
     return {
       isConfigured: false,
       missingKeys,
