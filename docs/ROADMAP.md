@@ -177,6 +177,21 @@ Ainda não existem conexão do domínio com telas, mocks, backend, Supabase,
 autenticação, APIs, persistência real, `localStorage`, `sessionStorage`, cookies
 ou dados financeiros reais.
 
+### Planejamento do schema Supabase
+
+- documento `docs/SUPABASE_SCHEMA_PLAN.md` criado;
+- tabelas futuras planejadas: `profiles`, `assets`, `purchases`, `asset_prices`,
+  `allocation_targets`, `contribution_plans` e `contribution_plan_items`;
+- relacionamentos entre usuário, ativos, compras, preços, metas e planos de aporte
+  descritos;
+- estratégia futura de RLS documentada, sem aplicação real;
+- ordem sugerida de migrations futuras documentada;
+- índices planejados e integração gradual com o app descritos;
+- escopo limitado a documentação.
+
+Ainda não existem migrations, tabelas, RLS, policies, SQL executado, conexão com
+telas, persistência real, autenticação, backend, APIs ou acesso a dados reais.
+
 ## Próximo
 
 ### Fundação de dados e acesso
