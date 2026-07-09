@@ -11,10 +11,17 @@ type ViteSupabaseEnvSource = {
 }
 
 export function readViteSupabaseEnvironment(
-  env: ViteSupabaseEnvSource = import.meta.env
+  env: ViteSupabaseEnvSource
 ): SupabaseEnvironmentConfig {
   return readSupabaseEnvironment({
     [SUPABASE_URL_ENV_KEY]: env.VITE_SUPABASE_URL,
     [SUPABASE_ANON_KEY_ENV_KEY]: env.VITE_SUPABASE_ANON_KEY,
+  })
+}
+
+export function readCurrentViteSupabaseEnvironment(): SupabaseEnvironmentConfig {
+  return readViteSupabaseEnvironment({
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
   })
 }
