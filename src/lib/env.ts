@@ -6,7 +6,7 @@ export type SupabasePublicEnvKey =
   | typeof SUPABASE_ANON_KEY_ENV_KEY
 
 export type SupabasePublicEnvSource = Partial<
-  Record<SupabasePublicEnvKey, string | undefined>
+  Record<SupabasePublicEnvKey, unknown>
 >
 
 export type SupabaseEnvironmentConfig =
@@ -20,8 +20,12 @@ export type SupabaseEnvironmentConfig =
       missingKeys: SupabasePublicEnvKey[]
     }
 
-function cleanEnvValue(value: string | undefined): string | undefined {
-  const trimmedValue = value?.trim()
+function cleanEnvValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const trimmedValue = value.trim()
 
   return trimmedValue ? trimmedValue : undefined
 }
