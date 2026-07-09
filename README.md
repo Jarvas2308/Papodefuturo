@@ -20,10 +20,13 @@ o domínio financeiro nem as integrações necessárias para cumpri-la por intei
 ## Estado atual
 
 - fundação visual concluída;
-- Dashboard demonstrativo disponível;
-- demais páginas ainda são etapas visuais ou placeholders;
+- experiências demonstrativas disponíveis para Dashboard, Minha Carteira, Novo
+  Aporte, Histórico, Estratégia e Configurações;
+- publicação inicial no Vercel concluída;
+- ajustes iniciais da revisão geral de experiência aplicados;
 - nenhuma integração real foi implementada;
-- os dados exibidos não representam uma carteira real.
+- os dados exibidos não representam uma carteira real;
+- não há autenticação, backend, Supabase, APIs financeiras ou persistência real.
 
 ## Funcionalidades atuais
 
@@ -34,22 +37,32 @@ o domínio financeiro nem as integrações necessárias para cumpri-la por intei
 - sidebar e menu móvel;
 - cabeçalho compartilhado;
 - página visual de login com navegação demonstrativa;
-- Dashboard com composição visual própria;
+- Dashboard com composição visual própria e CTA principal para Novo Aporte;
 - cards, gráfico visual, distribuição, movimentações e status no Dashboard;
-- mocks centralizados para o Dashboard;
+- Minha Carteira demonstrativa com resumo, alocação, filtros, tabela desktop e
+  cards mobile;
+- Novo Aporte demonstrativo conectado ao engine local de simulação;
+- Histórico demonstrativo com filtros, resumo, tabela e cards responsivos;
+- Estratégia demonstrativa com metas em pontos-base e edição local sem
+  persistência;
+- Configurações demonstrativas com preferências locais aplicadas somente na
+  sessão;
+- mocks e dados determinísticos para as experiências visuais;
 - componentes básicos de interface;
-- validações com Prettier, ESLint e build de produção.
+- testes unitários e de componentes com Vitest;
+- validações com Prettier, ESLint e build de produção;
+- deploy inicial em `https://papodefuturo.vercel.app`.
 
 ## Funcionalidades ainda não implementadas
 
 - autenticação real;
 - Supabase;
 - persistência;
-- carteira funcional;
+- carteira funcional com dados persistidos;
 - compras;
 - cotações reais;
-- cálculos reais;
-- motor estratégico;
+- cálculos financeiros reais baseados em dados de mercado;
+- motor estratégico final de produto;
 - APIs;
 - IA;
 - auditoria.
@@ -95,6 +108,7 @@ npm run dev
 ## Validações
 
 ```bash
+npm test
 npm run format:check
 npm run lint
 npm run build
@@ -120,7 +134,12 @@ src/
 │   ├── layout/
 │   └── ui/
 ├── features/
-│   └── dashboard/
+│   ├── contribution/
+│   ├── dashboard/
+│   ├── history/
+│   ├── portfolio/
+│   ├── settings/
+│   └── strategy/
 ├── lib/
 ├── mocks/
 ├── pages/

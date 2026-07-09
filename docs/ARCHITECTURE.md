@@ -27,10 +27,16 @@
 
 No estado atual:
 
-- `DashboardPage.tsx` compõe a tela de Visão Geral.
-- componentes específicos do Dashboard ficam em `src/features/dashboard`.
-- dados demonstrativos do Dashboard ficam em `src/mocks`.
-- nenhuma camada real de dados existe ainda.
+- as páginas demonstrativas ficam em `src/pages` e compõem as rotas principais;
+- componentes específicos de cada área ficam em `src/features`;
+- Dashboard, Minha Carteira, Histórico, Estratégia e Configurações possuem
+  componentes de feature próprios;
+- Novo Aporte possui engine, estratégias, utilitários e UI demonstrativa em
+  `src/features/contribution`;
+- dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
+  mais de uma área;
+- não existe camada real de dados, backend, autenticação, Supabase, APIs ou
+  persistência.
 
 ### Situação funcional atual
 
@@ -38,15 +44,20 @@ No estado atual:
 
 - login visual demonstrativo;
 - layout principal responsivo;
-- rotas iniciais com placeholders;
-- Dashboard visual demonstrativo com mocks centralizados.
+- rotas demonstrativas para Dashboard, Minha Carteira, Novo Aporte, Histórico,
+  Estratégia e Configurações;
+- telas responsivas com dados determinísticos e mensagens demonstrativas;
+- engine local de simulação do Novo Aporte, sem backend e sem persistência;
+- edição local demonstrativa em Estratégia e Configurações;
+- publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
+- testes automatizados com Vitest para regras e utilitários já extraídos.
 
 #### Planejado
 
 - domínio financeiro;
 - persistência de dados;
 - autenticação real;
-- motor estratégico;
+- motor estratégico final de produto;
 - integrações externas.
 
 #### Em aberto
@@ -256,13 +267,21 @@ Critérios futuros de avaliação:
 - termos de uso;
 - disponibilidade histórica.
 
-## Testes planejados
+## Testes
+
+### Atual
+
+- Vitest cobre utilitários, engines locais e regras demonstrativas já extraídas;
+- os testes atuais não dependem de backend, Supabase, APIs ou dados reais;
+- validações de formato, lint e build fazem parte do ciclo de entrega.
+
+### Planejado
 
 - testes unitários para domínio financeiro;
 - testes de casos-limite;
 - testes de arredondamento;
 - testes de normalização das metas;
-- testes do motor de aportes;
+- testes adicionais do motor de aportes quando ele for conectado ao domínio real;
 - testes de autorização e RLS;
 - testes de integração para adaptadores;
 - testes de acessibilidade para fluxos principais.
