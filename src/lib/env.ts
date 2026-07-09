@@ -58,10 +58,3 @@ export function readSupabaseEnvironment(
     anonKey,
   }
 }
-
-export function readCurrentSupabaseEnvironment(): SupabaseEnvironmentConfig {
-  return readSupabaseEnvironment({
-    [SUPABASE_URL_ENV_KEY]: import.meta.env.VITE_SUPABASE_URL,
-    [SUPABASE_ANON_KEY_ENV_KEY]: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  })
-}
