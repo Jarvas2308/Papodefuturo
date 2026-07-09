@@ -1,19 +1,13 @@
-import { ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { Card } from '../../../components/ui/Card'
 
 type DashboardNextStepProps = {
   title: string
   description: string
-  actionLabel: string
-  actionTo: string
 }
 
 export function DashboardNextStep({
   title,
   description,
-  actionLabel,
-  actionTo,
 }: DashboardNextStepProps) {
   return (
     <Card>
@@ -26,13 +20,6 @@ export function DashboardNextStep({
             {description}
           </p>
         </div>
-        <Link
-          to={actionTo}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2"
-        >
-          {actionLabel}
-          <ArrowRight className="size-4" aria-hidden="true" />
-        </Link>
       </div>
     </Card>
   )
