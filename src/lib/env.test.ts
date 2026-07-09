@@ -37,4 +37,16 @@ describe('Supabase environment configuration', () => {
       missingKeys: [SUPABASE_URL_ENV_KEY],
     })
   })
+
+  it('treats non-string values as missing', () => {
+    expect(
+      readSupabaseEnvironment({
+        [SUPABASE_URL_ENV_KEY]: true,
+        [SUPABASE_ANON_KEY_ENV_KEY]: 'public-anon-key',
+      })
+    ).toEqual({
+      isConfigured: false,
+      missingKeys: [SUPABASE_URL_ENV_KEY],
+    })
+  })
 })
