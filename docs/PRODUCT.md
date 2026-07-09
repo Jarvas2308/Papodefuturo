@@ -20,9 +20,10 @@ O produto não deve ser interpretado como:
 > da carteira, considerando simultaneamente a estratégia de alocação, o
 > contexto disponível e o capital informado pelo usuário.
 
-Essa missão descreve a direção do produto. O repositório atual ainda não possui
-o domínio financeiro, o motor estratégico nem as integrações necessárias para
-cumprir toda essa proposta.
+Essa missão descreve a direção do produto. O repositório atual já possui
+experiências demonstrativas e engines locais de simulação, mas ainda não possui
+o domínio financeiro completo, dados persistidos, integrações reais nem o motor
+estratégico final necessários para cumprir toda essa proposta.
 
 ## Filosofia
 
@@ -143,17 +144,25 @@ O universo monitorado previsto soma 21 ativos:
 - menu móvel;
 - cabeçalho compartilhado;
 - página visual de login;
-- rotas iniciais;
+- rotas para Dashboard, Minha Carteira, Novo Aporte, Histórico, Estratégia e
+  Configurações;
 - componentes básicos de interface;
-- primeira versão visual do Dashboard;
-- dados exclusivamente demonstrativos no Dashboard.
+- Dashboard demonstrativo;
+- Minha Carteira demonstrativa;
+- Novo Aporte demonstrativo com engine local;
+- Histórico demonstrativo;
+- Estratégia demonstrativa com metas em pontos-base e edição local;
+- Configurações demonstrativas com preferências locais;
+- publicação inicial no Vercel;
+- dados exclusivamente demonstrativos, sem backend, autenticação, Supabase, APIs
+  financeiras ou persistência real.
 
 ### Planejado
 
 - domínio financeiro;
-- carteira funcional;
-- planejamento de aporte;
-- motor estratégico determinístico;
+- carteira funcional com dados persistidos;
+- planejamento de aporte conectado ao domínio real;
+- motor estratégico determinístico final;
 - persistência;
 - autenticação real;
 - integrações de mercado;
@@ -178,7 +187,10 @@ Fluxo conceitual planejado:
 7. futuramente, a IA poderá interpretar o dossiê e explicar o plano;
 8. usuário aceita, ajusta ou rejeita o plano.
 
-Esse fluxo ainda não está implementado no repositório atual.
+O repositório atual possui uma simulação demonstrativa de Novo Aporte conectada a
+um engine local. O fluxo completo acima ainda não está implementado como
+funcionalidade de produto, pois não há carteira persistida, cotações reais,
+confirmação de operações, backend, Supabase ou APIs.
 
 ## Motor estratégico
 
@@ -197,7 +209,8 @@ Esse fluxo ainda não está implementado no repositório atual.
 - seleção da combinação que mais reduz o desvio total;
 - limite operacional de ativos por plano a ser definido na implementação.
 
-Nenhuma das versões do motor está concluída nesta fase.
+As estratégias demonstrativas existentes preparam a arquitetura, mas nenhuma das
+versões finais do motor estratégico de produto está concluída nesta fase.
 
 ## Papel futuro da IA
 

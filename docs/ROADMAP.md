@@ -12,7 +12,7 @@
 - menu móvel acessível;
 - componentes básicos;
 - login visual;
-- placeholders das rotas.
+- rotas iniciais da fundação visual.
 
 ### Visão Geral demonstrativa
 
@@ -143,15 +143,28 @@ Ainda não existem persistência, `localStorage`, `sessionStorage`, cookies,
 backend, autenticação, Supabase, APIs, notificações reais, tema global,
 integração das preferências com outras telas ou dados financeiros reais.
 
+### Ajustes iniciais da revisão geral de experiência
+
+- menu móvel com foco contido, `Escape`, retorno de foco e bloqueio de rolagem;
+- painel de notificações demonstrativas no cabeçalho;
+- linguagem de conta demonstrativa no shell;
+- descrições do cabeçalho compartilhado ajustadas para mobile;
+- hierarquia do cabeçalho da carteira revisada;
+- CTA redundante do Dashboard removido, mantendo uma ação principal para Novo
+  Aporte;
+- validação final com 9 arquivos de teste e 102 testes aprovados.
+
+Ainda não existem backend, autenticação, Supabase, APIs, persistência real ou
+dados financeiros reais.
+
 ## Próximo
 
 ### Próximas telas
 
 Ordem planejada:
 
-1. revisão geral da experiência;
-2. modelo de dados;
-3. Supabase.
+1. modelo de dados;
+2. Supabase.
 
 Todas ainda com dados demonstrativos quando necessário.
 
