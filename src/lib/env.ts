@@ -2,8 +2,7 @@ export const SUPABASE_URL_ENV_KEY = 'VITE_SUPABASE_URL'
 export const SUPABASE_ANON_KEY_ENV_KEY = 'VITE_SUPABASE_ANON_KEY'
 
 export type SupabasePublicEnvKey =
-  | typeof SUPABASE_URL_ENV_KEY
-  | typeof SUPABASE_ANON_KEY_ENV_KEY
+  typeof SUPABASE_URL_ENV_KEY | typeof SUPABASE_ANON_KEY_ENV_KEY
 
 export type SupabasePublicEnvSource = Partial<
   Record<SupabasePublicEnvKey, unknown>
