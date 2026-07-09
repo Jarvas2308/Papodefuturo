@@ -32,8 +32,6 @@ export function DashboardPage() {
       <DashboardNextStep
         title={dashboardMock.nextStep.title}
         description={dashboardMock.nextStep.description}
-        actionLabel={dashboardMock.nextStep.actionLabel}
-        actionTo={dashboardMock.nextStep.actionTo}
       />
 
       <RecentMovements
