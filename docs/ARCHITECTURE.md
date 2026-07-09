@@ -19,6 +19,7 @@
 - `src/app`: configuração de aplicação e roteamento principal.
 - `src/components/layout`: shell compartilhado, sidebar, cabeçalho e menu móvel.
 - `src/components/ui`: componentes básicos reutilizáveis de interface.
+- `src/domain`: primeira fundação tipada do domínio financeiro futuro.
 - `src/features`: componentes específicos de domínio visual por área funcional.
 - `src/mocks`: dados demonstrativos utilizados pelas telas visuais.
 - `src/pages`: páginas de rota e composição das telas.
@@ -33,9 +34,10 @@ No estado atual:
   componentes de feature próprios;
 - Novo Aporte possui engine, estratégias, utilitários e UI demonstrativa em
   `src/features/contribution`;
+- `src/domain/models` possui os primeiros tipos compartilhados do domínio;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
-- não existe camada real de dados, backend, autenticação, Supabase, APIs ou
+- ainda não existe camada real de dados, backend, autenticação, Supabase, APIs ou
   persistência.
 
 ### Situação funcional atual
@@ -49,12 +51,12 @@ No estado atual:
 - telas responsivas com dados determinísticos e mensagens demonstrativas;
 - engine local de simulação do Novo Aporte, sem backend e sem persistência;
 - edição local demonstrativa em Estratégia e Configurações;
+- primeira fundação tipada do domínio financeiro em `src/domain`;
 - publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
 - testes automatizados com Vitest para regras e utilitários já extraídos.
 
 #### Planejado
 
-- domínio financeiro;
 - persistência de dados;
 - autenticação real;
 - motor estratégico final de produto;
@@ -84,19 +86,20 @@ Não deve conter regras financeiras relevantes.
 
 ### Domínio
 
-Responsável futuramente por:
+Responsável por:
 
-- consolidação de posições;
-- preço médio;
-- valor investido;
-- valor atual;
-- participação;
-- rentabilidade;
-- metas;
-- desvios;
-- ranking;
-- simulação de aportes;
-- comparação antes e depois.
+- representar os conceitos financeiros centrais;
+- consolidar posições;
+- calcular preço médio;
+- calcular valor investido;
+- calcular valor atual;
+- calcular participação;
+- calcular rentabilidade;
+- representar metas;
+- calcular desvios;
+- calcular ranking;
+- simular aportes;
+- comparar cenários antes e depois.
 
 As funções de domínio devem ser:
 
@@ -105,6 +108,38 @@ As funções de domínio devem ser:
 - independentes de React;
 - testáveis;
 - sem dependência direta de Supabase ou APIs.
+
+### Domínio atual
+
+A primeira fundação tipada do domínio já existe em `src/domain/models`.
+
+Modelos iniciais:
+
+- `Asset`;
+- `PortfolioPosition`;
+- `Purchase`;
+- `AssetPrice`;
+- `AllocationTarget`;
+- `ContributionPlan`;
+- `ContributionPlanItem`.
+
+Primitivos compartilhados:
+
+- `EntityId` como `string`, sem assumir formato de banco;
+- `MoneyInMinorUnits` para dinheiro em unidades menores inteiras;
+- `MoneyAmount` combinando valor inteiro e moeda;
+- `BasisPoints` para metas, com `10.000` pontos-base equivalendo a `100,00%`.
+
+Helpers puros já disponíveis:
+
+- validação de IDs não vazios;
+- validação de dinheiro em unidades menores;
+- validação de pontos-base;
+- soma de pontos-base;
+- verificação de alocação completa.
+
+Essa fundação ainda não está conectada às telas, mocks, Supabase, autenticação,
+APIs ou persistência.
 
 ### Infraestrutura
 
@@ -257,63 +292,3 @@ Integrações candidatas sob avaliação:
 Nenhuma integração está aprovada apenas por estar listada.
 
 Critérios futuros de avaliação:
-
-- cobertura;
-- licença;
-- custo;
-- limite gratuito;
-- confiabilidade;
-- atraso;
-- termos de uso;
-- disponibilidade histórica.
-
-## Testes
-
-### Atual
-
-- Vitest cobre utilitários, engines locais e regras demonstrativas já extraídas;
-- os testes atuais não dependem de backend, Supabase, APIs ou dados reais;
-- validações de formato, lint e build fazem parte do ciclo de entrega.
-
-### Planejado
-
-- testes unitários para domínio financeiro;
-- testes de casos-limite;
-- testes de arredondamento;
-- testes de normalização das metas;
-- testes adicionais do motor de aportes quando ele for conectado ao domínio real;
-- testes de autorização e RLS;
-- testes de integração para adaptadores;
-- testes de acessibilidade para fluxos principais.
-
-## Estrutura futura indicativa
-
-```text
-src/
-├── app/
-├── components/
-├── domain/
-├── features/
-├── integrations/
-├── lib/
-├── pages/
-├── services/
-└── styles/
-
-supabase/
-└── migrations/
-```
-
-As pastas futuras acima não devem ser criadas nesta tarefa.
-
-## Decisões em aberto
-
-- formato definitivo das tabelas;
-- escopo global ou individual das cotações;
-- provedor de câmbio;
-- provedores financeiros;
-- frequência de atualização;
-- histórico de cotações;
-- armazenamento de planos não confirmados;
-- modelo de auditoria;
-- limite definitivo de ativos no plano multiativos.

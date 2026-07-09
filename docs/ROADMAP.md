@@ -157,20 +157,48 @@ integração das preferências com outras telas ou dados financeiros reais.
 Ainda não existem backend, autenticação, Supabase, APIs, persistência real ou
 dados financeiros reais.
 
+### Fundação do modelo de dados
+
+- `src/domain/README.md` criado;
+- modelos TypeScript isolados em `src/domain/models`;
+- entidades iniciais: `Asset`, `PortfolioPosition`, `Purchase`, `AssetPrice`,
+  `AllocationTarget`, `ContributionPlan` e `ContributionPlanItem`;
+- primitivos compartilhados: `EntityId`, `MoneyAmount`, `MoneyInMinorUnits`,
+  `CurrencyCode` e `BasisPoints`;
+- dinheiro representado em unidades menores inteiras;
+- metas representadas em pontos-base, com `TOTAL_ALLOCATION_BASIS_POINTS = 10_000`;
+- IDs definidos como `string`, sem assumir formato de banco;
+- helpers puros para validar IDs, dinheiro, pontos-base, soma de pontos-base e
+  alocação completa;
+- testes unitários para os helpers puros;
+- validação final com 10 arquivos de teste e 107 testes aprovados.
+
+Ainda não existem conexão do domínio com telas, mocks, backend, Supabase,
+autenticação, APIs, persistência real, `localStorage`, `sessionStorage`, cookies
+ou dados financeiros reais.
+
 ## Próximo
 
-### Próximas telas
+### Fundação de dados e acesso
 
 Ordem planejada:
 
-1. modelo de dados;
-2. Supabase.
+1. preparação controlada para Supabase;
+2. variáveis de ambiente sem segredos;
+3. cliente Supabase isolado, sem conectar telas;
+4. esquema inicial;
+5. migrations;
+6. RLS;
+7. Auth;
+8. seed do universo fechado;
+9. testes de isolamento por usuário.
 
-Todas ainda com dados demonstrativos quando necessário.
+Todas as etapas devem continuar em ciclos pequenos, revisáveis e sem conectar
+telas antes da base estar validada.
 
 ## Planejado
 
-### Fundação de dados e acesso
+### Supabase e persistência
 
 - projeto Supabase;
 - variáveis de ambiente;
@@ -218,52 +246,3 @@ Todas ainda com dados demonstrativos quando necessário.
 Planejado somente após o domínio determinístico:
 
 - dossiê;
-- fatos;
-- interpretação;
-- convicção;
-- explicação comparativa;
-- limites claros da IA.
-
-### Auditoria
-
-- plano gerado;
-- versão do motor;
-- dados utilizados;
-- preços;
-- câmbio;
-- ranking;
-- justificativa;
-- decisão do usuário.
-
-### Qualidade e operação
-
-- testes;
-- observabilidade;
-- tratamento de erros;
-- desempenho;
-- segurança;
-- acessibilidade;
-- documentação operacional.
-
-## Em avaliação
-
-### Cotações e câmbio
-
-- cotação manual inicial;
-- preços automatizados;
-- USD/BRL;
-- fonte e horário;
-- tratamento de falhas;
-- política de atualização.
-
-### Dados de contexto
-
-- fundamentos;
-- notícias;
-- indicadores;
-- provedores e licenças.
-
-## Regra de avanço
-
-> Uma etapa só muda para “Concluído” depois de implementação, validação,
-> revisão e integração na branch principal.

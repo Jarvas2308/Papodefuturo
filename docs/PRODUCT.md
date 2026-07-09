@@ -21,9 +21,10 @@ O produto não deve ser interpretado como:
 > contexto disponível e o capital informado pelo usuário.
 
 Essa missão descreve a direção do produto. O repositório atual já possui
-experiências demonstrativas e engines locais de simulação, mas ainda não possui
-o domínio financeiro completo, dados persistidos, integrações reais nem o motor
-estratégico final necessários para cumprir toda essa proposta.
+experiências demonstrativas, engines locais de simulação e a primeira fundação
+tipada do domínio financeiro, mas ainda não possui dados persistidos,
+integrações reais nem o motor estratégico final necessários para cumprir toda
+essa proposta.
 
 ## Filosofia
 
@@ -153,13 +154,16 @@ O universo monitorado previsto soma 21 ativos:
 - Histórico demonstrativo;
 - Estratégia demonstrativa com metas em pontos-base e edição local;
 - Configurações demonstrativas com preferências locais;
+- primeira fundação tipada do domínio financeiro em `src/domain`;
+- modelos iniciais para ativos, posições, compras, preços, metas e planos de
+  aporte;
 - publicação inicial no Vercel;
 - dados exclusivamente demonstrativos, sem backend, autenticação, Supabase, APIs
   financeiras ou persistência real.
 
 ### Planejado
 
-- domínio financeiro;
+- domínio financeiro completo conectado aos fluxos reais;
 - carteira funcional com dados persistidos;
 - planejamento de aporte conectado ao domínio real;
 - motor estratégico determinístico final;
@@ -188,9 +192,10 @@ Fluxo conceitual planejado:
 8. usuário aceita, ajusta ou rejeita o plano.
 
 O repositório atual possui uma simulação demonstrativa de Novo Aporte conectada a
-um engine local. O fluxo completo acima ainda não está implementado como
-funcionalidade de produto, pois não há carteira persistida, cotações reais,
-confirmação de operações, backend, Supabase ou APIs.
+um engine local e uma fundação tipada inicial do domínio financeiro. O fluxo
+completo acima ainda não está implementado como funcionalidade de produto, pois
+não há carteira persistida, cotações reais, confirmação de operações, backend,
+Supabase ou APIs.
 
 ## Motor estratégico
 
@@ -209,8 +214,9 @@ confirmação de operações, backend, Supabase ou APIs.
 - seleção da combinação que mais reduz o desvio total;
 - limite operacional de ativos por plano a ser definido na implementação.
 
-As estratégias demonstrativas existentes preparam a arquitetura, mas nenhuma das
-versões finais do motor estratégico de produto está concluída nesta fase.
+As estratégias demonstrativas existentes e a fundação tipada do domínio preparam
+a arquitetura, mas nenhuma das versões finais do motor estratégico de produto
+está concluída nesta fase.
 
 ## Papel futuro da IA
 
