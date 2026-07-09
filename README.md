@@ -14,14 +14,17 @@ Cada aporte deve representar o melhor próximo passo possível para a evolução
 carteira, considerando simultaneamente a estratégia de alocação, o contexto
 disponível e o capital informado pelo usuário.
 
-Essa missão descreve a direção do produto. O repositório atual ainda não possui
-o domínio financeiro nem as integrações necessárias para cumpri-la por inteiro.
+Essa missão descreve a direção do produto. O repositório atual já possui
+experiências demonstrativas e a primeira fundação tipada do domínio financeiro,
+mas ainda não possui integrações reais, dados persistidos ou motor estratégico
+final para cumpri-la por inteiro.
 
 ## Estado atual
 
 - fundação visual concluída;
 - experiências demonstrativas disponíveis para Dashboard, Minha Carteira, Novo
   Aporte, Histórico, Estratégia e Configurações;
+- primeira fundação tipada do modelo de dados criada em `src/domain`;
 - publicação inicial no Vercel concluída;
 - ajustes iniciais da revisão geral de experiência aplicados;
 - nenhuma integração real foi implementada;
@@ -47,6 +50,10 @@ o domínio financeiro nem as integrações necessárias para cumpri-la por intei
   persistência;
 - Configurações demonstrativas com preferências locais aplicadas somente na
   sessão;
+- fundação tipada do domínio financeiro com modelos isolados de Asset,
+  PortfolioPosition, Purchase, AssetPrice, AllocationTarget e ContributionPlan;
+- primitivos compartilhados para IDs, dinheiro em unidades menores e metas em
+  pontos-base;
 - mocks e dados determinísticos para as experiências visuais;
 - componentes básicos de interface;
 - testes unitários e de componentes com Vitest;
@@ -59,9 +66,9 @@ o domínio financeiro nem as integrações necessárias para cumpri-la por intei
 - Supabase;
 - persistência;
 - carteira funcional com dados persistidos;
-- compras;
+- compras reais;
 - cotações reais;
-- cálculos financeiros reais baseados em dados de mercado;
+- cálculos financeiros reais conectados a dados persistidos ou de mercado;
 - motor estratégico final de produto;
 - APIs;
 - IA;
@@ -133,6 +140,8 @@ src/
 ├── components/
 │   ├── layout/
 │   └── ui/
+├── domain/
+│   └── models/
 ├── features/
 │   ├── contribution/
 │   ├── dashboard/
