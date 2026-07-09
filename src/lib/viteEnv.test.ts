@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  SUPABASE_ANON_KEY_ENV_KEY,
-  SUPABASE_URL_ENV_KEY,
-} from './env'
+import { SUPABASE_ANON_KEY_ENV_KEY, SUPABASE_URL_ENV_KEY } from './env'
 import { readViteSupabaseEnvironment } from './viteEnv'
 
 describe('Vite Supabase environment bridge', () => {
