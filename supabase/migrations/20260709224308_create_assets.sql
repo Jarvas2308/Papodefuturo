@@ -67,6 +67,9 @@ using (user_id = (select auth.uid()));
 create index assets_user_id_idx
 on public.assets (user_id);
 
+create unique index assets_user_ticker_unique
+on public.assets (user_id, upper(ticker));
+
 create index assets_user_id_category_idx
 on public.assets (user_id, category);
 
