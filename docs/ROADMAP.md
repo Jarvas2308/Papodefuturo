@@ -189,8 +189,30 @@ ou dados financeiros reais.
 - índices planejados e integração gradual com o app descritos;
 - escopo limitado a documentação.
 
-Ainda não existem migrations, tabelas, RLS, policies, SQL executado, conexão com
-telas, persistência real, autenticação, backend, APIs ou acesso a dados reais.
+Ainda não existiam, nesse ciclo documental, migrations aplicadas, tabelas reais,
+RLS aplicado, policies reais, conexão com telas, persistência real,
+autenticação, backend, APIs ou acesso a dados reais.
+
+### Estado aplicado inicial do Supabase
+
+- migration inicial de `profiles` aplicada no Supabase real;
+- migrations corretivas dos advisors iniciais aplicadas;
+- tabela real `public.profiles` criada;
+- `public.profiles` com RLS habilitado e 0 linhas;
+- primary key `profiles.id`;
+- foreign key `profiles.id -> auth.users.id`;
+- colunas `id`, `name`, `created_at` e `updated_at` registradas;
+- policies de `profiles` otimizadas com `(select auth.uid())`;
+- `public.set_updated_at()` corrigida com `search_path` fixo;
+- execução pública de `public.rls_auto_enable()` revogada;
+- advisors de segurança e performance limpos;
+- banco real ainda possui somente `public.profiles`;
+- app ainda usa mocks e dados demonstrativos;
+- nenhuma tela foi conectada ao Supabase;
+- nenhum dado real foi inserido.
+
+Ainda não existem autenticação frontend real, backend, APIs, persistência real no
+app, repositories conectados às telas ou substituição dos mocks por dados reais.
 
 ## Próximo
 
@@ -198,15 +220,14 @@ telas, persistência real, autenticação, backend, APIs ou acesso a dados reais
 
 Ordem planejada:
 
-1. preparação controlada para Supabase;
-2. variáveis de ambiente sem segredos;
-3. cliente Supabase isolado, sem conectar telas;
-4. esquema inicial;
-5. migrations;
-6. RLS;
-7. Auth;
-8. seed do universo fechado;
-9. testes de isolamento por usuário.
+1. criar migration de `assets`, ainda sem conectar telas;
+2. gerar types após avanço do schema;
+3. criar repositories isolados;
+4. manter mocks como fallback;
+5. conectar leitura real somente depois de schema, RLS e testes revisados;
+6. Auth;
+7. seed do universo fechado;
+8. testes de isolamento por usuário.
 
 Todas as etapas devem continuar em ciclos pequenos, revisáveis e sem conectar
 telas antes da base estar validada.
