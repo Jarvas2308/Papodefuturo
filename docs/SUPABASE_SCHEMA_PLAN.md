@@ -17,8 +17,9 @@ ciclos próprios.
 - Migrations aplicadas no Supabase real:
   - `20260709211527_create_profiles`;
   - `20260709214124_fix_profiles_advisors`;
-  - `20260709220231_revoke_rls_auto_enable_execute`.
-- Schema `public` possui somente a tabela real `profiles`.
+  - `20260709220231_revoke_rls_auto_enable_execute`;
+  - `20260710022454_create_assets`.
+- Schema `public` possui as tabelas reais `profiles` e `assets`.
 - `public.profiles` está criada com RLS habilitado e 0 linhas.
 - `profiles.id` é primary key e foreign key para `auth.users(id)`.
 - Colunas atuais de `profiles`: `id uuid`, `name text`, `created_at timestamptz`
@@ -26,7 +27,23 @@ ciclos próprios.
 - Policies de `profiles` foram corrigidas para usar `(select auth.uid())`.
 - `public.set_updated_at()` teve `search_path` corrigido.
 - Execução pública de `public.rls_auto_enable()` foi revogada.
-- Advisors atuais de segurança e performance estão limpos.
+- `public.assets` está criada com RLS habilitado e 0 linhas.
+- `assets.id` é primary key e `assets.user_id` é foreign key para
+  `auth.users(id)`.
+- Colunas atuais de `assets`: `id uuid`, `user_id uuid`, `ticker text`,
+  `name text`, `category text`, `market text`, `currency text`, `status text`
+  com `default 'active'`, `created_at timestamptz` com `default now()` e
+  `updated_at timestamptz` com `default now()`.
+- Constraints de `assets` garantem ticker e nome não vazios, categorias do
+  domínio atual, mercados `BR`, `US` e `INTERNAL`, moedas `BRL` e `USD`, e
+  status `active` ou `inactive`.
+- Policies de `assets` são restritas a `authenticated` e usam
+  `(select auth.uid())`.
+- `assets` possui índice único por `user_id + upper(ticker)` e índices
+  auxiliares por usuário, categoria e status.
+- Advisors atuais de segurança estão limpos.
+- Advisors atuais de performance têm somente avisos informativos `unused_index`
+  para índices de `assets` ainda não usados.
 - Sem Edge Functions.
 - Aplicação ainda usa mocks e telas demonstrativas.
 - Factory isolada de cliente Supabase já criada no app.
@@ -80,7 +97,8 @@ Observações:
 - `profiles.id` deve representar o mesmo identificador do usuário autenticado;
 - a criação automática do perfil pode ser avaliada em ciclo próprio.
 
-As demais tabelas deste plano ainda não foram criadas no Supabase real.
+As demais tabelas deste plano, além de `profiles` e `assets`, ainda não foram
+criadas no Supabase real.
 
 ### assets
 
@@ -88,24 +106,35 @@ Finalidade:
 
 - catálogo de ativos cadastrados pelo usuário.
 
-Campos sugeridos:
+Campos aplicados:
 
 - `id uuid primary key`;
 - `user_id uuid references auth.users(id)`;
 - `ticker text`;
 - `name text`;
-- `asset_type text`;
-- `currency text`;
 - `category text`;
+- `market text`;
+- `currency text`;
+- `status text`;
 - `created_at timestamptz`;
 - `updated_at timestamptz`.
 
 Observações:
 
+- `assets` já possui migration versionada e aplicada no Supabase real;
+- RLS está habilitado em `public.assets`;
+- as policies reais usam `(select auth.uid())`;
+- existe índice único por `user_id + upper(ticker)`;
+- existem índices auxiliares por usuário, categoria e status;
+- os advisors de segurança estão limpos;
+- os avisos `unused_index` atuais são informativos, esperados porque a tabela
+  tem 0 linhas e o app ainda não faz consultas reais;
 - ativo pertence ao usuário;
-- ticker não deve ser necessariamente único globalmente;
-- considerar unicidade por `user_id + ticker`;
-- categorias devem permanecer compatíveis com o domínio demonstrativo atual.
+- ticker não é único globalmente, apenas dentro do escopo do usuário;
+- categorias devem permanecer compatíveis com o domínio demonstrativo atual;
+- ainda não há dados reais em `assets`;
+- `assets` ainda não está conectada às telas;
+- o app ainda usa mocks.
 
 ### purchases
 
@@ -257,7 +286,7 @@ criadas e revisadas em ciclo próprio.
 
 1. Extensões necessárias, se houver.
 2. `profiles` — aplicada.
-3. `assets` — pendente.
+3. `assets` — aplicada.
 4. `purchases` — pendente.
 5. `asset_prices` — pendente.
 6. `allocation_targets` — pendente.
@@ -271,8 +300,13 @@ criadas e revisadas em ciclo próprio.
 
 ## 8. Índices Planejados
 
-- `assets(user_id)`;
-- `assets(user_id, ticker)`;
+- `assets(user_id)` — aplicado, com aviso informativo `unused_index` enquanto
+  não houver consultas reais;
+- `assets(user_id, upper(ticker))` — aplicado como índice único;
+- `assets(user_id, category)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
+- `assets(user_id, status)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
 - `purchases(user_id)`;
 - `purchases(asset_id)`;
 - `purchases(user_id, purchased_at)`;
@@ -305,4 +339,9 @@ Ordem futura recomendada:
 - Nenhuma autenticação frontend real foi criada.
 - Nenhum backend foi criado.
 - Nenhuma API foi criada.
-- Nenhuma tabela além de `public.profiles` foi criada no Supabase real.
+- Nenhuma tabela além de `public.profiles` e `public.assets` foi criada no
+  Supabase real.
+- As próximas tabelas pendentes são `purchases`, `asset_prices`,
+  `allocation_targets`, `contribution_plans` e `contribution_plan_items`.
+- O próximo passo provável é criar a migration de `purchases`, ainda sem
+  conectar telas.

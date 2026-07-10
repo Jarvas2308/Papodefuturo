@@ -26,8 +26,9 @@ final para cumpri-la por inteiro.
   Aporte, Histórico, Estratégia e Configurações;
 - primeira fundação tipada do modelo de dados criada em `src/domain`;
 - preparação inicial de Supabase criada, com factory isolada de cliente;
-- primeira tabela real `public.profiles` aplicada no Supabase, ainda sem consumo
-  pelas telas;
+- tabelas reais `public.profiles` e `public.assets` aplicadas no Supabase, ainda
+  sem consumo pelas telas;
+- advisors de segurança atuais limpos;
 - publicação inicial no Vercel concluída;
 - ajustes iniciais da revisão geral de experiência aplicados;
 - nenhuma tela foi conectada a dados reais;
@@ -58,8 +59,10 @@ final para cumpri-la por inteiro.
   PortfolioPosition, Purchase, AssetPrice, AllocationTarget e ContributionPlan;
 - base técnica inicial de Supabase com variáveis públicas tipadas, factory
   isolada de cliente e migrations versionadas;
-- `public.profiles` criada no Supabase real com RLS habilitado e advisors atuais
-  limpos;
+- `public.profiles` e `public.assets` criadas no Supabase real com RLS
+  habilitado;
+- policies de `profiles` e `assets` usando `(select auth.uid())`;
+- advisors de segurança atuais limpos;
 - primitivos compartilhados para IDs, dinheiro em unidades menores e metas em
   pontos-base;
 - mocks e dados determinísticos para as experiências visuais;

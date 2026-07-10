@@ -214,13 +214,42 @@ autenticação, backend, APIs ou acesso a dados reais.
 Ainda não existem autenticação frontend real, backend, APIs, persistência real no
 app, repositories conectados às telas ou substituição dos mocks por dados reais.
 
+### Estado aplicado de assets no Supabase
+
+- migration inicial de `assets` versionada e aplicada no Supabase real;
+- tabela real `public.assets` criada;
+- `public.assets` com RLS habilitado e 0 linhas;
+- primary key `assets.id`;
+- foreign key `assets.user_id -> auth.users.id`;
+- colunas `id`, `user_id`, `ticker`, `name`, `category`, `market`, `currency`,
+  `status`, `created_at` e `updated_at` registradas;
+- constraints para ticker e nome não vazios, categorias do domínio atual,
+  mercados `BR`, `US` e `INTERNAL`, moedas `BRL` e `USD`, e status `active` e
+  `inactive`;
+- policies de select, insert, update e delete para `authenticated`, usando
+  `(select auth.uid())`;
+- índice único `assets_user_ticker_unique` por `user_id + upper(ticker)`;
+- índices auxiliares `assets_user_id_idx`, `assets_user_id_category_idx` e
+  `assets_user_id_status_idx`;
+- trigger `set_assets_updated_at` usando `public.set_updated_at()`;
+- advisors de segurança limpos;
+- avisos de performance `unused_index` documentados como informativos e
+  esperados enquanto a tabela tem 0 linhas e o app não faz consultas reais;
+- app ainda usa mocks e dados demonstrativos;
+- nenhuma tela foi conectada ao Supabase;
+- nenhum dado real foi inserido.
+
+Ainda não existem compras reais, cotações reais, persistência nas telas,
+autenticação frontend real, backend, APIs, repositories conectados às telas ou
+substituição dos mocks por dados reais.
+
 ## Próximo
 
 ### Fundação de dados e acesso
 
 Ordem planejada:
 
-1. criar migration de `assets`, ainda sem conectar telas;
+1. criar migration de `purchases`, ainda sem conectar telas;
 2. gerar types após avanço do schema;
 3. criar repositories isolados;
 4. manter mocks como fallback;
