@@ -39,10 +39,10 @@ No estado atual:
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
   migrations versionadas;
-- o Supabase real já possui `public.profiles` e `public.assets`, ambas com RLS
-  habilitado;
+- o Supabase real já possui `public.profiles`, `public.assets` e
+  `public.purchases`, todas com RLS habilitado;
 - advisors de segurança estão limpos e os avisos de performance atuais são
-  informativos para índices de `assets` ainda não usados;
+  informativos para índices de `assets` e `purchases` ainda não usados;
 - ainda não existe camada runtime de dados conectada às telas, backend,
   autenticação frontend real, APIs ou persistência no app.
 
@@ -60,8 +60,8 @@ No estado atual:
 - primeira fundação tipada do domínio financeiro em `src/domain`;
 - factory isolada de cliente Supabase em `src/lib`, sem criação automática de
   cliente pronto no import;
-- tabelas reais `public.profiles` e `public.assets` aplicadas no Supabase, ainda
-  sem consumo pelas telas;
+- tabelas reais `public.profiles`, `public.assets` e `public.purchases`
+  aplicadas no Supabase, ainda sem consumo pelas telas;
 - publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
 - testes automatizados com Vitest para regras e utilitários já extraídos.
 
@@ -279,14 +279,22 @@ Estado atual:
 - leitura tipada de variáveis públicas preparada;
 - factory isolada de cliente Supabase criada;
 - migrations versionadas iniciais criadas;
-- tabelas reais `public.profiles` e `public.assets` aplicadas no Supabase;
+- tabelas reais `public.profiles`, `public.assets` e `public.purchases`
+  aplicadas no Supabase;
 - RLS habilitado em `public.profiles`;
 - RLS habilitado em `public.assets`;
+- RLS habilitado em `public.purchases`;
 - policies de `profiles` usando `(select auth.uid())`;
 - policies de `assets` usando `(select auth.uid())`;
+- policies de `purchases` usando `(select auth.uid())`;
+- policies de insert e update de `purchases` validando que o ativo pertence ao
+  usuário autenticado;
 - índice único de `assets` por `user_id + upper(ticker)`;
+- índices de `purchases` por usuário, ativo, usuário + ativo, usuário + data de
+  compra e usuário + status;
 - advisors atuais de segurança limpos;
-- avisos informativos `unused_index` para índices de `assets` ainda não usados;
+- avisos informativos `unused_index` para índices de `assets` e `purchases`
+  ainda não usados;
 - nenhuma tela conectada ao banco real;
 - nenhum dado real inserido;
 - mocks continuam como fonte das experiências demonstrativas.

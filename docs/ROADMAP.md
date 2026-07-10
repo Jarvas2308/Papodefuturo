@@ -243,13 +243,46 @@ Ainda não existem compras reais, cotações reais, persistência nas telas,
 autenticação frontend real, backend, APIs, repositories conectados às telas ou
 substituição dos mocks por dados reais.
 
+### Estado aplicado de purchases no Supabase
+
+- migration inicial de `purchases` versionada e aplicada no Supabase real;
+- tabela real `public.purchases` criada;
+- `public.purchases` com RLS habilitado e 0 linhas;
+- primary key `purchases.id`;
+- foreign keys `purchases.user_id -> auth.users.id` e
+  `purchases.asset_id -> public.assets.id`;
+- colunas `id`, `user_id`, `asset_id`, `quantity`, `unit_price_minor`,
+  `total_amount_minor`, `currency`, `purchased_at`, `status`, `notes`,
+  `created_at` e `updated_at` registradas;
+- constraints para quantidade positiva, valores monetários não negativos, moedas
+  `BRL` e `USD`, status `planned`, `confirmed` e `cancelled`, e notas nulas ou
+  não vazias;
+- policies de select, insert, update e delete para `authenticated`, usando
+  `(select auth.uid())`;
+- policies de insert e update validando que o ativo pertence ao usuário
+  autenticado;
+- índices auxiliares `purchases_user_id_idx`, `purchases_asset_id_idx`,
+  `purchases_user_asset_idx`, `purchases_user_purchased_at_idx` e
+  `purchases_user_status_idx`;
+- trigger `set_purchases_updated_at` usando `public.set_updated_at()`;
+- advisors de segurança limpos;
+- avisos de performance `unused_index` documentados como informativos e
+  esperados enquanto a tabela tem 0 linhas e o app não faz consultas reais;
+- app ainda usa mocks e dados demonstrativos;
+- nenhuma tela foi conectada ao Supabase;
+- nenhum dado real foi inserido.
+
+Ainda não existem compras reais pela interface, cotações reais, persistência nas
+telas, autenticação frontend real, backend, APIs, repositories conectados às
+telas ou substituição dos mocks por dados reais.
+
 ## Próximo
 
 ### Fundação de dados e acesso
 
 Ordem planejada:
 
-1. criar migration de `purchases`, ainda sem conectar telas;
+1. criar migration de `asset_prices`, ainda sem conectar telas;
 2. gerar types após avanço do schema;
 3. criar repositories isolados;
 4. manter mocks como fallback;

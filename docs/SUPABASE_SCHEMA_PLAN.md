@@ -18,8 +18,9 @@ ciclos próprios.
   - `20260709211527_create_profiles`;
   - `20260709214124_fix_profiles_advisors`;
   - `20260709220231_revoke_rls_auto_enable_execute`;
-  - `20260710022454_create_assets`.
-- Schema `public` possui as tabelas reais `profiles` e `assets`.
+  - `20260710022454_create_assets`;
+  - `20260710140822_create_purchases`.
+- Schema `public` possui as tabelas reais `profiles`, `assets` e `purchases`.
 - `public.profiles` está criada com RLS habilitado e 0 linhas.
 - `profiles.id` é primary key e foreign key para `auth.users(id)`.
 - Colunas atuais de `profiles`: `id uuid`, `name text`, `created_at timestamptz`
@@ -41,9 +42,26 @@ ciclos próprios.
   `(select auth.uid())`.
 - `assets` possui índice único por `user_id + upper(ticker)` e índices
   auxiliares por usuário, categoria e status.
+- `public.purchases` está criada com RLS habilitado e 0 linhas.
+- `purchases.id` é primary key.
+- `purchases.user_id` é foreign key para `auth.users(id)`.
+- `purchases.asset_id` é foreign key para `public.assets(id)`.
+- Colunas atuais de `purchases`: `id uuid`, `user_id uuid`, `asset_id uuid`,
+  `quantity numeric`, `unit_price_minor bigint`, `total_amount_minor bigint`,
+  `currency text`, `purchased_at date`, `status text` com
+  `default 'confirmed'`, `notes text`, `created_at timestamptz` com
+  `default now()` e `updated_at timestamptz` com `default now()`.
+- Constraints de `purchases` garantem quantidade positiva, valores monetários
+  não negativos, moedas `BRL` e `USD`, status `planned`, `confirmed` ou
+  `cancelled`, e notas nulas ou não vazias.
+- Policies de `purchases` são restritas a `authenticated`, usam
+  `(select auth.uid())` e validam, em insert e update, que o ativo pertence ao
+  usuário autenticado.
+- `purchases` possui índices por usuário, ativo, usuário + ativo, usuário +
+  data de compra e usuário + status.
 - Advisors atuais de segurança estão limpos.
 - Advisors atuais de performance têm somente avisos informativos `unused_index`
-  para índices de `assets` ainda não usados.
+  para índices de `assets` e `purchases` ainda não usados.
 - Sem Edge Functions.
 - Aplicação ainda usa mocks e telas demonstrativas.
 - Factory isolada de cliente Supabase já criada no app.
@@ -97,8 +115,8 @@ Observações:
 - `profiles.id` deve representar o mesmo identificador do usuário autenticado;
 - a criação automática do perfil pode ser avaliada em ciclo próprio.
 
-As demais tabelas deste plano, além de `profiles` e `assets`, ainda não foram
-criadas no Supabase real.
+As demais tabelas deste plano, além de `profiles`, `assets` e `purchases`, ainda
+não foram criadas no Supabase real.
 
 ### assets
 
@@ -142,22 +160,37 @@ Finalidade:
 
 - registrar compras e aportes realizados.
 
-Campos sugeridos:
+Campos aplicados:
 
 - `id uuid primary key`;
 - `user_id uuid references auth.users(id)`;
 - `asset_id uuid references assets(id)`;
 - `quantity numeric`;
-- `unit_price_minor integer/bigint`;
-- `total_amount_minor integer/bigint`;
+- `unit_price_minor bigint`;
+- `total_amount_minor bigint`;
 - `currency text`;
 - `purchased_at date`;
+- `status text`;
 - `notes text`;
 - `created_at timestamptz`;
 - `updated_at timestamptz`.
 
 Observações:
 
+- `purchases` já possui migration versionada e aplicada no Supabase real;
+- RLS está habilitado em `public.purchases`;
+- as policies reais usam `(select auth.uid())`;
+- as policies de insert e update validam que `asset_id` pertence ao usuário
+  autenticado;
+- existe trigger `set_purchases_updated_at` usando `public.set_updated_at()`;
+- existem índices por usuário, ativo, usuário + ativo, usuário + data de compra
+  e usuário + status;
+- os advisors de segurança estão limpos;
+- os avisos `unused_index` atuais são informativos, esperados porque a tabela
+  tem 0 linhas e o app ainda não faz consultas reais;
+- ainda não há dados reais em `purchases`;
+- `purchases` ainda não está conectada às telas;
+- o app ainda usa mocks;
 - posição da carteira deve ser calculada a partir das compras;
 - não criar tabela `holdings` nesta etapa sem justificativa clara;
 - vendas e eventos de renda podem exigir modelagem própria em ciclos futuros.
@@ -287,7 +320,7 @@ criadas e revisadas em ciclo próprio.
 1. Extensões necessárias, se houver.
 2. `profiles` — aplicada.
 3. `assets` — aplicada.
-4. `purchases` — pendente.
+4. `purchases` — aplicada.
 5. `asset_prices` — pendente.
 6. `allocation_targets` — pendente.
 7. `contribution_plans` — pendente.
@@ -307,9 +340,16 @@ criadas e revisadas em ciclo próprio.
   enquanto não houver consultas reais;
 - `assets(user_id, status)` — aplicado, com aviso informativo `unused_index`
   enquanto não houver consultas reais;
-- `purchases(user_id)`;
-- `purchases(asset_id)`;
-- `purchases(user_id, purchased_at)`;
+- `purchases(user_id)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
+- `purchases(asset_id)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
+- `purchases(user_id, asset_id)` — aplicado, com aviso informativo
+  `unused_index` enquanto não houver consultas reais;
+- `purchases(user_id, purchased_at)` — aplicado, com aviso informativo
+  `unused_index` enquanto não houver consultas reais;
+- `purchases(user_id, status)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
 - `asset_prices(asset_id, priced_at)`;
 - `allocation_targets(user_id)`;
 - `contribution_plan_items(contribution_plan_id)`.
@@ -339,9 +379,9 @@ Ordem futura recomendada:
 - Nenhuma autenticação frontend real foi criada.
 - Nenhum backend foi criado.
 - Nenhuma API foi criada.
-- Nenhuma tabela além de `public.profiles` e `public.assets` foi criada no
-  Supabase real.
-- As próximas tabelas pendentes são `purchases`, `asset_prices`,
-  `allocation_targets`, `contribution_plans` e `contribution_plan_items`.
-- O próximo passo provável é criar a migration de `purchases`, ainda sem
+- Nenhuma tabela além de `public.profiles`, `public.assets` e
+  `public.purchases` foi criada no Supabase real.
+- As próximas tabelas pendentes são `asset_prices`, `allocation_targets`,
+  `contribution_plans` e `contribution_plan_items`.
+- O próximo passo provável é criar a migration de `asset_prices`, ainda sem
   conectar telas.
