@@ -37,8 +37,12 @@ No estado atual:
 - `src/domain/models` possui os primeiros tipos compartilhados do domínio;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
-- ainda não existe camada real de dados, backend, autenticação, Supabase, APIs ou
-  persistência.
+- existe preparação inicial de Supabase com factory isolada de cliente e
+  migrations versionadas;
+- o Supabase real já possui somente `public.profiles`, com RLS habilitado e
+  advisors de segurança e performance limpos;
+- ainda não existe camada runtime de dados conectada às telas, backend,
+  autenticação frontend real, APIs ou persistência no app.
 
 ### Situação funcional atual
 
@@ -52,6 +56,10 @@ No estado atual:
 - engine local de simulação do Novo Aporte, sem backend e sem persistência;
 - edição local demonstrativa em Estratégia e Configurações;
 - primeira fundação tipada do domínio financeiro em `src/domain`;
+- factory isolada de cliente Supabase em `src/lib`, sem criação automática de
+  cliente pronto no import;
+- primeira tabela real `public.profiles` aplicada no Supabase, ainda sem consumo
+  pelas telas;
 - publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
 - testes automatizados com Vitest para regras e utilitários já extraídos.
 
@@ -143,7 +151,8 @@ APIs ou persistência.
 
 ### Infraestrutura
 
-Responsável futuramente por:
+Responsável pela base técnica atual de Supabase e, futuramente, pela camada real
+de dados:
 
 - Supabase;
 - autenticação;
@@ -257,9 +266,26 @@ Princípios planejados:
 - o valor original e o valor convertido devem ser rastreáveis;
 - a implementação ainda é futura.
 
-## Supabase planejado
+## Supabase
 
-Supabase aparece nesta arquitetura como solução planejada, não atual:
+Supabase já existe como base técnica inicial, mas ainda não é consumido pelas
+telas em runtime.
+
+Estado atual:
+
+- dependência `@supabase/supabase-js` instalada;
+- leitura tipada de variáveis públicas preparada;
+- factory isolada de cliente Supabase criada;
+- migrations versionadas iniciais criadas;
+- tabela real `public.profiles` aplicada no Supabase;
+- RLS habilitado em `public.profiles`;
+- policies de `profiles` usando `(select auth.uid())`;
+- advisors atuais de segurança e performance limpos;
+- nenhuma tela conectada ao banco real;
+- nenhum dado real inserido;
+- mocks continuam como fonte das experiências demonstrativas.
+
+Planejado:
 
 - Supabase Auth;
 - PostgreSQL;

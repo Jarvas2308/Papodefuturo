@@ -25,11 +25,15 @@ final para cumpri-la por inteiro.
 - experiências demonstrativas disponíveis para Dashboard, Minha Carteira, Novo
   Aporte, Histórico, Estratégia e Configurações;
 - primeira fundação tipada do modelo de dados criada em `src/domain`;
+- preparação inicial de Supabase criada, com factory isolada de cliente;
+- primeira tabela real `public.profiles` aplicada no Supabase, ainda sem consumo
+  pelas telas;
 - publicação inicial no Vercel concluída;
 - ajustes iniciais da revisão geral de experiência aplicados;
-- nenhuma integração real foi implementada;
+- nenhuma tela foi conectada a dados reais;
 - os dados exibidos não representam uma carteira real;
-- não há autenticação, backend, Supabase, APIs financeiras ou persistência real.
+- não há autenticação frontend real, backend, APIs financeiras ou persistência
+  real no app.
 
 ## Funcionalidades atuais
 
@@ -52,6 +56,10 @@ final para cumpri-la por inteiro.
   sessão;
 - fundação tipada do domínio financeiro com modelos isolados de Asset,
   PortfolioPosition, Purchase, AssetPrice, AllocationTarget e ContributionPlan;
+- base técnica inicial de Supabase com variáveis públicas tipadas, factory
+  isolada de cliente e migrations versionadas;
+- `public.profiles` criada no Supabase real com RLS habilitado e advisors atuais
+  limpos;
 - primitivos compartilhados para IDs, dinheiro em unidades menores e metas em
   pontos-base;
 - mocks e dados determinísticos para as experiências visuais;
@@ -63,8 +71,8 @@ final para cumpri-la por inteiro.
 ## Funcionalidades ainda não implementadas
 
 - autenticação real;
-- Supabase;
-- persistência;
+- conexão das telas com Supabase;
+- persistência real no app;
 - carteira funcional com dados persistidos;
 - compras reais;
 - cotações reais;
@@ -76,12 +84,13 @@ final para cumpri-la por inteiro.
 
 ## Documentação
 
-| Documento                                                  | Conteúdo                               |
-| ---------------------------------------------------------- | -------------------------------------- |
-| [docs/PRODUCT.md](docs/PRODUCT.md)                         | Missão, estratégia e regras de produto |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)               | Arquitetura atual e planejada          |
-| [docs/CHANGELOG-DECISIONS.md](docs/CHANGELOG-DECISIONS.md) | Registro das decisões                  |
-| [docs/ROADMAP.md](docs/ROADMAP.md)                         | Sequência de evolução                  |
+| Documento                                                    | Conteúdo                               |
+| ------------------------------------------------------------ | -------------------------------------- |
+| [docs/PRODUCT.md](docs/PRODUCT.md)                           | Missão, estratégia e regras de produto |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Arquitetura atual e planejada          |
+| [docs/CHANGELOG-DECISIONS.md](docs/CHANGELOG-DECISIONS.md)   | Registro das decisões                  |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                           | Sequência de evolução                  |
+| [docs/SUPABASE_SCHEMA_PLAN.md](docs/SUPABASE_SCHEMA_PLAN.md) | Estado e plano do schema Supabase      |
 
 ## Stack atual
 

@@ -2,26 +2,39 @@
 
 ## 1. Objetivo
 
-Este documento planeja o schema futuro do Supabase para o Papo de Futuro. Ele
-serve como base técnica para revisão antes da criação de migrations reais.
+Este documento registra o schema planejado do Supabase para o Papo de Futuro e o
+estado aplicado atual das primeiras migrations.
 
-Nenhuma alteração real no banco é executada neste ciclo. Este documento não cria
-tabelas, RLS, policies, seeds, Edge Functions, autenticação, APIs ou
-persistência.
+Nenhuma alteração real no banco é executada por este documento. Alterações no
+Supabase continuam acontecendo somente por migrations revisadas e aplicadas em
+ciclos próprios.
 
 ## 2. Estado Atual
 
 - Projeto Supabase: `Papodefuturo`.
 - Project ref: `vxjrncwfysglinfktifz`.
 - Região informada: `us-east-1`.
-- Schema `public` atualmente sem tabelas.
-- Sem migrations registradas.
+- Migrations aplicadas no Supabase real:
+  - `20260709211527_create_profiles`;
+  - `20260709214124_fix_profiles_advisors`;
+  - `20260709220231_revoke_rls_auto_enable_execute`.
+- Schema `public` possui somente a tabela real `profiles`.
+- `public.profiles` está criada com RLS habilitado e 0 linhas.
+- `profiles.id` é primary key e foreign key para `auth.users(id)`.
+- Colunas atuais de `profiles`: `id uuid`, `name text`, `created_at timestamptz`
+  com `default now()` e `updated_at timestamptz` com `default now()`.
+- Policies de `profiles` foram corrigidas para usar `(select auth.uid())`.
+- `public.set_updated_at()` teve `search_path` corrigido.
+- Execução pública de `public.rls_auto_enable()` foi revogada.
+- Advisors atuais de segurança e performance estão limpos.
 - Sem Edge Functions.
 - Aplicação ainda usa mocks e telas demonstrativas.
 - Factory isolada de cliente Supabase já criada no app.
 - Dependência `@supabase/supabase-js` já instalada.
-- Ainda não existe persistência real.
+- Ainda não existe consumo de Supabase em runtime pelas telas.
 - Ainda não existe conexão de dados reais com telas.
+- Ainda não existem autenticação frontend real, backend, APIs ou dados reais no
+  app.
 
 ## 3. Princípios Técnicos
 
@@ -58,8 +71,16 @@ Campos sugeridos:
 
 Observações:
 
+- `profiles` já possui migrations versionadas e aplicadas no Supabase real;
+- RLS está habilitado em `public.profiles`;
+- as policies reais usam `(select auth.uid())`;
+- a função `public.set_updated_at()` foi corrigida com `search_path` fixo;
+- a execução pública de `public.rls_auto_enable()` foi revogada;
+- os advisors atuais de segurança e performance estão limpos;
 - `profiles.id` deve representar o mesmo identificador do usuário autenticado;
 - a criação automática do perfil pode ser avaliada em ciclo próprio.
+
+As demais tabelas deste plano ainda não foram criadas no Supabase real.
 
 ### assets
 
@@ -235,13 +256,13 @@ criadas e revisadas em ciclo próprio.
 ## 7. Ordem Sugerida de Migrations Futuras
 
 1. Extensões necessárias, se houver.
-2. `profiles`.
-3. `assets`.
-4. `purchases`.
-5. `asset_prices`.
-6. `allocation_targets`.
-7. `contribution_plans`.
-8. `contribution_plan_items`.
+2. `profiles` — aplicada.
+3. `assets` — pendente.
+4. `purchases` — pendente.
+5. `asset_prices` — pendente.
+6. `allocation_targets` — pendente.
+7. `contribution_plans` — pendente.
+8. `contribution_plan_items` — pendente.
 9. Índices.
 10. Triggers de `updated_at`.
 11. RLS.
@@ -274,17 +295,14 @@ Ordem futura recomendada:
 9. Conectar Novo Aporte.
 10. Remover mocks só depois de estabilidade.
 
-## 10. Fora do Escopo Deste Documento
+## 10. Estado Fora do Escopo Atual do App
 
-- Nenhuma migration criada.
-- Nenhuma tabela criada.
-- Nenhuma RLS aplicada.
-- Nenhum SQL executado.
-- Nenhuma tela alterada.
-- Nenhuma rota alterada.
-- Nenhum mock alterado.
-- Nenhuma persistência criada.
-- Nenhum dado real acessado.
-- Nenhuma autenticação criada.
-- Nenhum backend criado.
-- Nenhuma API criada.
+- Nenhuma tela consome Supabase em runtime.
+- Nenhuma rota foi conectada ao banco real.
+- Nenhum mock foi substituído por dados reais.
+- Nenhuma persistência real foi conectada ao frontend.
+- Nenhum dado real foi inserido ou acessado pelo app.
+- Nenhuma autenticação frontend real foi criada.
+- Nenhum backend foi criado.
+- Nenhuma API foi criada.
+- Nenhuma tabela além de `public.profiles` foi criada no Supabase real.
