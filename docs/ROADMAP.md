@@ -206,7 +206,9 @@ autenticação, backend, APIs ou acesso a dados reais.
 - `public.set_updated_at()` corrigida com `search_path` fixo;
 - execução pública de `public.rls_auto_enable()` revogada;
 - advisors de segurança e performance limpos;
-- banco real ainda possui somente `public.profiles`;
+- `public.profiles` foi a primeira tabela real aplicada; o estado atual completo
+  do banco também inclui `public.assets` e `public.purchases`, conforme seções
+  seguintes;
 - app ainda usa mocks e dados demonstrativos;
 - nenhuma tela foi conectada ao Supabase;
 - nenhum dado real foi inserido.
@@ -239,9 +241,9 @@ app, repositories conectados às telas ou substituição dos mocks por dados rea
 - nenhuma tela foi conectada ao Supabase;
 - nenhum dado real foi inserido.
 
-Ainda não existem compras reais, cotações reais, persistência nas telas,
-autenticação frontend real, backend, APIs, repositories conectados às telas ou
-substituição dos mocks por dados reais.
+Ainda não existem compras reais pela interface, cotações reais, persistência nas
+telas, autenticação frontend real, backend, APIs, repositories conectados às
+telas ou substituição dos mocks por dados reais.
 
 ### Estado aplicado de purchases no Supabase
 
