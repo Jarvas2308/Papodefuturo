@@ -39,8 +39,10 @@ No estado atual:
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
   migrations versionadas;
-- o Supabase real já possui somente `public.profiles`, com RLS habilitado e
-  advisors de segurança e performance limpos;
+- o Supabase real já possui `public.profiles` e `public.assets`, ambas com RLS
+  habilitado;
+- advisors de segurança estão limpos e os avisos de performance atuais são
+  informativos para índices de `assets` ainda não usados;
 - ainda não existe camada runtime de dados conectada às telas, backend,
   autenticação frontend real, APIs ou persistência no app.
 
@@ -58,8 +60,8 @@ No estado atual:
 - primeira fundação tipada do domínio financeiro em `src/domain`;
 - factory isolada de cliente Supabase em `src/lib`, sem criação automática de
   cliente pronto no import;
-- primeira tabela real `public.profiles` aplicada no Supabase, ainda sem consumo
-  pelas telas;
+- tabelas reais `public.profiles` e `public.assets` aplicadas no Supabase, ainda
+  sem consumo pelas telas;
 - publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
 - testes automatizados com Vitest para regras e utilitários já extraídos.
 
@@ -277,10 +279,14 @@ Estado atual:
 - leitura tipada de variáveis públicas preparada;
 - factory isolada de cliente Supabase criada;
 - migrations versionadas iniciais criadas;
-- tabela real `public.profiles` aplicada no Supabase;
+- tabelas reais `public.profiles` e `public.assets` aplicadas no Supabase;
 - RLS habilitado em `public.profiles`;
+- RLS habilitado em `public.assets`;
 - policies de `profiles` usando `(select auth.uid())`;
-- advisors atuais de segurança e performance limpos;
+- policies de `assets` usando `(select auth.uid())`;
+- índice único de `assets` por `user_id + upper(ticker)`;
+- advisors atuais de segurança limpos;
+- avisos informativos `unused_index` para índices de `assets` ainda não usados;
 - nenhuma tela conectada ao banco real;
 - nenhum dado real inserido;
 - mocks continuam como fonte das experiências demonstrativas.
