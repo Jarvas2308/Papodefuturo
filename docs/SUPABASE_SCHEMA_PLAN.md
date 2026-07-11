@@ -19,8 +19,10 @@ ciclos próprios.
   - `20260709214124_fix_profiles_advisors`;
   - `20260709220231_revoke_rls_auto_enable_execute`;
   - `20260710022454_create_assets`;
-  - `20260710140822_create_purchases`.
-- Schema `public` possui as tabelas reais `profiles`, `assets` e `purchases`.
+  - `20260710140822_create_purchases`;
+  - `20260710174244_create_asset_prices`.
+- Schema `public` possui as tabelas reais `profiles`, `assets`, `purchases` e
+  `asset_prices`.
 - `public.profiles` está criada com RLS habilitado e 0 linhas.
 - `profiles.id` é primary key e foreign key para `auth.users(id)`.
 - Colunas atuais de `profiles`: `id uuid`, `name text`, `created_at timestamptz`
@@ -59,9 +61,23 @@ ciclos próprios.
   usuário autenticado.
 - `purchases` possui índices por usuário, ativo, usuário + ativo, usuário +
   data de compra e usuário + status.
+- `public.asset_prices` está criada com RLS habilitado e 0 linhas.
+- `asset_prices.id` é primary key.
+- `asset_prices.user_id` é foreign key para `auth.users(id)`.
+- `asset_prices.asset_id` é foreign key para `public.assets(id)`.
+- Colunas atuais de `asset_prices`: `id uuid`, `user_id uuid`, `asset_id uuid`,
+  `price_minor bigint`, `currency text`, `priced_at timestamptz`, `source text`
+  com `default 'manual'` e `created_at timestamptz` com `default now()`.
+- Constraints de `asset_prices` garantem preço positivo, moedas `BRL` e `USD`,
+  e source `manual` ou `market-provider`.
+- Policies de `asset_prices` são restritas a `authenticated`, usam
+  `(select auth.uid())` e validam, em insert e update, que o ativo pertence ao
+  usuário autenticado.
+- `asset_prices` possui índices por usuário, ativo, usuário + ativo, usuário +
+  data de preço e usuário + ativo + data de preço.
 - Advisors atuais de segurança estão limpos.
 - Advisors atuais de performance têm somente avisos informativos `unused_index`
-  para índices de `assets` e `purchases` ainda não usados.
+  para índices de `assets`, `purchases` e `asset_prices` ainda não usados.
 - Sem Edge Functions.
 - Aplicação ainda usa mocks e telas demonstrativas.
 - Factory isolada de cliente Supabase já criada no app.
@@ -115,8 +131,8 @@ Observações:
 - `profiles.id` deve representar o mesmo identificador do usuário autenticado;
 - a criação automática do perfil pode ser avaliada em ciclo próprio.
 
-As demais tabelas deste plano, além de `profiles`, `assets` e `purchases`, ainda
-não foram criadas no Supabase real.
+As demais tabelas deste plano, além de `profiles`, `assets`, `purchases` e
+`asset_prices`, ainda não foram criadas no Supabase real.
 
 ### assets
 
@@ -201,12 +217,12 @@ Finalidade:
 
 - armazenar cotações manuais ou futuras dos ativos.
 
-Campos sugeridos:
+Campos aplicados:
 
 - `id uuid primary key`;
 - `user_id uuid references auth.users(id)`;
 - `asset_id uuid references assets(id)`;
-- `price_minor integer/bigint`;
+- `price_minor bigint`;
 - `currency text`;
 - `priced_at timestamptz`;
 - `source text`;
@@ -214,7 +230,22 @@ Campos sugeridos:
 
 Observações:
 
+- `asset_prices` já possui migration versionada e aplicada no Supabase real;
+- RLS está habilitado em `public.asset_prices`;
+- as policies reais usam `(select auth.uid())`;
+- as policies de insert e update validam que `asset_id` pertence ao usuário
+  autenticado;
+- existem índices por usuário, ativo, usuário + ativo, usuário + data de preço e
+  usuário + ativo + data de preço;
+- os advisors de segurança estão limpos;
+- os avisos `unused_index` atuais são informativos, esperados porque a tabela
+  tem 0 linhas e o app ainda não faz consultas reais;
+- ainda não há dados reais em `asset_prices`;
+- `asset_prices` ainda não está conectada às telas;
+- o app ainda usa mocks;
 - inicialmente pode suportar cotação manual;
+- source aceita `manual` e `market-provider`;
+- histórico de preços deve ser consultado por ativo e data de preço;
 - no futuro pode receber integração por API;
 - integrações externas não fazem parte deste plano inicial.
 
@@ -321,7 +352,7 @@ criadas e revisadas em ciclo próprio.
 2. `profiles` — aplicada.
 3. `assets` — aplicada.
 4. `purchases` — aplicada.
-5. `asset_prices` — pendente.
+5. `asset_prices` — aplicada.
 6. `allocation_targets` — pendente.
 7. `contribution_plans` — pendente.
 8. `contribution_plan_items` — pendente.
@@ -350,7 +381,16 @@ criadas e revisadas em ciclo próprio.
   `unused_index` enquanto não houver consultas reais;
 - `purchases(user_id, status)` — aplicado, com aviso informativo `unused_index`
   enquanto não houver consultas reais;
-- `asset_prices(asset_id, priced_at)`;
+- `asset_prices(user_id)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
+- `asset_prices(asset_id)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
+- `asset_prices(user_id, asset_id)` — aplicado, com aviso informativo
+  `unused_index` enquanto não houver consultas reais;
+- `asset_prices(user_id, priced_at desc)` — aplicado, com aviso informativo
+  `unused_index` enquanto não houver consultas reais;
+- `asset_prices(user_id, asset_id, priced_at desc)` — aplicado, com aviso
+  informativo `unused_index` enquanto não houver consultas reais;
 - `allocation_targets(user_id)`;
 - `contribution_plan_items(contribution_plan_id)`.
 
@@ -379,9 +419,9 @@ Ordem futura recomendada:
 - Nenhuma autenticação frontend real foi criada.
 - Nenhum backend foi criado.
 - Nenhuma API foi criada.
-- Nenhuma tabela além de `public.profiles`, `public.assets` e
-  `public.purchases` foi criada no Supabase real.
-- As próximas tabelas pendentes são `asset_prices`, `allocation_targets`,
-  `contribution_plans` e `contribution_plan_items`.
-- O próximo passo provável é criar a migration de `asset_prices`, ainda sem
+- Nenhuma tabela além de `public.profiles`, `public.assets`, `public.purchases`
+  e `public.asset_prices` foi criada no Supabase real.
+- As próximas tabelas pendentes são `allocation_targets`, `contribution_plans` e
+  `contribution_plan_items`.
+- O próximo passo provável é criar a migration de `allocation_targets`, ainda sem
   conectar telas.
