@@ -278,13 +278,46 @@ Ainda não existem compras reais pela interface, cotações reais, persistência
 telas, autenticação frontend real, backend, APIs, repositories conectados às
 telas ou substituição dos mocks por dados reais.
 
+### Estado aplicado de asset_prices no Supabase
+
+- migration inicial de `asset_prices` versionada e aplicada no Supabase real;
+- tabela real `public.asset_prices` criada;
+- `public.asset_prices` com RLS habilitado e 0 linhas;
+- primary key `asset_prices.id`;
+- foreign keys `asset_prices.user_id -> auth.users.id` e
+  `asset_prices.asset_id -> public.assets.id`;
+- colunas `id`, `user_id`, `asset_id`, `price_minor`, `currency`, `priced_at`,
+  `source` e `created_at` registradas;
+- valores monetários representados em unidades menores inteiras por
+  `price_minor`;
+- constraints para preço positivo, moedas `BRL` e `USD`, e source `manual` ou
+  `market-provider`;
+- histórico de preços preparado por ativo e data de preço;
+- policies de select, insert, update e delete para `authenticated`, usando
+  `(select auth.uid())`;
+- policies de insert e update validando que o ativo pertence ao usuário
+  autenticado;
+- índices auxiliares `asset_prices_user_id_idx`, `asset_prices_asset_id_idx`,
+  `asset_prices_user_asset_idx`, `asset_prices_user_priced_at_idx` e
+  `asset_prices_user_asset_priced_at_idx`;
+- advisors de segurança limpos;
+- avisos de performance `unused_index` documentados como informativos e
+  esperados enquanto a tabela tem 0 linhas e o app não faz consultas reais;
+- app ainda usa mocks e dados demonstrativos;
+- nenhuma tela foi conectada ao Supabase;
+- nenhum dado real foi inserido.
+
+Ainda não existem cotações reais pela interface, persistência nas telas,
+autenticação frontend real, backend, APIs, repositories conectados às telas ou
+substituição dos mocks por dados reais.
+
 ## Próximo
 
 ### Fundação de dados e acesso
 
 Ordem planejada:
 
-1. criar migration de `asset_prices`, ainda sem conectar telas;
+1. criar migration de `allocation_targets`, ainda sem conectar telas;
 2. gerar types após avanço do schema;
 3. criar repositories isolados;
 4. manter mocks como fallback;
