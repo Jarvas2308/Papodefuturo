@@ -9,10 +9,7 @@ import type {
 } from '../../domain/models'
 import { convertMoney } from '../../domain/models'
 import type { ContributionPosition } from '../contribution/types'
-import type {
-  StrategyCategory,
-  StrategyCategoryId,
-} from './types'
+import type { StrategyCategory, StrategyCategoryId } from './types'
 
 const CATEGORY_DEFINITIONS: Array<{
   id: StrategyCategoryId
@@ -46,7 +43,9 @@ function getAssetCurrency(asset: Asset) {
   )
 
   if (!definition) {
-    throw new Error(`Unsupported asset outside closed universe: ${asset.ticker}`)
+    throw new Error(
+      `Unsupported asset outside closed universe: ${asset.ticker}`
+    )
   }
 
   return definition.currency
@@ -71,7 +70,8 @@ export function buildStrategyFromRealData(
 ): StrategyCategory[] {
   return CATEGORY_DEFINITIONS.map((definition) => {
     const categoryAssets = assets.filter(
-      (asset) => asset.status === 'active' && asset.category === definition.category
+      (asset) =>
+        asset.status === 'active' && asset.category === definition.category
     )
     const defaultAssetTargets = distributeBasisPoints(categoryAssets.length)
     const categoryTarget = targets.find(
@@ -161,7 +161,10 @@ export function buildRealStrategyPositions(
   }
 
   const categoryByDomain = new Map(
-    CATEGORY_DEFINITIONS.map((definition) => [definition.category, definition.id])
+    CATEGORY_DEFINITIONS.map((definition) => [
+      definition.category,
+      definition.id,
+    ])
   )
 
   const positions = assets.flatMap((asset): ContributionPosition[] => {
@@ -204,7 +207,8 @@ export function buildRealStrategyPositions(
     const currentValueInCents =
       currency === 'BRL'
         ? currentAmount.amountInMinorUnits
-        : convertMoney(currentAmount, 'BRL', latestUsdBrlRate!).amountInMinorUnits
+        : convertMoney(currentAmount, 'BRL', latestUsdBrlRate!)
+            .amountInMinorUnits
 
     return [
       {
@@ -228,7 +232,10 @@ export function strategyToAllocationTargets(
   createId: () => string = () => crypto.randomUUID()
 ): AllocationTarget[] {
   const domainCategoryByUi = new Map(
-    CATEGORY_DEFINITIONS.map((definition) => [definition.id, definition.category])
+    CATEGORY_DEFINITIONS.map((definition) => [
+      definition.id,
+      definition.category,
+    ])
   )
   const assetById = new Map(assets.map((asset) => [asset.id, asset]))
 
@@ -245,20 +252,24 @@ export function strategyToAllocationTargets(
       targetInBasisPoints: category.targetInBasisPoints,
     }
 
-    const assetTargets = category.assets.map((assetTarget): AllocationTarget => {
-      const asset = assetById.get(assetTarget.assetId)
-      if (!asset || asset.category !== domainCategory) {
-        throw new Error(`Strategy asset/category mismatch: ${assetTarget.assetId}`)
-      }
+    const assetTargets = category.assets.map(
+      (assetTarget): AllocationTarget => {
+        const asset = assetById.get(assetTarget.assetId)
+        if (!asset || asset.category !== domainCategory) {
+          throw new Error(
+            `Strategy asset/category mismatch: ${assetTarget.assetId}`
+          )
+        }
 
-      return {
-        id: createId(),
-        scope: 'asset',
-        category: domainCategory,
-        assetId: asset.id,
-        targetInBasisPoints: assetTarget.targetWithinCategoryInBasisPoints,
+        return {
+          id: createId(),
+          scope: 'asset',
+          category: domainCategory,
+          assetId: asset.id,
+          targetInBasisPoints: assetTarget.targetWithinCategoryInBasisPoints,
+        }
       }
-    })
+    )
 
     return [categoryTarget, ...assetTargets]
   })

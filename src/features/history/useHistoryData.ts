@@ -110,35 +110,32 @@ export function useHistoryData() {
   }, [authStatus, client, user])
 
   useEffect(() => {
-    if (authStatus === 'demo') {
-      setAssets([])
-      setMovements(historyMovements)
-      setError(null)
-      setStatus('ready')
-      return
-    }
-
     if (authStatus !== 'authenticated') {
-      setStatus('loading')
       return
     }
 
     let isActive = true
-    setStatus('loading')
-    setError(null)
 
-    void loadReal().catch((caughtError) => {
-      if (!isActive) {
-        return
-      }
+    void Promise.resolve()
+      .then(async () => {
+        if (!isActive) {
+          return
+        }
 
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Não foi possível carregar o histórico real.'
-      )
-      setStatus('error')
-    })
+        await loadReal()
+      })
+      .catch((caughtError) => {
+        if (!isActive) {
+          return
+        }
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Não foi possível carregar o histórico real.'
+        )
+        setStatus('error')
+      })
 
     return () => {
       isActive = false
@@ -147,7 +144,9 @@ export function useHistoryData() {
 
   async function createPurchase(draft: PurchaseDraft) {
     if (authStatus === 'demo') {
-      throw new Error('O registro real de compras exige uma sessão autenticada.')
+      throw new Error(
+        'O registro real de compras exige uma sessão autenticada.'
+      )
     }
 
     if (!client || !user) {

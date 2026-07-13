@@ -1,8 +1,5 @@
 import type { ContributionPosition } from '../contribution/types'
-import type {
-  StrategyCategory,
-  StrategyCategoryAllocation,
-} from './types'
+import type { StrategyCategory, StrategyCategoryAllocation } from './types'
 import {
   TOTAL_BASIS_POINTS,
   calculateGlobalTargetProduct,

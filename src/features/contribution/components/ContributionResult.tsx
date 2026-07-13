@@ -103,8 +103,8 @@ export function ContributionResult({
         </div>
 
         <p className="mt-5 text-xs leading-5 text-[var(--color-text-muted)]">
-          A simulação não executa ordens nem movimenta valores. Registre as compras
-          realizadas no Histórico para atualizar a carteira real.
+          A simulação não executa ordens nem movimenta valores. Registre as
+          compras realizadas no Histórico para atualizar a carteira real.
         </p>
       </div>
     </Card>

@@ -22,29 +22,16 @@ export function usePortfolioData(): PortfolioDataState {
   }))
 
   useEffect(() => {
-    if (authStatus === 'demo') {
-      setState({ data: portfolioMock, status: 'ready', error: null })
-      return
-    }
-
     if (authStatus !== 'authenticated') {
-      setState({ data: null, status: 'loading', error: null })
       return
     }
 
     if (!client || !user) {
-      setState({
-        data: null,
-        status: 'error',
-        error: 'Sessão autenticada sem cliente Supabase disponível.',
-      })
       return
     }
 
     let isActive = true
     const repositories = createSupabaseRepositories(client)
-
-    setState({ data: null, status: 'loading', error: null })
 
     void (async () => {
       try {

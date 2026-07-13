@@ -103,11 +103,7 @@ export function mapPurchaseRow(row: PurchaseRow): Purchase {
       currency,
     },
     tradeDate: row.purchased_at,
-    status: readAllowedValue(
-      row.status,
-      PURCHASE_STATUSES,
-      'purchase status'
-    ),
+    status: readAllowedValue(row.status, PURCHASE_STATUSES, 'purchase status'),
   }
 }
 

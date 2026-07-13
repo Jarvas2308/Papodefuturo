@@ -19,9 +19,9 @@ const usdBrlRate: ExchangeRate = {
 describe('exchange rate domain model', () => {
   it('validates a positive scaled rate between distinct currencies', () => {
     expect(isValidExchangeRate(usdBrlRate)).toBe(true)
-    expect(
-      isValidExchangeRate({ ...usdBrlRate, quoteCurrency: 'USD' })
-    ).toBe(false)
+    expect(isValidExchangeRate({ ...usdBrlRate, quoteCurrency: 'USD' })).toBe(
+      false
+    )
     expect(isValidExchangeRate({ ...usdBrlRate, rateScaled: 0 })).toBe(false)
   })
 
@@ -53,19 +53,18 @@ describe('exchange rate domain model', () => {
 
   it('rejects a rate that does not support the requested currency pair', () => {
     expect(() =>
-      convertMoney(
-        { amountInMinorUnits: 10_000, currency: 'USD' },
-        'BRL',
-        { ...usdBrlRate, baseCurrency: 'BRL', quoteCurrency: 'USD' }
-      )
+      convertMoney({ amountInMinorUnits: 10_000, currency: 'USD' }, 'BRL', {
+        ...usdBrlRate,
+        baseCurrency: 'BRL',
+        quoteCurrency: 'USD',
+      })
     ).not.toThrow()
 
     expect(() =>
-      convertMoney(
-        { amountInMinorUnits: 10_000, currency: 'USD' },
-        'BRL',
-        { ...usdBrlRate, rateScaled: 0 }
-      )
+      convertMoney({ amountInMinorUnits: 10_000, currency: 'USD' }, 'BRL', {
+        ...usdBrlRate,
+        rateScaled: 0,
+      })
     ).toThrow(RangeError)
   })
 })

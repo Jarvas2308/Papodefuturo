@@ -33,11 +33,7 @@ describe('closed asset universe', () => {
     }))
     const createId = vi.fn(() => 'asset-id')
 
-    const rows = buildClosedAssetInsertRows(
-      'user-id',
-      existingAssets,
-      createId
-    )
+    const rows = buildClosedAssetInsertRows('user-id', existingAssets, createId)
 
     expect(rows).toEqual([
       {

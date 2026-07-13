@@ -3,10 +3,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import type { SupabaseBrowserClient } from '../lib/supabaseClient'
 
 export type AuthStatus =
-  | 'loading'
-  | 'authenticated'
-  | 'unauthenticated'
-  | 'demo'
+  'loading' | 'authenticated' | 'unauthenticated' | 'demo'
 
 export type SignUpResult = {
   requiresEmailConfirmation: boolean

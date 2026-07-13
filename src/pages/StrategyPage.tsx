@@ -41,8 +41,12 @@ export function StrategyPage() {
     <section className="space-y-6">
       {strategyData.latestUsdBrlRate ? (
         <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
-          Posições internacionais convertidas para BRL pela última cotação USD/BRL
-          salva em {new Date(strategyData.latestUsdBrlRate.pricedAt).toLocaleString('pt-BR')}.
+          Posições internacionais convertidas para BRL pela última cotação
+          USD/BRL salva em{' '}
+          {new Date(strategyData.latestUsdBrlRate.pricedAt).toLocaleString(
+            'pt-BR'
+          )}
+          .
         </p>
       ) : null}
 
@@ -56,8 +60,8 @@ export function StrategyPage() {
       />
 
       <p className="text-xs leading-5 text-[var(--color-text-muted)]">
-        Esta visualização não classifica ativos como bons ou ruins e não representa
-        recomendação, plano de compra ou execução financeira.
+        Esta visualização não classifica ativos como bons ou ruins e não
+        representa recomendação, plano de compra ou execução financeira.
       </p>
     </section>
   )

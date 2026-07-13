@@ -7,10 +7,7 @@ import {
   buildStrategyFromRealData,
 } from '../../strategy/realStrategy'
 import { contributionMock } from '../mocks/contributionMock'
-import type {
-  AllocationTarget,
-  ContributionPosition,
-} from '../types'
+import type { AllocationTarget, ContributionPosition } from '../types'
 
 type ContributionDataStatus = 'loading' | 'ready' | 'error'
 
@@ -38,8 +35,8 @@ export function useContributionData() {
   const [positions, setPositions] = useState<ContributionPosition[]>(() =>
     authStatus === 'demo' ? contributionMock.carteiraAtual : []
   )
-  const [resultPositions, setResultPositions] = useState<ResultPosition[]>(() =>
-    authStatus === 'demo' ? contributionMock.posicoesVisuais : []
+  const [resultPositions, setResultPositions] = useState<ResultPosition[]>(
+    () => (authStatus === 'demo' ? contributionMock.posicoesVisuais : [])
   )
   const [targets, setTargets] = useState<AllocationTarget[]>(() =>
     authStatus === 'demo' ? contributionMock.metasAlocacao : []
@@ -49,7 +46,9 @@ export function useContributionData() {
   )
   const [error, setError] = useState<string | null>(null)
   const [needsExchangeRate, setNeedsExchangeRate] = useState(false)
-  const [latestUsdBrlRate, setLatestUsdBrlRate] = useState<ExchangeRate | null>(null)
+  const [latestUsdBrlRate, setLatestUsdBrlRate] = useState<ExchangeRate | null>(
+    null
+  )
 
   const loadReal = useCallback(async () => {
     if (authStatus !== 'authenticated' || !client || !user) {
@@ -78,27 +77,30 @@ export function useContributionData() {
       ])
     )
     const eligibleAssets = assets.filter(
-      (asset) => asset.status === 'active' && asset.category in CATEGORY_BY_DOMAIN
+      (asset) =>
+        asset.status === 'active' && asset.category in CATEGORY_BY_DOMAIN
     )
-    const nextPositions: ContributionPosition[] = eligibleAssets.map((asset) => ({
-      assetId: asset.id,
-      category: CATEGORY_BY_DOMAIN[
-        asset.category as keyof typeof CATEGORY_BY_DOMAIN
-      ],
-      currentValueInCents: currentValueByAsset.get(asset.id) ?? 0,
-    }))
-    const nextResultPositions: ResultPosition[] = eligibleAssets.map((asset) => {
-      const category = CATEGORY_BY_DOMAIN[
-        asset.category as keyof typeof CATEGORY_BY_DOMAIN
-      ]
+    const nextPositions: ContributionPosition[] = eligibleAssets.map(
+      (asset) => ({
+        assetId: asset.id,
+        category:
+          CATEGORY_BY_DOMAIN[asset.category as keyof typeof CATEGORY_BY_DOMAIN],
+        currentValueInCents: currentValueByAsset.get(asset.id) ?? 0,
+      })
+    )
+    const nextResultPositions: ResultPosition[] = eligibleAssets.map(
+      (asset) => {
+        const category =
+          CATEGORY_BY_DOMAIN[asset.category as keyof typeof CATEGORY_BY_DOMAIN]
 
-      return {
-        id: asset.id,
-        ticker: asset.ticker,
-        name: asset.name,
-        categoryLabel: CATEGORY_LABELS[category],
+        return {
+          id: asset.id,
+          ticker: asset.ticker,
+          name: asset.name,
+          categoryLabel: CATEGORY_LABELS[category],
+        }
       }
-    })
+    )
     const nextTargets: AllocationTarget[] = strategy.map((category) => ({
       category: category.id,
       targetPercentage: category.targetInBasisPoints / 100,
@@ -114,38 +116,32 @@ export function useContributionData() {
   }, [authStatus, client, user])
 
   useEffect(() => {
-    if (authStatus === 'demo') {
-      setPositions(contributionMock.carteiraAtual)
-      setResultPositions(contributionMock.posicoesVisuais)
-      setTargets(contributionMock.metasAlocacao)
-      setNeedsExchangeRate(false)
-      setLatestUsdBrlRate(null)
-      setError(null)
-      setStatus('ready')
-      return
-    }
-
     if (authStatus !== 'authenticated') {
-      setStatus('loading')
       return
     }
 
     let isActive = true
-    setStatus('loading')
-    setError(null)
 
-    void loadReal().catch((caughtError) => {
-      if (!isActive) {
-        return
-      }
+    void Promise.resolve()
+      .then(async () => {
+        if (!isActive) {
+          return
+        }
 
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Não foi possível carregar os dados reais do aporte.'
-      )
-      setStatus('error')
-    })
+        await loadReal()
+      })
+      .catch((caughtError) => {
+        if (!isActive) {
+          return
+        }
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Não foi possível carregar os dados reais do aporte.'
+        )
+        setStatus('error')
+      })
 
     return () => {
       isActive = false
