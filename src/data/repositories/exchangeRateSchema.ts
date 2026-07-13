@@ -1,5 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+export type ExchangeRateJson =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: ExchangeRateJson | undefined }
+  | ExchangeRateJson[]
+
 export type ExchangeRateDatabase = {
   public: {
     Tables: {
@@ -41,7 +49,12 @@ export type ExchangeRateDatabase = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      replace_allocation_targets: {
+        Args: { targets: ExchangeRateJson }
+        Returns: undefined
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
