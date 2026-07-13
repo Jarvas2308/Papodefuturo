@@ -2,6 +2,7 @@ import type {
   AllocationTarget,
   Asset,
   AssetPrice,
+  CurrencyCode,
   EntityId,
   ExchangeRate,
   Purchase,
@@ -12,8 +13,18 @@ export type AssetRepository = {
   ensureClosedUniverse(userId: EntityId): Promise<Asset[]>
 }
 
+export type CreateConfirmedPurchaseInput = {
+  userId: EntityId
+  assetId: EntityId
+  quantity: number
+  unitPriceMinor: number
+  currency: CurrencyCode
+  tradeDate: string
+}
+
 export type PurchaseRepository = {
   list(): Promise<Purchase[]>
+  createConfirmed(input: CreateConfirmedPurchaseInput): Promise<Purchase>
 }
 
 export type AssetPriceRepository = {
