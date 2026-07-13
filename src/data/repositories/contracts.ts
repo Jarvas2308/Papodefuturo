@@ -2,11 +2,13 @@ import type {
   AllocationTarget,
   Asset,
   AssetPrice,
+  EntityId,
   Purchase,
 } from '../../domain/models'
 
 export type AssetRepository = {
   list(): Promise<Asset[]>
+  ensureClosedUniverse(userId: EntityId): Promise<Asset[]>
 }
 
 export type PurchaseRepository = {
