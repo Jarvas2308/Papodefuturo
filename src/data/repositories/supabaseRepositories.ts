@@ -1,3 +1,7 @@
+import {
+  buildClosedAssetInsertRows,
+  type AssetIdFactory,
+} from '../assetUniverse'
 import type { SupabaseBrowserClient } from '../../lib/supabaseClient'
 import type {
   AllocationTargetRepository,
@@ -15,6 +19,7 @@ import {
 
 type QueryError = {
   message: string
+  code?: string
 }
 
 function createRepositoryQueryError(
@@ -24,21 +29,48 @@ function createRepositoryQueryError(
   return new Error(`Failed to load ${resourceName}: ${error.message}`)
 }
 
-export function createSupabaseAssetRepository(
-  client: SupabaseBrowserClient
-): AssetRepository {
-  return {
-    async list() {
-      const { data, error } = await client
-        .from('assets')
-        .select('*')
-        .order('ticker', { ascending: true })
+function createBrowserAssetId(): string {
+  return crypto.randomUUID()
+}
 
-      if (error) {
-        throw createRepositoryQueryError('assets', error)
+export function createSupabaseAssetRepository(
+  client: SupabaseBrowserClient,
+  createId: AssetIdFactory = createBrowserAssetId
+): AssetRepository {
+  async function listAssets() {
+    const { data, error } = await client
+      .from('assets')
+      .select('*')
+      .order('ticker', { ascending: true })
+
+    if (error) {
+      throw createRepositoryQueryError('assets', error)
+    }
+
+    return (data ?? []).map(mapAssetRow)
+  }
+
+  return {
+    list: listAssets,
+    async ensureClosedUniverse(userId) {
+      const existingAssets = await listAssets()
+      const insertRows = buildClosedAssetInsertRows(
+        userId,
+        existingAssets,
+        createId
+      )
+
+      if (insertRows.length === 0) {
+        return existingAssets
       }
 
-      return (data ?? []).map(mapAssetRow)
+      const { error } = await client.from('assets').insert(insertRows)
+
+      if (error && error.code !== '23505') {
+        throw createRepositoryQueryError('closed asset universe', error)
+      }
+
+      return listAssets()
     },
   }
 }
