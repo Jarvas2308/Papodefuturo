@@ -6,8 +6,13 @@ import type {
   ContributionStrategyType,
 } from '../types'
 
+type ResultPosition = Pick<
+  PortfolioPosition,
+  'id' | 'ticker' | 'name' | 'categoryLabel'
+>
+
 type ContributionResultProps = {
-  positions: PortfolioPosition[]
+  positions: ResultPosition[]
   result: ContributionResultData
   strategy: ContributionStrategyType
 }
@@ -50,8 +55,8 @@ export function ContributionResult({
             </h2>
             <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
               {strategy === 'target-allocation'
-                ? 'Simulação demonstrativa pelos déficits das categorias monitoradas.'
-                : 'Simulação proporcional demonstrativa pelo peso atual das posições.'}
+                ? 'Distribuição calculada pelos déficits das categorias monitoradas.'
+                : 'Distribuição proporcional calculada pelo peso atual das posições.'}
             </p>
           </div>
         </div>
@@ -98,8 +103,8 @@ export function ContributionResult({
         </div>
 
         <p className="mt-5 text-xs leading-5 text-[var(--color-text-muted)]">
-          Resultado exclusivamente demonstrativo. Nenhuma compra ou recomendação
-          é registrada, e nenhum valor é movimentado.
+          A simulação não executa ordens nem movimenta valores. Registre as compras
+          realizadas no Histórico para atualizar a carteira real.
         </p>
       </div>
     </Card>
