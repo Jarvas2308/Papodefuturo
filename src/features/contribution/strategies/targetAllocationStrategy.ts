@@ -77,9 +77,9 @@ function executeTargetAllocationStrategy(
     ])
   }
 
-  if (!Number.isSafeInteger(totalCurrentValue) || totalCurrentValue <= 0) {
+  if (!Number.isSafeInteger(totalCurrentValue) || totalCurrentValue < 0) {
     throw new RangeError(
-      'Portfolio current value must be a positive safe integer'
+      'Portfolio current value must be a non-negative safe integer'
     )
   }
 
