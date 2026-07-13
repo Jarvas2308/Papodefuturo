@@ -66,12 +66,15 @@ export function ExchangeRateSetup({ onSave }: ExchangeRateSetupProps) {
         </h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-text-muted)]">
           Sua carteira possui posição internacional confirmada. A Estratégia não
-          soma dólares e reais diretamente; registre a cotação usada para converter
-          as posições em USD para BRL.
+          soma dólares e reais diretamente; registre a cotação usada para
+          converter as posições em USD para BRL.
         </p>
       </div>
 
-      <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={handleSubmit}>
+      <form
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        onSubmit={handleSubmit}
+      >
         <label className="flex-1 text-sm font-medium text-[var(--color-text)]">
           1 USD em BRL
           <input
@@ -88,13 +91,19 @@ export function ExchangeRateSetup({ onSave }: ExchangeRateSetupProps) {
         </Button>
       </form>
 
-      <p id="exchange-rate-helper" className="text-xs leading-5 text-[var(--color-text-muted)]">
+      <p
+        id="exchange-rate-helper"
+        className="text-xs leading-5 text-[var(--color-text-muted)]"
+      >
         A taxa é armazenada com precisão de até 6 casas decimais e marcada como
         origem manual.
       </p>
 
       {feedback ? (
-        <p className="text-sm font-medium text-[var(--color-text)]" aria-live="polite">
+        <p
+          className="text-sm font-medium text-[var(--color-text)]"
+          aria-live="polite"
+        >
           {feedback}
         </p>
       ) : null}

@@ -20,7 +20,9 @@ export function HistoryPage() {
   const historyMonths = useMemo(
     () =>
       Array.from(
-        new Set(historyData.movements.map((movement) => movement.date.slice(0, 7)))
+        new Set(
+          historyData.movements.map((movement) => movement.date.slice(0, 7))
+        )
       ).sort((a, b) => b.localeCompare(a)),
     [historyData.movements]
   )

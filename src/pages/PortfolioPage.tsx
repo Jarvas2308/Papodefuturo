@@ -24,10 +24,7 @@ export function PortfolioPage() {
   if (status === 'loading' || !data) {
     return (
       <Card>
-        <p
-          role="status"
-          className="text-sm text-[var(--color-text-muted)]"
-        >
+        <p role="status" className="text-sm text-[var(--color-text-muted)]">
           Carregando sua carteira...
         </p>
       </Card>

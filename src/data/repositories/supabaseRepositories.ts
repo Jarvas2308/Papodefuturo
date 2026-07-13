@@ -110,7 +110,9 @@ export function createSupabasePurchaseRepository(
         !Number.isSafeInteger(input.unitPriceInMinorUnits) ||
         input.unitPriceInMinorUnits < 0
       ) {
-        throw new RangeError('Purchase unit price must be a non-negative integer')
+        throw new RangeError(
+          'Purchase unit price must be a non-negative integer'
+        )
       }
 
       const totalAmountInMinorUnits = Math.round(
@@ -170,8 +172,7 @@ export function createSupabaseAssetPriceRepository(
 export function createSupabaseExchangeRateRepository(
   client: SupabaseBrowserClient
 ): ExchangeRateRepository {
-  const exchangeRateClient =
-    client as unknown as ExchangeRateSupabaseClient
+  const exchangeRateClient = client as unknown as ExchangeRateSupabaseClient
 
   return {
     async list() {

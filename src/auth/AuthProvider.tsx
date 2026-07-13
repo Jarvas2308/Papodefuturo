@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import {
-  AuthContext,
-  type AuthStatus,
-  type SignUpResult,
-} from './authContext'
+import { AuthContext, type AuthStatus, type SignUpResult } from './authContext'
 import { createSupabaseBrowserClient } from '../lib/supabaseClient'
 import { readCurrentViteSupabaseEnvironment } from '../lib/viteEnv'
 
@@ -14,8 +10,7 @@ type AuthProviderProps = {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const client = useMemo(
-    () =>
-      createSupabaseBrowserClient(readCurrentViteSupabaseEnvironment()),
+    () => createSupabaseBrowserClient(readCurrentViteSupabaseEnvironment()),
     []
   )
   const [session, setSession] = useState<Session | null>(null)

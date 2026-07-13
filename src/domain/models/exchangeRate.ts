@@ -40,16 +40,14 @@ export function convertMoney(
     rate.baseCurrency === targetCurrency
 
   if (!isValidExchangeRate(rate) || (!isDirectPair && !isInversePair)) {
-    throw new RangeError('Exchange rate does not support the requested conversion')
+    throw new RangeError(
+      'Exchange rate does not support the requested conversion'
+    )
   }
 
   const convertedAmount = isDirectPair
-    ? Math.round(
-        (money.amountInMinorUnits * rate.rateScaled) / rate.rateScale
-      )
-    : Math.round(
-        (money.amountInMinorUnits * rate.rateScale) / rate.rateScaled
-      )
+    ? Math.round((money.amountInMinorUnits * rate.rateScaled) / rate.rateScale)
+    : Math.round((money.amountInMinorUnits * rate.rateScale) / rate.rateScaled)
 
   return {
     amountInMinorUnits: convertedAmount,

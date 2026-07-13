@@ -107,7 +107,10 @@ export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
         </p>
       </div>
 
-      <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={handleSubmit}>
+      <form
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-5"
+        onSubmit={handleSubmit}
+      >
         <label className="text-sm font-medium text-[var(--color-text)] xl:col-span-2">
           Ativo
           <select
@@ -183,7 +186,10 @@ export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
       </form>
 
       {feedback ? (
-        <p className="text-sm font-medium text-[var(--color-text)]" aria-live="polite">
+        <p
+          className="text-sm font-medium text-[var(--color-text)]"
+          aria-live="polite"
+        >
           {feedback}
         </p>
       ) : null}

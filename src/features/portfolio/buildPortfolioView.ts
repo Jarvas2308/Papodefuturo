@@ -43,7 +43,10 @@ const MARKET_LABELS = {
   INTERNAL: 'Interno',
 } as const
 
-function formatMoney(amountInMinorUnits: number, currency: CurrencyCode): string {
+function formatMoney(
+  amountInMinorUnits: number,
+  currency: CurrencyCode
+): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency,
@@ -67,7 +70,9 @@ function getAssetCurrency(asset: Asset): CurrencyCode {
   )
 
   if (!definition) {
-    throw new Error(`Unsupported asset outside closed universe: ${asset.ticker}`)
+    throw new Error(
+      `Unsupported asset outside closed universe: ${asset.ticker}`
+    )
   }
 
   return definition.currency
@@ -306,7 +311,8 @@ export function buildPortfolioView(
     disclaimer: 'Dados reais da sua conta',
     header: {
       title: 'Minha Carteira',
-      description: 'Visualize suas posições, compras e resultados consolidados.',
+      description:
+        'Visualize suas posições, compras e resultados consolidados.',
       actionLabel: 'Planejar novo aporte',
       actionTo: '/novo-aporte',
     },
@@ -373,7 +379,8 @@ export function buildPortfolioView(
     },
     positions: {
       title: 'Posições',
-      description: 'Ativos consolidados a partir das compras confirmadas da conta.',
+      description:
+        'Ativos consolidados a partir das compras confirmadas da conta.',
       filters: [
         { id: 'all', label: 'Todos' },
         ...Object.values(CATEGORY_CONFIG).flatMap((config) =>

@@ -73,8 +73,8 @@ function ContributionWorkspace({
 
       {!isDemo ? (
         <p className="text-xs leading-5 text-[var(--color-text-muted)]">
-          Simulação baseada nas compras, cotações, metas e taxa cambial salvas na
-          sua conta. Nenhuma ordem é executada automaticamente.
+          Simulação baseada nas compras, cotações, metas e taxa cambial salvas
+          na sua conta. Nenhuma ordem é executada automaticamente.
         </p>
       ) : null}
     </>
@@ -117,10 +117,12 @@ export function NewContributionPage() {
     <section className="space-y-6">
       {contributionData.latestUsdBrlRate ? (
         <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
-          Posições internacionais convertidas para BRL pela taxa USD/BRL salva em{' '}
-          {new Date(
-            contributionData.latestUsdBrlRate.pricedAt
-          ).toLocaleString('pt-BR')}.
+          Posições internacionais convertidas para BRL pela taxa USD/BRL salva
+          em{' '}
+          {new Date(contributionData.latestUsdBrlRate.pricedAt).toLocaleString(
+            'pt-BR'
+          )}
+          .
         </p>
       ) : null}
 

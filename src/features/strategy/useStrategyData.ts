@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { createSupabaseRepositories } from '../../data/repositories'
-import type { Asset, AssetPrice, ExchangeRate, Purchase } from '../../domain/models'
+import type {
+  Asset,
+  AssetPrice,
+  ExchangeRate,
+  Purchase,
+} from '../../domain/models'
 import { strategyCurrentPositions, strategyMock } from './mocks/strategyMock'
 import type { StrategyCategory } from './types'
 import { cloneStrategy } from './utils/strategy'
@@ -47,7 +52,9 @@ export function useStrategyData(): StrategyDataState {
   )
   const [error, setError] = useState<string | null>(null)
   const [needsExchangeRate, setNeedsExchangeRate] = useState(false)
-  const [latestUsdBrlRate, setLatestUsdBrlRate] = useState<ExchangeRate | null>(null)
+  const [latestUsdBrlRate, setLatestUsdBrlRate] = useState<ExchangeRate | null>(
+    null
+  )
   const [realInputs, setRealInputs] = useState<RealInputs | null>(null)
 
   const loadReal = useCallback(async () => {
@@ -83,39 +90,32 @@ export function useStrategyData(): StrategyDataState {
   }, [authStatus, client, user])
 
   useEffect(() => {
-    if (authStatus === 'demo') {
-      setStrategy(cloneStrategy(strategyMock))
-      setDefaultStrategy(cloneStrategy(strategyMock))
-      setPositions(strategyCurrentPositions)
-      setNeedsExchangeRate(false)
-      setLatestUsdBrlRate(null)
-      setRealInputs(null)
-      setError(null)
-      setStatus('ready')
-      return
-    }
-
     if (authStatus !== 'authenticated') {
-      setStatus('loading')
       return
     }
 
     let isActive = true
-    setStatus('loading')
-    setError(null)
 
-    void loadReal().catch((loadError) => {
-      if (!isActive) {
-        return
-      }
+    void Promise.resolve()
+      .then(async () => {
+        if (!isActive) {
+          return
+        }
 
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Não foi possível carregar a estratégia real.'
-      )
-      setStatus('error')
-    })
+        await loadReal()
+      })
+      .catch((loadError) => {
+        if (!isActive) {
+          return
+        }
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Não foi possível carregar a estratégia real.'
+        )
+        setStatus('error')
+      })
 
     return () => {
       isActive = false
@@ -133,11 +133,9 @@ export function useStrategyData(): StrategyDataState {
     }
 
     const repositories = createSupabaseRepositories(client)
-    const targets = strategyToAllocationTargets(
-      nextStrategy,
-      realInputs.assets
-    )
-    const savedTargets = await repositories.allocationTargets.replaceAll(targets)
+    const targets = strategyToAllocationTargets(nextStrategy, realInputs.assets)
+    const savedTargets =
+      await repositories.allocationTargets.replaceAll(targets)
     setStrategy(buildStrategyFromRealData(realInputs.assets, savedTargets))
   }
 
