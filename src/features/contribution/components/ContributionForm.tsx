@@ -79,7 +79,8 @@ export function ContributionForm({
                 id={helperId}
                 className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]"
               >
-                Use um valor positivo. Nenhum dado será salvo.
+                Use um valor positivo. A simulação não registra compras
+                automaticamente.
               </p>
             </div>
 

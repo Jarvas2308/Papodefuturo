@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
 
 type ExchangeRateSetupProps = {
+  description?: string
   onSave(rateScaled: number): Promise<void>
 }
 
@@ -24,7 +25,10 @@ function parseUsdBrlRate(value: string): number | null {
   return rateScaled
 }
 
-export function ExchangeRateSetup({ onSave }: ExchangeRateSetupProps) {
+export function ExchangeRateSetup({
+  description,
+  onSave,
+}: ExchangeRateSetupProps) {
   const [value, setValue] = useState('')
   const [feedback, setFeedback] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -65,9 +69,8 @@ export function ExchangeRateSetup({ onSave }: ExchangeRateSetupProps) {
           Informe a cotação USD/BRL
         </h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-text-muted)]">
-          Sua carteira possui posição internacional confirmada. A Estratégia não
-          soma dólares e reais diretamente; registre a cotação usada para
-          converter as posições em USD para BRL.
+          {description ??
+            'Sua carteira possui posição internacional confirmada. A Estratégia não soma dólares e reais diretamente; registre a cotação usada para converter as posições em USD para BRL.'}
         </p>
       </div>
 

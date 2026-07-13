@@ -1,14 +1,19 @@
+import { useState } from 'react'
 import { ContributionForm } from '../features/contribution/components/ContributionForm'
+import { ContributionPurchaseConfirmation } from '../features/contribution/components/ContributionPurchaseConfirmation'
 import { ContributionPreview } from '../features/contribution/components/ContributionPreview'
 import { ContributionResult } from '../features/contribution/components/ContributionResult'
 import { useContribution } from '../features/contribution/hooks/useContribution'
 import { useContributionData } from '../features/contribution/hooks/useContributionData'
 import { contributionMock } from '../features/contribution/mocks/contributionMock'
+import type { CreatePurchaseBatchItem } from '../data/repositories/contracts'
+import type { Asset, ExchangeRate } from '../domain/models'
 import type {
   AllocationTarget,
   ContributionPosition,
 } from '../features/contribution/types'
 import { ExchangeRateSetup } from '../features/strategy/components/ExchangeRateSetup'
+import { shouldOfferContributionPurchaseConfirmation } from '../features/contribution/utils/confirmedPurchases'
 
 type ResultPosition = {
   id: string
@@ -18,17 +23,27 @@ type ResultPosition = {
 }
 
 type ContributionWorkspaceProps = {
+  assets: Asset[]
+  exchangeRate: ExchangeRate | null
   positions: ContributionPosition[]
   resultPositions: ResultPosition[]
   targets: AllocationTarget[]
   isDemo: boolean
+  onRegisterPurchases(
+    purchases: readonly CreatePurchaseBatchItem[]
+  ): Promise<unknown>
+  onSaveExchangeRate(rateScaled: number): Promise<void>
 }
 
 function ContributionWorkspace({
+  assets,
+  exchangeRate,
   positions,
   resultPositions,
   targets,
   isDemo,
+  onRegisterPurchases,
+  onSaveExchangeRate,
 }: ContributionWorkspaceProps) {
   const {
     error,
@@ -44,6 +59,12 @@ function ContributionWorkspace({
     carteiraAtual: positions,
     metasAlocacao: targets,
   })
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
+
+  function handleSimulation() {
+    simulateContribution()
+    setIsConfirmationOpen(false)
+  }
 
   return (
     <>
@@ -54,7 +75,7 @@ function ContributionWorkspace({
           value={valorAporte}
           onChange={updateValue}
           onStrategyChange={updateStrategy}
-          onSubmit={simulateContribution}
+          onSubmit={handleSimulation}
         />
         <ContributionPreview
           positionCount={positions.length}
@@ -68,6 +89,25 @@ function ContributionWorkspace({
           positions={resultPositions}
           result={result}
           strategy={strategy}
+          onConfirmPurchases={
+            shouldOfferContributionPurchaseConfirmation(isDemo)
+              ? () => setIsConfirmationOpen(true)
+              : undefined
+          }
+        />
+      ) : null}
+
+      {result && isConfirmationOpen && !isDemo ? (
+        <ContributionPurchaseConfirmation
+          key={result.distribuicao
+            .map((item) => `${item.assetId}:${item.valorEmCentavos}`)
+            .join('|')}
+          assets={assets}
+          exchangeRate={exchangeRate}
+          positions={resultPositions}
+          result={result}
+          onRegister={onRegisterPurchases}
+          onSaveExchangeRate={onSaveExchangeRate}
         />
       ) : null}
 
@@ -131,9 +171,13 @@ export function NewContributionPage() {
           .map((target) => `${target.category}:${target.targetPercentage}`)
           .join('|')}`}
         positions={contributionData.positions}
+        assets={contributionData.assets}
+        exchangeRate={contributionData.latestUsdBrlRate}
         resultPositions={contributionData.resultPositions}
         targets={contributionData.targets}
         isDemo={contributionData.isDemo}
+        onRegisterPurchases={contributionData.registerConfirmedPurchases}
+        onSaveExchangeRate={contributionData.saveManualUsdBrl}
       />
     </section>
   )
