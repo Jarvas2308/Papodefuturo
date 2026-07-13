@@ -52,7 +52,7 @@ function mapPurchaseStatus(status: Purchase['status']): HistoryMovementStatus {
   return 'completed'
 }
 
-function mapPurchasesToHistory(
+export function mapPurchasesToHistory(
   purchases: readonly Purchase[],
   assets: readonly Asset[]
 ): HistoryMovement[] {
@@ -86,6 +86,7 @@ function mapPurchasesToHistory(
 export function useHistoryData() {
   const { status: authStatus, client, user } = useAuth()
   const [assets, setAssets] = useState<Asset[]>([])
+  const [purchases, setPurchases] = useState<Purchase[]>([])
   const [movements, setMovements] = useState<HistoryMovement[]>(() =>
     authStatus === 'demo' ? historyMovements : []
   )
@@ -104,6 +105,7 @@ export function useHistoryData() {
     const purchases = await repositories.purchases.list()
 
     setAssets(nextAssets)
+    setPurchases(purchases)
     setMovements(mapPurchasesToHistory(purchases, nextAssets))
     setError(null)
     setStatus('ready')
@@ -171,12 +173,68 @@ export function useHistoryData() {
     await loadReal()
   }
 
+  async function updatePurchase(purchaseId: string, draft: PurchaseDraft) {
+    if (authStatus === 'demo') {
+      throw new Error('A edição de compras reais exige uma sessão autenticada.')
+    }
+
+    if (!client || !user) {
+      throw new Error('Sessão autenticada indisponível.')
+    }
+
+    const purchase = purchases.find((candidate) => candidate.id === purchaseId)
+    if (!purchase || purchase.status !== 'confirmed') {
+      throw new Error('Somente compras confirmadas podem ser editadas.')
+    }
+
+    const asset = assets.find((candidate) => candidate.id === draft.assetId)
+    if (!asset) {
+      throw new Error('Selecione um ativo válido.')
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    await repositories.purchases.update({
+      purchaseId: purchase.id,
+      assetId: asset.id,
+      quantity: draft.quantity,
+      unitPriceInMinorUnits: draft.unitPriceInMinorUnits,
+      currency: getAssetCurrency(asset),
+      purchasedAt: draft.purchasedAt,
+      notes: draft.notes,
+    })
+    await loadReal()
+  }
+
+  async function cancelPurchase(purchaseId: string) {
+    if (authStatus === 'demo') {
+      throw new Error(
+        'O cancelamento de compras reais exige uma sessão autenticada.'
+      )
+    }
+
+    if (!client || !user) {
+      throw new Error('Sessão autenticada indisponível.')
+    }
+
+    const purchase = purchases.find((candidate) => candidate.id === purchaseId)
+    if (!purchase || purchase.status !== 'confirmed') {
+      throw new Error('Somente compras confirmadas podem ser canceladas.')
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    await repositories.purchases.cancel(purchase.id)
+    await loadReal()
+  }
+
   return {
     assets,
+    purchases,
     movements,
     status,
     error,
     isDemo: authStatus === 'demo',
     createPurchase,
+    updatePurchase,
+    cancelPurchase,
   }
 }

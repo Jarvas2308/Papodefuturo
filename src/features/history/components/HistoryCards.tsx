@@ -1,4 +1,5 @@
 import type { HistoryMovement } from '../types'
+import { Button } from '../../../components/ui/Button'
 import {
   formatHistoryCurrency,
   formatHistoryDate,
@@ -10,7 +11,25 @@ import {
   MovementTypeBadge,
 } from './HistoryBadges'
 
-export function HistoryCards({ movements }: { movements: HistoryMovement[] }) {
+type HistoryCardsProps = {
+  movements: HistoryMovement[]
+  onEditPurchase?: (purchaseId: string) => void
+  onCancelPurchase?: (purchaseId: string) => void
+  pendingPurchaseId?: string | null
+}
+
+function canManagePurchase(movement: HistoryMovement): boolean {
+  return movement.type === 'purchase' && movement.status === 'completed'
+}
+
+export function HistoryCards({
+  movements,
+  onEditPurchase,
+  onCancelPurchase,
+  pendingPurchaseId,
+}: HistoryCardsProps) {
+  const hasActions = Boolean(onEditPurchase && onCancelPurchase)
+
   return (
     <ul className="grid gap-4 md:grid-cols-2 xl:hidden">
       {movements.map((movement) => (
@@ -67,6 +86,29 @@ export function HistoryCards({ movements }: { movements: HistoryMovement[] }) {
               </dd>
             </div>
           </dl>
+
+          {hasActions && canManagePurchase(movement) ? (
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--color-border)] pt-4">
+              <Button
+                variant="secondary"
+                className="px-3 py-2 text-xs"
+                disabled={pendingPurchaseId === movement.id}
+                onClick={() => onEditPurchase?.(movement.id)}
+              >
+                Editar compra
+              </Button>
+              <Button
+                variant="ghost"
+                className="px-3 py-2 text-xs text-[var(--color-alert)]"
+                disabled={pendingPurchaseId === movement.id}
+                onClick={() => onCancelPurchase?.(movement.id)}
+              >
+                {pendingPurchaseId === movement.id
+                  ? 'Cancelando...'
+                  : 'Cancelar compra'}
+              </Button>
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>

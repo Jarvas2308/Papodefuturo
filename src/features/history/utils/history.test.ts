@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { historyMovements } from '../mocks/historyMock'
+import type { Asset, Purchase } from '../../../domain/models'
+import { mapPurchasesToHistory } from '../useHistoryData'
 import {
   calculateHistorySummary,
   emptyHistoryFilters,
@@ -87,5 +89,38 @@ describe('history formatters', () => {
     expect(formatHistoryDate('2026-06-18')).toBe('18/06/2026')
     expect(formatHistoryQuantity(40)).toBe('40')
     expect(formatHistoryQuantity(1.25)).toBe('1,25')
+  })
+})
+
+describe('real purchase history mapping', () => {
+  it('keeps a cancelled purchase visible with the cancelled status', () => {
+    const assets: Asset[] = [
+      {
+        id: 'asset-bbas3',
+        ticker: 'BBAS3',
+        name: 'Banco do Brasil',
+        category: 'brazilian-stock',
+        market: 'BR',
+        status: 'active',
+      },
+    ]
+    const purchases: Purchase[] = [
+      {
+        id: 'purchase-cancelled',
+        assetId: 'asset-bbas3',
+        quantity: 2,
+        unitPrice: { amountInMinorUnits: 1_000, currency: 'BRL' },
+        totalAmount: { amountInMinorUnits: 2_000, currency: 'BRL' },
+        tradeDate: '2026-07-13',
+        status: 'cancelled',
+      },
+    ]
+
+    expect(mapPurchasesToHistory(purchases, assets)).toEqual([
+      expect.objectContaining({
+        id: 'purchase-cancelled',
+        status: 'cancelled',
+      }),
+    ])
   })
 })

@@ -104,6 +104,7 @@ export function mapPurchaseRow(row: PurchaseRow): Purchase {
     },
     tradeDate: row.purchased_at,
     status: readAllowedValue(row.status, PURCHASE_STATUSES, 'purchase status'),
+    ...(row.notes === null ? {} : { notes: row.notes }),
   }
 }
 

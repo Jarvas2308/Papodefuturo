@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth'
 import { createSupabaseRepositories } from '../../../data/repositories'
-import type { ExchangeRate } from '../../../domain/models'
+import type {
+  Asset,
+  AssetPrice,
+  ExchangeRate,
+  Purchase,
+} from '../../../domain/models'
 import {
   buildRealStrategyPositions,
   buildStrategyFromRealData,
@@ -29,6 +34,39 @@ const CATEGORY_LABELS = {
   'real-estate-funds': 'Fundos imobiliários',
   international: 'Internacional',
 } as const
+
+export function buildContributionPositions(
+  assets: readonly Asset[],
+  purchases: readonly Purchase[],
+  prices: readonly AssetPrice[],
+  rates: readonly ExchangeRate[]
+) {
+  const realPositions = buildRealStrategyPositions(
+    assets,
+    purchases,
+    prices,
+    rates
+  )
+  const currentValueByAsset = new Map(
+    realPositions.positions.map((position) => [
+      position.assetId,
+      position.currentValueInCents,
+    ])
+  )
+  const eligibleAssets = assets.filter(
+    (asset) => asset.status === 'active' && asset.category in CATEGORY_BY_DOMAIN
+  )
+
+  return {
+    positions: eligibleAssets.map((asset) => ({
+      assetId: asset.id,
+      category:
+        CATEGORY_BY_DOMAIN[asset.category as keyof typeof CATEGORY_BY_DOMAIN],
+      currentValueInCents: currentValueByAsset.get(asset.id) ?? 0,
+    })),
+    realPositions,
+  }
+}
 
 export function useContributionData() {
   const { status: authStatus, client, user } = useAuth()
@@ -64,29 +102,18 @@ export function useContributionData() {
       repositories.exchangeRates.list(),
     ])
     const strategy = buildStrategyFromRealData(assets, allocationTargets)
-    const realPositions = buildRealStrategyPositions(
+    const contributionPositions = buildContributionPositions(
       assets,
       purchases,
       prices,
       rates
     )
-    const currentValueByAsset = new Map(
-      realPositions.positions.map((position) => [
-        position.assetId,
-        position.currentValueInCents,
-      ])
-    )
+    const { realPositions } = contributionPositions
+    const nextPositions: ContributionPosition[] =
+      contributionPositions.positions
     const eligibleAssets = assets.filter(
       (asset) =>
         asset.status === 'active' && asset.category in CATEGORY_BY_DOMAIN
-    )
-    const nextPositions: ContributionPosition[] = eligibleAssets.map(
-      (asset) => ({
-        assetId: asset.id,
-        category:
-          CATEGORY_BY_DOMAIN[asset.category as keyof typeof CATEGORY_BY_DOMAIN],
-        currentValueInCents: currentValueByAsset.get(asset.id) ?? 0,
-      })
     )
     const nextResultPositions: ResultPosition[] = eligibleAssets.map(
       (asset) => {

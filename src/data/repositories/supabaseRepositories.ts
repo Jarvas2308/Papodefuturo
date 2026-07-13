@@ -10,6 +10,7 @@ import type {
   AppRepositories,
   AssetPriceRepository,
   AssetRepository,
+  CreatePurchaseInput,
   ExchangeRateRepository,
   PurchaseRepository,
 } from './contracts'
@@ -39,6 +40,57 @@ function createRepositoryQueryError(
 
 function createBrowserAssetId(): string {
   return crypto.randomUUID()
+}
+
+type PurchaseFactsInput = Pick<
+  CreatePurchaseInput,
+  | 'assetId'
+  | 'quantity'
+  | 'unitPriceInMinorUnits'
+  | 'currency'
+  | 'purchasedAt'
+  | 'notes'
+>
+
+export function calculatePurchaseTotalInMinorUnits(
+  quantity: number,
+  unitPriceInMinorUnits: number
+): number {
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new RangeError('Purchase quantity must be positive')
+  }
+
+  if (
+    !Number.isSafeInteger(unitPriceInMinorUnits) ||
+    unitPriceInMinorUnits < 0
+  ) {
+    throw new RangeError('Purchase unit price must be a non-negative integer')
+  }
+
+  const totalAmountInMinorUnits = Math.round(quantity * unitPriceInMinorUnits)
+
+  if (!Number.isSafeInteger(totalAmountInMinorUnits)) {
+    throw new RangeError('Purchase total is outside the supported range')
+  }
+
+  return totalAmountInMinorUnits
+}
+
+function toPurchaseFacts(input: PurchaseFactsInput) {
+  const notes = input.notes?.trim()
+
+  return {
+    asset_id: input.assetId,
+    quantity: input.quantity,
+    unit_price_minor: input.unitPriceInMinorUnits,
+    total_amount_minor: calculatePurchaseTotalInMinorUnits(
+      input.quantity,
+      input.unitPriceInMinorUnits
+    ),
+    currency: input.currency,
+    purchased_at: input.purchasedAt,
+    notes: notes ? notes : null,
+  }
 }
 
 export function createSupabaseAssetRepository(
@@ -102,42 +154,44 @@ export function createSupabasePurchaseRepository(
   return {
     list: listPurchases,
     async create(input) {
-      if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
-        throw new RangeError('Purchase quantity must be positive')
-      }
-
-      if (
-        !Number.isSafeInteger(input.unitPriceInMinorUnits) ||
-        input.unitPriceInMinorUnits < 0
-      ) {
-        throw new RangeError(
-          'Purchase unit price must be a non-negative integer'
-        )
-      }
-
-      const totalAmountInMinorUnits = Math.round(
-        input.quantity * input.unitPriceInMinorUnits
-      )
-
-      if (!Number.isSafeInteger(totalAmountInMinorUnits)) {
-        throw new RangeError('Purchase total is outside the supported range')
-      }
-
-      const notes = input.notes?.trim()
       const { data, error } = await client
         .from('purchases')
         .insert({
           id: crypto.randomUUID(),
           user_id: input.userId,
-          asset_id: input.assetId,
-          quantity: input.quantity,
-          unit_price_minor: input.unitPriceInMinorUnits,
-          total_amount_minor: totalAmountInMinorUnits,
-          currency: input.currency,
-          purchased_at: input.purchasedAt,
           status: 'confirmed',
-          notes: notes ? notes : null,
+          ...toPurchaseFacts(input),
         })
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('purchase', error)
+      }
+
+      return mapPurchaseRow(data)
+    },
+    async update(input) {
+      const { data, error } = await client
+        .from('purchases')
+        .update(toPurchaseFacts(input))
+        .eq('id', input.purchaseId)
+        .eq('status', 'confirmed')
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('purchase', error)
+      }
+
+      return mapPurchaseRow(data)
+    },
+    async cancel(purchaseId) {
+      const { data, error } = await client
+        .from('purchases')
+        .update({ status: 'cancelled' })
+        .eq('id', purchaseId)
+        .eq('status', 'confirmed')
         .select('*')
         .single()
 

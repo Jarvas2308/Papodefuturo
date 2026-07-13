@@ -23,9 +23,15 @@ export type CreatePurchaseInput = {
   notes?: string
 }
 
+export type UpdatePurchaseInput = Omit<CreatePurchaseInput, 'userId'> & {
+  purchaseId: EntityId
+}
+
 export type PurchaseRepository = {
   list(): Promise<Purchase[]>
   create(input: CreatePurchaseInput): Promise<Purchase>
+  update(input: UpdatePurchaseInput): Promise<Purchase>
+  cancel(purchaseId: EntityId): Promise<Purchase>
 }
 
 export type AssetPriceRepository = {

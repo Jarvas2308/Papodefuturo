@@ -10,4 +10,5 @@ export type Purchase = {
   totalAmount: MoneyAmount
   tradeDate: string
   status: PurchaseStatus
+  notes?: string
 }
