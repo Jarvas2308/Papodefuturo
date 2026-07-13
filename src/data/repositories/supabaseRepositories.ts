@@ -2,6 +2,8 @@ import {
   buildClosedAssetInsertRows,
   type AssetIdFactory,
 } from '../assetUniverse'
+import type { AllocationTarget } from '../../domain/models'
+import { EXCHANGE_RATE_SCALE } from '../../domain/models'
 import type { SupabaseBrowserClient } from '../../lib/supabaseClient'
 import type {
   AllocationTargetRepository,
@@ -12,7 +14,10 @@ import type {
   PurchaseRepository,
 } from './contracts'
 import { mapExchangeRateRow } from './exchangeRateMapper'
-import type { ExchangeRateSupabaseClient } from './exchangeRateSchema'
+import type {
+  ExchangeRateJson,
+  ExchangeRateSupabaseClient,
+} from './exchangeRateSchema'
 import {
   mapAllocationTargetRow,
   mapAssetPriceRow,
@@ -135,25 +140,74 @@ export function createSupabaseExchangeRateRepository(
 
       return (data ?? []).map(mapExchangeRateRow)
     },
+    async saveManualUsdBrl(userId, rateScaled) {
+      const { data, error } = await exchangeRateClient
+        .from('exchange_rates')
+        .insert({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          base_currency: 'USD',
+          quote_currency: 'BRL',
+          rate_scaled: rateScaled,
+          rate_scale: EXCHANGE_RATE_SCALE,
+          priced_at: new Date().toISOString(),
+          source: 'manual',
+        })
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('exchange rate', error)
+      }
+
+      return mapExchangeRateRow(data)
+    },
   }
+}
+
+function allocationTargetsToJson(
+  targets: readonly AllocationTarget[]
+): ExchangeRateJson {
+  return targets.map((target) => ({
+    id: target.id,
+    target_type: target.scope,
+    asset_id: target.assetId ?? null,
+    category: target.category,
+    target_basis_points: target.targetInBasisPoints,
+  }))
 }
 
 export function createSupabaseAllocationTargetRepository(
   client: SupabaseBrowserClient
 ): AllocationTargetRepository {
+  const rpcClient = client as unknown as ExchangeRateSupabaseClient
+
+  async function listTargets() {
+    const { data, error } = await client
+      .from('allocation_targets')
+      .select('*')
+      .order('target_type', { ascending: true })
+      .order('category', { ascending: true })
+
+    if (error) {
+      throw createRepositoryQueryError('allocation targets', error)
+    }
+
+    return (data ?? []).map(mapAllocationTargetRow)
+  }
+
   return {
-    async list() {
-      const { data, error } = await client
-        .from('allocation_targets')
-        .select('*')
-        .order('target_type', { ascending: true })
-        .order('category', { ascending: true })
+    list: listTargets,
+    async replaceAll(targets) {
+      const { error } = await rpcClient.rpc('replace_allocation_targets', {
+        targets: allocationTargetsToJson(targets),
+      })
 
       if (error) {
         throw createRepositoryQueryError('allocation targets', error)
       }
 
-      return (data ?? []).map(mapAllocationTargetRow)
+      return listTargets()
     },
   }
 }
