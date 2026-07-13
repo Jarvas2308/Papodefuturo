@@ -8,8 +8,11 @@ import type {
   AppRepositories,
   AssetPriceRepository,
   AssetRepository,
+  ExchangeRateRepository,
   PurchaseRepository,
 } from './contracts'
+import { mapExchangeRateRow } from './exchangeRateMapper'
+import type { ExchangeRateSupabaseClient } from './exchangeRateSchema'
 import {
   mapAllocationTargetRow,
   mapAssetPriceRow,
@@ -113,6 +116,28 @@ export function createSupabaseAssetPriceRepository(
   }
 }
 
+export function createSupabaseExchangeRateRepository(
+  client: SupabaseBrowserClient
+): ExchangeRateRepository {
+  const exchangeRateClient =
+    client as unknown as ExchangeRateSupabaseClient
+
+  return {
+    async list() {
+      const { data, error } = await exchangeRateClient
+        .from('exchange_rates')
+        .select('*')
+        .order('priced_at', { ascending: false })
+
+      if (error) {
+        throw createRepositoryQueryError('exchange rates', error)
+      }
+
+      return (data ?? []).map(mapExchangeRateRow)
+    },
+  }
+}
+
 export function createSupabaseAllocationTargetRepository(
   client: SupabaseBrowserClient
 ): AllocationTargetRepository {
@@ -140,6 +165,7 @@ export function createSupabaseRepositories(
     assets: createSupabaseAssetRepository(client),
     purchases: createSupabasePurchaseRepository(client),
     assetPrices: createSupabaseAssetPriceRepository(client),
+    exchangeRates: createSupabaseExchangeRateRepository(client),
     allocationTargets: createSupabaseAllocationTargetRepository(client),
   }
 }

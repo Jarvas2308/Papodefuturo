@@ -3,6 +3,7 @@ import type {
   Asset,
   AssetPrice,
   EntityId,
+  ExchangeRate,
   Purchase,
 } from '../../domain/models'
 
@@ -19,6 +20,10 @@ export type AssetPriceRepository = {
   list(): Promise<AssetPrice[]>
 }
 
+export type ExchangeRateRepository = {
+  list(): Promise<ExchangeRate[]>
+}
+
 export type AllocationTargetRepository = {
   list(): Promise<AllocationTarget[]>
 }
@@ -27,5 +32,6 @@ export type AppRepositories = {
   assets: AssetRepository
   purchases: PurchaseRepository
   assetPrices: AssetPriceRepository
+  exchangeRates: ExchangeRateRepository
   allocationTargets: AllocationTargetRepository
 }
