@@ -8,19 +8,6 @@ import { usePortfolioData } from '../features/portfolio/usePortfolioData'
 export function PortfolioPage() {
   const { data, status, error } = usePortfolioData()
 
-  if (status === 'loading' || !data) {
-    return (
-      <Card>
-        <p
-          role="status"
-          className="text-sm text-[var(--color-text-muted)]"
-        >
-          Carregando sua carteira...
-        </p>
-      </Card>
-    )
-  }
-
   if (status === 'error') {
     return (
       <Card>
@@ -29,6 +16,19 @@ export function PortfolioPage() {
         </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
           {error ?? 'Tente novamente após atualizar a página.'}
+        </p>
+      </Card>
+    )
+  }
+
+  if (status === 'loading' || !data) {
+    return (
+      <Card>
+        <p
+          role="status"
+          className="text-sm text-[var(--color-text-muted)]"
+        >
+          Carregando sua carteira...
         </p>
       </Card>
     )
