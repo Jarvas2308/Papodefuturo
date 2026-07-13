@@ -207,7 +207,8 @@ autenticação, backend, APIs ou acesso a dados reais.
 - execução pública de `public.rls_auto_enable()` revogada;
 - advisors de segurança e performance limpos;
 - `public.profiles` foi a primeira tabela real aplicada; o estado atual completo
-  do banco também inclui `public.assets` e `public.purchases`, conforme seções
+  do banco também inclui `public.assets`, `public.purchases`,
+  `public.asset_prices` e `public.allocation_targets`, conforme seções
   seguintes;
 - app ainda usa mocks e dados demonstrativos;
 - nenhuma tela foi conectada ao Supabase;
@@ -311,23 +312,78 @@ Ainda não existem cotações reais pela interface, persistência nas telas,
 autenticação frontend real, backend, APIs, repositories conectados às telas ou
 substituição dos mocks por dados reais.
 
+### Estado aplicado de allocation_targets no Supabase
+
+- migration real `20260713134642_create_allocation_targets` aplicada no Supabase
+  real, correspondente ao arquivo versionado
+  `supabase/migrations/20260711200225_create_allocation_targets.sql`;
+- tabela real `public.allocation_targets` criada;
+- `public.allocation_targets` com RLS habilitado e 0 linhas;
+- primary key `allocation_targets.id`;
+- foreign keys `allocation_targets.user_id -> auth.users.id` e
+  `allocation_targets.asset_id -> public.assets.id`;
+- colunas `id`, `user_id`, `target_type`, `asset_id`, `category`,
+  `target_basis_points`, `created_at` e `updated_at` registradas;
+- `target_type` aceita somente `category` e `asset`;
+- categorias alinhadas ao domínio atual;
+- `target_basis_points` aceita valores entre 0 e 10.000;
+- meta `category` exige `asset_id is null`;
+- meta `asset` exige `asset_id is not null`;
+- trigger `set_allocation_targets_updated_at` usando `public.set_updated_at()`;
+- policies de select, insert, update e delete para `authenticated`, usando
+  `(select auth.uid())`;
+- policies de insert e update validando que o ativo pertence ao usuário
+  autenticado;
+- policies de insert e update validando que `assets.category` corresponde a
+  `allocation_targets.category`;
+- índices únicos parciais por usuário/categoria e por usuário/ativo;
+- índices auxiliares por usuário, usuário + tipo de meta e ativo não nulo;
+- advisors de segurança limpos;
+- avisos de performance `unused_index` documentados como informativos e
+  esperados enquanto a tabela tem 0 linhas e o app não faz consultas reais;
+- app ainda usa mocks e dados demonstrativos;
+- nenhuma tela foi conectada ao Supabase;
+- nenhum dado real foi inserido.
+
+Ainda não existem metas reais pela interface, persistência nas telas,
+autenticação frontend real, backend, APIs, repositories conectados às telas ou
+substituição dos mocks por dados reais.
+
+### Decisão arquitetural sobre planos de aporte persistidos
+
+- `ContributionPlan` representa um resultado futuro do motor estratégico;
+- `ContributionPlanItem` representa itens de uma sugestão ou plano futuro;
+- `plannedPurchase` indica que o modelo ainda depende da definição do fluxo
+  entre plano aceito e compra registrada;
+- persistir planos agora anteciparia o histórico de decisões antes de existir o
+  fluxo real de Auth, carteira, estratégia e repositories;
+- `contribution_plans` e `contribution_plan_items` continuam planejadas e foram
+  explicitamente adiadas, não canceladas;
+- essas tabelas devem ser revisitadas quando o motor estratégico real e o fluxo
+  de apresentação, aceite e confirmação estiverem sendo conectados;
+- nenhuma migration dessas tabelas deve ser criada neste momento.
+
 ## Próximo
 
 ### Fundação de dados e acesso
 
 Ordem planejada:
 
-1. criar migration de `allocation_targets`, ainda sem conectar telas;
-2. gerar types após avanço do schema;
-3. criar repositories isolados;
-4. manter mocks como fallback;
-5. conectar leitura real somente depois de schema, RLS e testes revisados;
-6. Auth;
-7. seed do universo fechado;
-8. testes de isolamento por usuário.
+1. gerar ou preparar os types do schema Supabase atual;
+2. criar repositories isolados;
+3. implementar Auth real;
+4. preparar seed do universo fechado de ativos;
+5. criar testes de isolamento por usuário;
+6. conectar leitura real de carteira;
+7. conectar Estratégia a `allocation_targets`;
+8. conectar compras;
+9. fazer Novo Aporte consumir dados reais;
+10. evoluir o motor estratégico real;
+11. revisitar persistência de planos de aporte.
 
 Todas as etapas devem continuar em ciclos pequenos, revisáveis e sem conectar
-telas antes da base estar validada.
+telas antes da base estar validada. Mocks permanecem como fallback durante a
+integração gradual.
 
 ## Planejado
 

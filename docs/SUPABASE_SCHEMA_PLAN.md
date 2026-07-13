@@ -20,9 +20,10 @@ ciclos próprios.
   - `20260709220231_revoke_rls_auto_enable_execute`;
   - `20260710022454_create_assets`;
   - `20260710140822_create_purchases`;
-  - `20260710174244_create_asset_prices`.
-- Schema `public` possui as tabelas reais `profiles`, `assets`, `purchases` e
-  `asset_prices`.
+  - `20260710174244_create_asset_prices`;
+  - `20260713134642_create_allocation_targets`.
+- Schema `public` possui as tabelas reais `profiles`, `assets`, `purchases`,
+  `asset_prices` e `allocation_targets`.
 - `public.profiles` está criada com RLS habilitado e 0 linhas.
 - `profiles.id` é primary key e foreign key para `auth.users(id)`.
 - Colunas atuais de `profiles`: `id uuid`, `name text`, `created_at timestamptz`
@@ -75,9 +76,29 @@ ciclos próprios.
   usuário autenticado.
 - `asset_prices` possui índices por usuário, ativo, usuário + ativo, usuário +
   data de preço e usuário + ativo + data de preço.
+- `public.allocation_targets` está criada com RLS habilitado e 0 linhas.
+- `allocation_targets.id` é primary key.
+- `allocation_targets.user_id` é foreign key para `auth.users(id)`.
+- `allocation_targets.asset_id` é foreign key nullable para `public.assets(id)`.
+- Colunas atuais de `allocation_targets`: `id uuid`, `user_id uuid`,
+  `target_type text`, `asset_id uuid`, `category text`,
+  `target_basis_points integer`, `created_at timestamptz` com `default now()` e
+  `updated_at timestamptz` com `default now()`.
+- Constraints de `allocation_targets` garantem `target_type` `category` ou
+  `asset`, categorias do domínio atual, `target_basis_points` entre 0 e 10.000,
+  metas de categoria sem `asset_id` e metas de ativo com `asset_id`.
+- `allocation_targets` possui trigger `set_allocation_targets_updated_at` usando
+  `public.set_updated_at()`.
+- Policies de `allocation_targets` são restritas a `authenticated`, usam
+  `(select auth.uid())` e validam, em insert e update, que o ativo pertence ao
+  usuário autenticado e que `assets.category = allocation_targets.category`.
+- `allocation_targets` possui índices únicos parciais por usuário + categoria e
+  usuário + ativo, além de índices auxiliares por usuário, usuário + tipo de meta
+  e ativo não nulo.
 - Advisors atuais de segurança estão limpos.
 - Advisors atuais de performance têm somente avisos informativos `unused_index`
-  para índices de `assets`, `purchases` e `asset_prices` ainda não usados.
+  para índices de `assets`, `purchases`, `asset_prices` e `allocation_targets`
+  ainda não usados.
 - Sem Edge Functions.
 - Aplicação ainda usa mocks e telas demonstrativas.
 - Factory isolada de cliente Supabase já criada no app.
@@ -131,8 +152,8 @@ Observações:
 - `profiles.id` deve representar o mesmo identificador do usuário autenticado;
 - a criação automática do perfil pode ser avaliada em ciclo próprio.
 
-As demais tabelas deste plano, além de `profiles`, `assets`, `purchases` e
-`asset_prices`, ainda não foram criadas no Supabase real.
+As demais tabelas deste plano, além de `profiles`, `assets`, `purchases`,
+`asset_prices` e `allocation_targets`, ainda não foram criadas no Supabase real.
 
 ### assets
 
@@ -255,24 +276,48 @@ Finalidade:
 
 - guardar metas de alocação por ativo ou categoria.
 
-Campos sugeridos:
+Campos aplicados:
 
 - `id uuid primary key`;
 - `user_id uuid references auth.users(id)`;
 - `target_type text`;
 - `asset_id uuid nullable references assets(id)`;
-- `category text nullable`;
+- `category text`;
 - `target_basis_points integer`;
 - `created_at timestamptz`;
 - `updated_at timestamptz`.
 
 Observações:
 
-- soma das metas por escopo deve tender a 10.000 basis points;
-- validações complexas podem começar na aplicação e depois evoluir para
-  constraints;
-- metas por categoria e por ativo devem permanecer coerentes com o domínio da
-  tela Estratégia.
+- `allocation_targets` já possui migration versionada e aplicada no Supabase
+  real;
+- migration real registrada: `20260713134642_create_allocation_targets`;
+- arquivo versionado correspondente:
+  `supabase/migrations/20260711200225_create_allocation_targets.sql`;
+- RLS está habilitado em `public.allocation_targets`;
+- as policies reais usam `(select auth.uid())`;
+- existem 4 policies para `authenticated`;
+- as policies de insert e update validam ownership do ativo;
+- as policies de insert e update validam que `assets.category` corresponde a
+  `allocation_targets.category`;
+- existe trigger `set_allocation_targets_updated_at` usando
+  `public.set_updated_at()`;
+- `target_type` aceita somente `category` e `asset`;
+- categorias permanecem alinhadas ao domínio atual;
+- `target_basis_points` aceita valores entre 0 e 10.000;
+- meta de categoria exige `asset_id is null`;
+- meta de ativo exige `asset_id is not null`;
+- existem índices únicos parciais por usuário + categoria e por usuário + ativo;
+- existem índices auxiliares por usuário, usuário + tipo de meta e ativo não
+  nulo;
+- os advisors de segurança estão limpos;
+- os avisos `unused_index` atuais são informativos, esperados porque a tabela
+  tem 0 linhas e o app ainda não faz consultas reais;
+- ainda não há dados reais em `allocation_targets`;
+- `allocation_targets` ainda não está conectada às telas;
+- o app ainda usa mocks;
+- a soma das metas a 10.000 basis points permanece validada na
+  aplicação/domínio por enquanto.
 
 ### contribution_plans
 
@@ -293,6 +338,13 @@ Campos sugeridos:
 Observações:
 
 - um plano representa uma simulação ou decisão futura;
+- `ContributionPlan` representa um resultado futuro do motor estratégico;
+- persistir planos agora anteciparia o histórico de decisões antes de existir o
+  fluxo real de Auth, carteira, estratégia e repositories;
+- `contribution_plans` continua planejada, mas foi explicitamente adiada e não
+  cancelada;
+- deve ser revisitada quando o motor estratégico real e o fluxo de confirmação
+  estiverem sendo conectados;
 - status deve ser modelado antes de qualquer confirmação operacional.
 
 ### contribution_plan_items
@@ -316,6 +368,13 @@ Observações:
 
 - item pertence a um plano de aporte;
 - `user_id` facilita RLS e auditoria;
+- `ContributionPlanItem` representa itens de uma sugestão ou plano futuro;
+- `plannedPurchase` no domínio indica dependência da definição entre plano
+  aceito e compra registrada;
+- `contribution_plan_items` continua planejada, mas foi explicitamente adiada e
+  não cancelada;
+- deve ser revisitada junto com `contribution_plans`, quando houver fluxo real de
+  apresentação, aceite e confirmação;
 - justificativas devem ser explicativas, não recomendação financeira.
 
 ## 5. Relacionamentos
@@ -353,9 +412,9 @@ criadas e revisadas em ciclo próprio.
 3. `assets` — aplicada.
 4. `purchases` — aplicada.
 5. `asset_prices` — aplicada.
-6. `allocation_targets` — pendente.
-7. `contribution_plans` — pendente.
-8. `contribution_plan_items` — pendente.
+6. `allocation_targets` — aplicada.
+7. `contribution_plans` — planejada e adiada.
+8. `contribution_plan_items` — planejada e adiada.
 9. Índices.
 10. Triggers de `updated_at`.
 11. RLS.
@@ -391,23 +450,37 @@ criadas e revisadas em ciclo próprio.
   `unused_index` enquanto não houver consultas reais;
 - `asset_prices(user_id, asset_id, priced_at desc)` — aplicado, com aviso
   informativo `unused_index` enquanto não houver consultas reais;
-- `allocation_targets(user_id)`;
+- `allocation_targets(user_id)` — aplicado, com aviso informativo `unused_index`
+  enquanto não houver consultas reais;
+- `allocation_targets(user_id, target_type)` — aplicado, com aviso informativo
+  `unused_index` enquanto não houver consultas reais;
+- `allocation_targets(asset_id)` — aplicado como índice parcial para ativos não
+  nulos, com aviso informativo `unused_index` enquanto não houver consultas
+  reais;
+- `allocation_targets(user_id, category)` — aplicado como índice único parcial
+  para metas de categoria;
+- `allocation_targets(user_id, asset_id)` — aplicado como índice único parcial
+  para metas de ativo;
 - `contribution_plan_items(contribution_plan_id)`.
 
 ## 9. Integração Gradual com o App
 
 Ordem futura recomendada:
 
-1. Criar migrations.
-2. Gerar types.
-3. Criar repositories.
-4. Manter mocks como fallback temporário.
-5. Conectar leitura de `assets`.
-6. Conectar `purchases`.
-7. Recalcular carteira com dados reais.
-8. Conectar strategy/metas.
-9. Conectar Novo Aporte.
-10. Remover mocks só depois de estabilidade.
+1. Gerar ou preparar os types do schema Supabase atual.
+2. Criar repositories isolados.
+3. Implementar Auth real.
+4. Preparar seed do universo fechado de ativos.
+5. Criar testes de isolamento por usuário.
+6. Conectar leitura real de carteira.
+7. Conectar Estratégia a `allocation_targets`.
+8. Conectar compras.
+9. Fazer Novo Aporte consumir dados reais.
+10. Evoluir o motor estratégico real.
+11. Revisitar `contribution_plans` e `contribution_plan_items` quando houver
+    fluxo real de apresentação, aceite e confirmação.
+
+Mocks permanecem como fallback durante a integração gradual.
 
 ## 10. Estado Fora do Escopo Atual do App
 
@@ -419,9 +492,10 @@ Ordem futura recomendada:
 - Nenhuma autenticação frontend real foi criada.
 - Nenhum backend foi criado.
 - Nenhuma API foi criada.
-- Nenhuma tabela além de `public.profiles`, `public.assets`, `public.purchases`
-  e `public.asset_prices` foi criada no Supabase real.
-- As próximas tabelas pendentes são `allocation_targets`, `contribution_plans` e
-  `contribution_plan_items`.
-- O próximo passo provável é criar a migration de `allocation_targets`, ainda sem
-  conectar telas.
+- Nenhuma tabela além de `public.profiles`, `public.assets`, `public.purchases`,
+  `public.asset_prices` e `public.allocation_targets` foi criada no Supabase
+  real.
+- As próximas tabelas planejadas são `contribution_plans` e
+  `contribution_plan_items`, explicitamente adiadas e não canceladas.
+- O próximo passo provável é gerar ou preparar os types do schema Supabase atual,
+  ainda sem conectar telas.
