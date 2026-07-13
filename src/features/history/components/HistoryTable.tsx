@@ -1,4 +1,5 @@
 import type { HistoryMovement } from '../types'
+import { Button } from '../../../components/ui/Button'
 import {
   formatHistoryCurrency,
   formatHistoryDate,
@@ -10,12 +11,34 @@ import {
   MovementTypeBadge,
 } from './HistoryBadges'
 
-export function HistoryTable({ movements }: { movements: HistoryMovement[] }) {
+type HistoryTableProps = {
+  movements: HistoryMovement[]
+  isDemo: boolean
+  onEditPurchase?: (purchaseId: string) => void
+  onCancelPurchase?: (purchaseId: string) => void
+  pendingPurchaseId?: string | null
+}
+
+function canManagePurchase(movement: HistoryMovement): boolean {
+  return movement.type === 'purchase' && movement.status === 'completed'
+}
+
+export function HistoryTable({
+  movements,
+  isDemo,
+  onEditPurchase,
+  onCancelPurchase,
+  pendingPurchaseId,
+}: HistoryTableProps) {
+  const hasActions = Boolean(onEditPurchase && onCancelPurchase)
+
   return (
     <div className="hidden overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] xl:block">
       <table className="w-full border-collapse">
         <caption className="sr-only">
-          Movimentações demonstrativas conforme os filtros selecionados
+          {isDemo
+            ? 'Movimentações demonstrativas conforme os filtros selecionados'
+            : 'Movimentações da sua conta conforme os filtros selecionados'}
         </caption>
         <thead className="bg-[var(--color-surface-muted)]">
           <tr>
@@ -28,6 +51,7 @@ export function HistoryTable({ movements }: { movements: HistoryMovement[] }) {
               'Preço unitário',
               'Valor total',
               'Status',
+              ...(hasActions ? ['Ações'] : []),
             ].map((label) => (
               <th
                 key={label}
@@ -80,6 +104,36 @@ export function HistoryTable({ movements }: { movements: HistoryMovement[] }) {
               <td className="px-4 py-4">
                 <MovementStatusBadge status={movement.status} />
               </td>
+              {hasActions ? (
+                <td className="px-4 py-4">
+                  {canManagePurchase(movement) ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="ghost"
+                        className="px-2 py-1.5 text-xs"
+                        disabled={pendingPurchaseId === movement.id}
+                        onClick={() => onEditPurchase?.(movement.id)}
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="px-2 py-1.5 text-xs text-[var(--color-alert)]"
+                        disabled={pendingPurchaseId === movement.id}
+                        onClick={() => onCancelPurchase?.(movement.id)}
+                      >
+                        {pendingPurchaseId === movement.id
+                          ? 'Cancelando...'
+                          : 'Cancelar compra'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-[var(--color-text-muted)]">
+                      —
+                    </span>
+                  )}
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

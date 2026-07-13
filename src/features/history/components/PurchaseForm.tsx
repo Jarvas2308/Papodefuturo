@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { CLOSED_ASSET_UNIVERSE } from '../../../data/assetUniverse'
-import type { Asset } from '../../../domain/models'
+import type { Asset, Purchase } from '../../../domain/models'
 import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
 import type { PurchaseDraft } from '../useHistoryData'
 
 type PurchaseFormProps = {
   assets: Asset[]
-  onSave(draft: PurchaseDraft): Promise<void>
+  editingPurchase: Purchase | null
+  onCreate(draft: PurchaseDraft): Promise<void>
+  onUpdate(purchaseId: string, draft: PurchaseDraft): Promise<void>
+  onCancelEdit(): void
 }
 
 function parseQuantity(value: string): number | null {
@@ -37,14 +40,33 @@ function getCurrency(asset: Asset | undefined) {
   )?.currency
 }
 
-export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
-  const [assetId, setAssetId] = useState(assets[0]?.id ?? '')
-  const [quantity, setQuantity] = useState('')
-  const [unitPrice, setUnitPrice] = useState('')
-  const [purchasedAt, setPurchasedAt] = useState(
-    new Date().toISOString().slice(0, 10)
+function formatMinorUnitsForInput(amountInMinorUnits: number): string {
+  return (amountInMinorUnits / 100).toFixed(2).replace('.', ',')
+}
+
+function PurchaseFormFields({
+  assets,
+  editingPurchase,
+  onCreate,
+  onUpdate,
+  onCancelEdit,
+}: PurchaseFormProps) {
+  const isEditing = editingPurchase !== null
+  const [assetId, setAssetId] = useState(
+    editingPurchase?.assetId ?? assets[0]?.id ?? ''
   )
-  const [notes, setNotes] = useState('')
+  const [quantity, setQuantity] = useState(
+    editingPurchase ? String(editingPurchase.quantity) : ''
+  )
+  const [unitPrice, setUnitPrice] = useState(
+    editingPurchase
+      ? formatMinorUnitsForInput(editingPurchase.unitPrice.amountInMinorUnits)
+      : ''
+  )
+  const [purchasedAt, setPurchasedAt] = useState(
+    editingPurchase?.tradeDate ?? new Date().toISOString().slice(0, 10)
+  )
+  const [notes, setNotes] = useState(editingPurchase?.notes ?? '')
   const [feedback, setFeedback] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const selectedAsset = assets.find((asset) => asset.id === assetId)
@@ -70,17 +92,23 @@ export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
     setFeedback('')
 
     try {
-      await onSave({
+      const draft = {
         assetId,
         quantity: parsedQuantity,
         unitPriceInMinorUnits: parsedUnitPrice,
         purchasedAt,
         notes,
-      })
-      setQuantity('')
-      setUnitPrice('')
-      setNotes('')
-      setFeedback('Compra registrada com sucesso na sua carteira.')
+      }
+
+      if (editingPurchase) {
+        await onUpdate(editingPurchase.id, draft)
+        onCancelEdit()
+      } else {
+        await onCreate(draft)
+        setQuantity('')
+        setUnitPrice('')
+        setNotes('')
+      }
     } catch (error) {
       setFeedback(
         error instanceof Error
@@ -99,12 +127,18 @@ export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
           Persistência real
         </p>
         <h2 className="mt-2 text-xl font-semibold text-[var(--color-text)]">
-          Registrar compra
+          {isEditing ? 'Editar compra' : 'Registrar compra'}
         </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-          A compra será vinculada à sua conta e usada nos cálculos de carteira,
-          estratégia e próximos aportes.
+          {isEditing
+            ? 'Atualize os fatos da compra. Os valores derivados serão recalculados a partir do registro salvo.'
+            : 'A compra será vinculada à sua conta e usada nos cálculos de carteira, estratégia e próximos aportes.'}
         </p>
+        {isEditing ? (
+          <p className="mt-3 text-sm font-medium text-[var(--color-text)]">
+            Editando a compra de {selectedAsset?.ticker ?? 'ativo selecionado'}.
+          </p>
+        ) : null}
       </div>
 
       <form
@@ -170,18 +204,34 @@ export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
         </label>
 
         <div className="flex items-end">
-          <Button
-            type="submit"
-            disabled={
-              !assetId ||
-              parsedQuantity === null ||
-              parsedUnitPrice === null ||
-              !purchasedAt ||
-              isSaving
-            }
-          >
-            {isSaving ? 'Salvando...' : 'Registrar compra'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              disabled={
+                !assetId ||
+                parsedQuantity === null ||
+                parsedUnitPrice === null ||
+                !purchasedAt ||
+                isSaving
+              }
+            >
+              {isSaving
+                ? 'Salvando...'
+                : isEditing
+                  ? 'Salvar alterações'
+                  : 'Registrar compra'}
+            </Button>
+            {isEditing ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isSaving}
+                onClick={onCancelEdit}
+              >
+                Cancelar edição
+              </Button>
+            ) : null}
+          </div>
         </div>
       </form>
 
@@ -194,5 +244,14 @@ export function PurchaseForm({ assets, onSave }: PurchaseFormProps) {
         </p>
       ) : null}
     </Card>
+  )
+}
+
+export function PurchaseForm(props: PurchaseFormProps) {
+  return (
+    <PurchaseFormFields
+      key={props.editingPurchase?.id ?? 'new-purchase'}
+      {...props}
+    />
   )
 }

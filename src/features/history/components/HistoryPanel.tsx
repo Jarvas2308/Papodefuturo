@@ -11,18 +11,26 @@ import { HistoryTable } from './HistoryTable'
 
 type HistoryPanelProps = {
   movements: HistoryMovement[]
+  isDemo: boolean
   filters: HistoryFiltersState
   months: string[]
   onFiltersChange: (filters: HistoryFiltersState) => void
   onClear: () => void
+  onEditPurchase?: (purchaseId: string) => void
+  onCancelPurchase?: (purchaseId: string) => void
+  pendingPurchaseId?: string | null
 }
 
 export function HistoryPanel({
   movements,
+  isDemo,
   filters,
   months,
   onFiltersChange,
   onClear,
+  onEditPurchase,
+  onCancelPurchase,
+  pendingPurchaseId,
 }: HistoryPanelProps) {
   return (
     <Card className="overflow-hidden p-0">
@@ -33,12 +41,14 @@ export function HistoryPanel({
               Movimentações
             </h2>
             <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
-              Consulte compras, vendas e proventos simulados da carteira.
+              {isDemo
+                ? 'Consulte compras, vendas e proventos simulados da carteira.'
+                : 'Consulte as compras registradas na sua conta e seus respectivos status.'}
             </p>
           </div>
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[var(--color-brand-subtle)] px-3 py-1.5 text-xs font-semibold text-[var(--color-brand-strong)]">
             <DatabaseZap className="size-3.5" aria-hidden="true" />
-            Sem persistência real
+            {isDemo ? 'Dados demonstrativos' : 'Dados da sua conta'}
           </span>
         </div>
         <div className="mt-5">
@@ -63,8 +73,19 @@ export function HistoryPanel({
                 ? 'movimentação encontrada'
                 : 'movimentações encontradas'}
             </p>
-            <HistoryTable movements={movements} />
-            <HistoryCards movements={movements} />
+            <HistoryTable
+              movements={movements}
+              isDemo={isDemo}
+              onEditPurchase={onEditPurchase}
+              onCancelPurchase={onCancelPurchase}
+              pendingPurchaseId={pendingPurchaseId}
+            />
+            <HistoryCards
+              movements={movements}
+              onEditPurchase={onEditPurchase}
+              onCancelPurchase={onCancelPurchase}
+              pendingPurchaseId={pendingPurchaseId}
+            />
           </>
         ) : (
           <HistoryEmptyState onClear={onClear} />
