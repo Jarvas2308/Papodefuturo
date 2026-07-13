@@ -40,10 +40,11 @@ No estado atual:
 - existe preparação inicial de Supabase com factory isolada de cliente e
   migrations versionadas;
 - o Supabase real já possui `public.profiles`, `public.assets`,
-  `public.purchases` e `public.asset_prices`, todas com RLS habilitado;
+  `public.purchases`, `public.asset_prices` e `public.allocation_targets`, todas
+  com RLS habilitado;
 - advisors de segurança estão limpos e os avisos de performance atuais são
-  informativos para índices de `assets`, `purchases` e `asset_prices` ainda não
-  usados;
+  informativos para índices de `assets`, `purchases`, `asset_prices` e
+  `allocation_targets` ainda não usados;
 - ainda não existe camada runtime de dados conectada às telas, backend,
   autenticação frontend real, APIs ou persistência no app.
 
@@ -61,8 +62,9 @@ No estado atual:
 - primeira fundação tipada do domínio financeiro em `src/domain`;
 - factory isolada de cliente Supabase em `src/lib`, sem criação automática de
   cliente pronto no import;
-- tabelas reais `public.profiles`, `public.assets`, `public.purchases` e
-  `public.asset_prices` aplicadas no Supabase, ainda sem consumo pelas telas;
+- tabelas reais `public.profiles`, `public.assets`, `public.purchases`,
+  `public.asset_prices` e `public.allocation_targets` aplicadas no Supabase,
+  ainda sem consumo pelas telas;
 - publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
 - testes automatizados com Vitest para regras e utilitários já extraídos.
 
@@ -280,12 +282,13 @@ Estado atual:
 - leitura tipada de variáveis públicas preparada;
 - factory isolada de cliente Supabase criada;
 - migrations versionadas iniciais criadas;
-- tabelas reais `public.profiles`, `public.assets`, `public.purchases` e
-  `public.asset_prices` aplicadas no Supabase;
+- tabelas reais `public.profiles`, `public.assets`, `public.purchases`,
+  `public.asset_prices` e `public.allocation_targets` aplicadas no Supabase;
 - RLS habilitado em `public.profiles`;
 - RLS habilitado em `public.assets`;
 - RLS habilitado em `public.purchases`;
 - RLS habilitado em `public.asset_prices`;
+- RLS habilitado em `public.allocation_targets`;
 - policies de `profiles` usando `(select auth.uid())`;
 - policies de `assets` usando `(select auth.uid())`;
 - policies de `purchases` usando `(select auth.uid())`;
@@ -294,14 +297,19 @@ Estado atual:
 - policies de `asset_prices` usando `(select auth.uid())`;
 - policies de insert e update de `asset_prices` validando que o ativo pertence
   ao usuário autenticado;
+- policies de `allocation_targets` usando `(select auth.uid())`;
+- policies de insert e update de `allocation_targets` validando ownership do
+  ativo e coerência entre `assets.category` e `allocation_targets.category`;
 - índice único de `assets` por `user_id + upper(ticker)`;
 - índices de `purchases` por usuário, ativo, usuário + ativo, usuário + data de
   compra e usuário + status;
 - índices de `asset_prices` por usuário, ativo, usuário + ativo, usuário + data
   de preço e usuário + ativo + data de preço;
+- índices únicos parciais de `allocation_targets` por usuário + categoria e
+  usuário + ativo, além de índices auxiliares por usuário, tipo de meta e ativo;
 - advisors atuais de segurança limpos;
-- avisos informativos `unused_index` para índices de `assets`, `purchases` e
-  `asset_prices` ainda não usados;
+- avisos informativos `unused_index` para índices de `assets`, `purchases`,
+  `asset_prices` e `allocation_targets` ainda não usados;
 - nenhuma tela conectada ao banco real;
 - nenhum dado real inserido;
 - mocks continuam como fonte das experiências demonstrativas.
