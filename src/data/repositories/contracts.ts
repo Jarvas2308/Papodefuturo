@@ -22,10 +22,12 @@ export type AssetPriceRepository = {
 
 export type ExchangeRateRepository = {
   list(): Promise<ExchangeRate[]>
+  saveManualUsdBrl(userId: EntityId, rateScaled: number): Promise<ExchangeRate>
 }
 
 export type AllocationTargetRepository = {
   list(): Promise<AllocationTarget[]>
+  replaceAll(targets: readonly AllocationTarget[]): Promise<AllocationTarget[]>
 }
 
 export type AppRepositories = {
