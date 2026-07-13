@@ -1,15 +1,112 @@
 import { ArrowRight, LockKeyhole, Mail } from 'lucide-react'
-import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/useAuth'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 
+type LoginMode = 'sign-in' | 'sign-up'
+
+type LoginLocationState = {
+  from?: string
+}
+
+type LoginFeedback = {
+  tone: 'error' | 'success'
+  message: string
+}
+
+function getAuthFailureMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'Não foi possível concluir o acesso. Tente novamente.'
+  }
+
+  if (error.message === 'Invalid login credentials') {
+    return 'E-mail ou senha inválidos.'
+  }
+
+  if (error.message === 'Email not confirmed') {
+    return 'Confirme seu e-mail antes de entrar.'
+  }
+
+  if (error.message === 'User already registered') {
+    return 'Já existe uma conta com este e-mail.'
+  }
+
+  if (error.message.toLowerCase().includes('password')) {
+    return 'A senha não atende aos requisitos mínimos de segurança.'
+  }
+
+  return 'Não foi possível concluir o acesso. Verifique os dados e tente novamente.'
+}
+
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { status, signIn, signUp } = useAuth()
+  const [mode, setMode] = useState<LoginMode>('sign-in')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState<LoginFeedback | null>(null)
+  const destination =
+    (location.state as LoginLocationState | null)?.from ?? '/dashboard'
+  const isDemoMode = status === 'demo'
+  const isSignUp = mode === 'sign-up'
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (status === 'authenticated') {
+      navigate(destination, { replace: true })
+    }
+  }, [destination, navigate, status])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    navigate('/dashboard')
+
+    if (isDemoMode) {
+      navigate(destination, { replace: true })
+      return
+    }
+
+    if (status === 'loading') {
+      return
+    }
+
+    setIsSubmitting(true)
+    setFeedback(null)
+
+    try {
+      if (isSignUp) {
+        const result = await signUp(email, password)
+
+        if (result.requiresEmailConfirmation) {
+          setFeedback({
+            tone: 'success',
+            message:
+              'Conta criada. Confirme seu e-mail antes de entrar na plataforma.',
+          })
+          return
+        }
+      } else {
+        await signIn(email, password)
+      }
+
+      navigate(destination, { replace: true })
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        message: getAuthFailureMessage(error),
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  function toggleMode() {
+    setMode((currentMode) =>
+      currentMode === 'sign-in' ? 'sign-up' : 'sign-in'
+    )
+    setFeedback(null)
   }
 
   return (
@@ -56,10 +153,14 @@ export function LoginPage() {
               Papo de Futuro
             </p>
             <h2 className="mt-3 text-2xl font-semibold text-[var(--color-text)]">
-              Entrar
+              {isSignUp ? 'Criar conta' : 'Entrar'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-              Acesso demonstrativo para a fundação visual da plataforma.
+              {isDemoMode
+                ? 'Modo demonstrativo ativo neste ambiente.'
+                : isSignUp
+                  ? 'Crie seu acesso com e-mail e senha.'
+                  : 'Entre com seu e-mail e senha para continuar.'}
             </p>
           </div>
           <form className="space-y-5 px-6 py-6 sm:px-8" onSubmit={handleSubmit}>
@@ -77,63 +178,84 @@ export function LoginPage() {
                   name="email"
                   type="email"
                   autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] py-3 pl-11 pr-4 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-ring)]"
                   placeholder="voce@exemplo.com"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <label
-                  className="block text-sm font-medium text-[var(--color-text)]"
-                  htmlFor="password"
-                >
-                  Senha
-                </label>
-                <Link
-                  to="/login"
-                  className="text-sm font-medium text-[var(--color-brand)] underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
+              <label
+                className="block text-sm font-medium text-[var(--color-text)]"
+                htmlFor="password"
+              >
+                Senha
+              </label>
               <div className="relative">
                 <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
                 <input
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  required
+                  minLength={isSignUp ? 6 : undefined}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   className="w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] py-3 pl-11 pr-4 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-ring)]"
                   placeholder="Digite sua senha"
                 />
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <label className="inline-flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
-                <input
-                  type="checkbox"
-                  name="remember"
-                  className="size-4 rounded border-[var(--color-border-strong)] text-[var(--color-brand)] focus:ring-[var(--color-ring)]"
-                />
-                Lembrar de mim
-              </label>
-              <p className="text-sm text-[var(--color-alert)]">
-                O acesso ainda é demonstrativo.
+
+            <p
+              className={`text-sm ${
+                isDemoMode
+                  ? 'text-[var(--color-alert)]'
+                  : 'text-[var(--color-text-muted)]'
+              }`}
+            >
+              {isDemoMode
+                ? 'O ambiente ainda está sem configuração pública do Supabase. O acesso continua demonstrativo.'
+                : 'A sessão é gerenciada pelo acesso autenticado da plataforma.'}
+            </p>
+
+            {feedback ? (
+              <p
+                role="status"
+                className={`text-sm ${
+                  feedback.tone === 'error'
+                    ? 'text-[var(--color-alert)]'
+                    : 'text-[var(--color-brand-strong)]'
+                }`}
+              >
+                {feedback.message}
               </p>
-            </div>
-            <Button type="submit" className="w-full justify-center">
-              Entrar
+            ) : null}
+
+            <Button
+              type="submit"
+              className="w-full justify-center"
+              disabled={isSubmitting || status === 'loading'}
+            >
+              {isSubmitting
+                ? 'Processando...'
+                : isSignUp
+                  ? 'Criar conta'
+                  : 'Entrar'}
               <ArrowRight className="size-4" />
             </Button>
             <p className="text-center text-sm text-[var(--color-text-muted)]">
-              Ainda não tem acesso?{' '}
-              <Link
-                to="/login"
+              {isSignUp ? 'Já tem acesso? ' : 'Ainda não tem acesso? '}
+              <button
+                type="button"
+                onClick={toggleMode}
                 className="font-semibold text-[var(--color-brand)] underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]"
               >
-                Criar conta
-              </Link>
+                {isSignUp ? 'Entrar' : 'Criar conta'}
+              </button>
             </p>
           </form>
         </Card>

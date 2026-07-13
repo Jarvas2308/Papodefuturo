@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
-import { Bell, Info, Menu, X } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { Bell, Info, LogOut, Menu, X } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth'
 import { getPageCopyFromPath } from '../../lib/navigation'
 import { Button } from '../ui/Button'
 import { PageHeader } from '../ui/PageHeader'
@@ -12,18 +13,36 @@ type HeaderProps = {
 
 export function Header({ menuButtonRef, onOpenMobileMenu }: HeaderProps) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { status, user, signOut } = useAuth()
   const pageCopy = getPageCopyFromPath(location.pathname)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null)
   const notificationPanelRef = useRef<HTMLDivElement | null>(null)
   const notificationPanelId = useId()
   const notificationTitleId = useId()
+  const isAuthenticated = status === 'authenticated'
+  const profileInitials = isAuthenticated
+    ? (user?.email?.slice(0, 2).toUpperCase() ?? 'US')
+    : 'DE'
+  const profileLabel = isAuthenticated
+    ? `Avatar do usuário autenticado ${user?.email ?? ''}`.trim()
+    : 'Avatar do perfil demonstrativo, com dados de exemplo'
 
   function closeNotifications(restoreFocus = false) {
     setIsNotificationsOpen(false)
 
     if (restoreFocus) {
       requestAnimationFrame(() => notificationButtonRef.current?.focus())
+    }
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch {
+      return
     }
   }
 
@@ -151,12 +170,23 @@ export function Header({ menuButtonRef, onOpenMobileMenu }: HeaderProps) {
             </div>
           ) : null}
         </div>
+        {isAuthenticated ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => void handleSignOut()}
+            aria-label="Sair da conta"
+          >
+            <LogOut className="size-5" />
+          </Button>
+        ) : null}
         <div
           className="flex size-10 items-center justify-center rounded-full bg-[var(--color-brand)] font-semibold text-white shadow-[var(--shadow-soft)]"
           role="img"
-          aria-label="Avatar do perfil demonstrativo, com dados de exemplo"
+          aria-label={profileLabel}
         >
-          DE
+          {profileInitials}
         </div>
       </div>
     </header>
