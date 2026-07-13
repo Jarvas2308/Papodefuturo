@@ -4,6 +4,12 @@ export type {
   ContributionPlanItem,
   ContributionPlanStatus,
 } from './contribution'
+export {
+  convertMoney,
+  EXCHANGE_RATE_SCALE,
+  isValidExchangeRate,
+} from './exchangeRate'
+export type { ExchangeRate, ExchangeRateSource } from './exchangeRate'
 export type { AssetPrice, AssetPriceSource } from './price'
 export type { PortfolioPosition } from './portfolio'
 export type { Purchase, PurchaseStatus } from './purchase'
