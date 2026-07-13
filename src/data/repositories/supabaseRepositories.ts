@@ -86,18 +86,64 @@ export function createSupabaseAssetRepository(
 export function createSupabasePurchaseRepository(
   client: SupabaseBrowserClient
 ): PurchaseRepository {
-  return {
-    async list() {
-      const { data, error } = await client
-        .from('purchases')
-        .select('*')
-        .order('purchased_at', { ascending: false })
+  async function listPurchases() {
+    const { data, error } = await client
+      .from('purchases')
+      .select('*')
+      .order('purchased_at', { ascending: false })
 
-      if (error) {
-        throw createRepositoryQueryError('purchases', error)
+    if (error) {
+      throw createRepositoryQueryError('purchases', error)
+    }
+
+    return (data ?? []).map(mapPurchaseRow)
+  }
+
+  return {
+    list: listPurchases,
+    async create(input) {
+      if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+        throw new RangeError('Purchase quantity must be positive')
       }
 
-      return (data ?? []).map(mapPurchaseRow)
+      if (
+        !Number.isSafeInteger(input.unitPriceInMinorUnits) ||
+        input.unitPriceInMinorUnits < 0
+      ) {
+        throw new RangeError('Purchase unit price must be a non-negative integer')
+      }
+
+      const totalAmountInMinorUnits = Math.round(
+        input.quantity * input.unitPriceInMinorUnits
+      )
+
+      if (!Number.isSafeInteger(totalAmountInMinorUnits)) {
+        throw new RangeError('Purchase total is outside the supported range')
+      }
+
+      const notes = input.notes?.trim()
+      const { data, error } = await client
+        .from('purchases')
+        .insert({
+          id: crypto.randomUUID(),
+          user_id: input.userId,
+          asset_id: input.assetId,
+          quantity: input.quantity,
+          unit_price_minor: input.unitPriceInMinorUnits,
+          total_amount_minor: totalAmountInMinorUnits,
+          currency: input.currency,
+          purchased_at: input.purchasedAt,
+          status: 'confirmed',
+          notes: notes ? notes : null,
+        })
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('purchase', error)
+      }
+
+      return mapPurchaseRow(data)
     },
   }
 }
