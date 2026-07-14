@@ -4,7 +4,7 @@ export type DashboardSummaryItem = {
   value: string
   helper: string
   icon: 'wallet' | 'landmark' | 'trending-up' | 'calendar'
-  tone?: 'default' | 'positive'
+  tone?: 'default' | 'positive' | 'negative'
   badge?: string
   detail?: string
 }
@@ -34,6 +34,7 @@ export type DashboardMovementItem = {
   type: string
   quantity: string
   amount: string
+  tone?: 'default' | 'cancelled' | 'planned'
 }
 
 export type DashboardStatusItem = {
@@ -42,7 +43,7 @@ export type DashboardStatusItem = {
   detail: string
 }
 
-export type DashboardMock = {
+export type DashboardView = {
   disclaimer: string
   welcome: {
     title: string
@@ -51,7 +52,7 @@ export type DashboardMock = {
     actionTo: string
   }
   summary: DashboardSummaryItem[]
-  evolution: {
+  investmentEvolution: {
     title: string
     description: string
     changeLabel: string

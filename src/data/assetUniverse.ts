@@ -124,6 +124,22 @@ export function normalizeAssetTicker(ticker: string): string {
   return ticker.trim().toUpperCase()
 }
 
+export function getClosedAssetCurrency(asset: AssetSeedIdentity): CurrencyCode {
+  const definition = CLOSED_ASSET_UNIVERSE.find(
+    (candidate) =>
+      normalizeAssetTicker(candidate.ticker) ===
+      normalizeAssetTicker(asset.ticker)
+  )
+
+  if (!definition) {
+    throw new Error(
+      `Unsupported asset outside closed universe: ${asset.ticker}`
+    )
+  }
+
+  return definition.currency
+}
+
 export function getMissingClosedAssetDefinitions(
   existingAssets: readonly AssetSeedIdentity[]
 ): ClosedAssetDefinition[] {

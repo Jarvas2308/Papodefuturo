@@ -1,16 +1,16 @@
 import { TrendingUp } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
-import type { DashboardMock } from '../types'
+import type { DashboardView } from '../types'
 
-type PortfolioEvolutionProps = {
-  evolution: DashboardMock['evolution']
+type InvestmentEvolutionProps = {
+  evolution: DashboardView['investmentEvolution']
 }
 
-export function PortfolioEvolution({ evolution }: PortfolioEvolutionProps) {
-  const titleId = 'portfolio-evolution-title'
-  const descriptionId = 'portfolio-evolution-description'
-  const chartLabelId = 'portfolio-evolution-aria-label'
-  const chartDescriptionId = 'portfolio-evolution-aria-description'
+export function InvestmentEvolution({ evolution }: InvestmentEvolutionProps) {
+  const titleId = 'investment-evolution-title'
+  const descriptionId = 'investment-evolution-description'
+  const chartLabelId = 'investment-evolution-aria-label'
+  const chartDescriptionId = 'investment-evolution-aria-description'
 
   return (
     <Card className="h-full">
@@ -56,7 +56,7 @@ export function PortfolioEvolution({ evolution }: PortfolioEvolutionProps) {
           >
             <defs>
               <linearGradient
-                id="dashboard-evolution-fill"
+                id="dashboard-investment-fill"
                 x1="0"
                 y1="0"
                 x2="0"
@@ -90,7 +90,7 @@ export function PortfolioEvolution({ evolution }: PortfolioEvolutionProps) {
 
             <path
               d={evolution.areaPath}
-              fill="url(#dashboard-evolution-fill)"
+              fill="url(#dashboard-investment-fill)"
             />
             <polyline
               fill="none"

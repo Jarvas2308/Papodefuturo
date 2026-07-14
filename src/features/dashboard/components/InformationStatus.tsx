@@ -1,8 +1,8 @@
 import { Card } from '../../../components/ui/Card'
-import type { DashboardMock } from '../types'
+import type { DashboardView } from '../types'
 
 type InformationStatusProps = {
-  informationStatus: DashboardMock['informationStatus']
+  informationStatus: DashboardView['informationStatus']
 }
 
 export function InformationStatus({

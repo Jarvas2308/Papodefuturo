@@ -15,6 +15,16 @@ const iconMap = {
 
 export function SummaryCard({ item }: SummaryCardProps) {
   const Icon = iconMap[item.icon]
+  const valueToneClass =
+    item.tone === 'positive'
+      ? 'text-[var(--color-positive)]'
+      : item.tone === 'negative'
+        ? 'text-[var(--color-alert)]'
+        : 'text-[var(--color-text)]'
+  const badgeToneClass =
+    item.tone === 'negative'
+      ? 'bg-[color:color-mix(in_srgb,var(--color-alert)_12%,white)] text-[var(--color-alert)]'
+      : 'bg-[color:color-mix(in_srgb,var(--color-positive)_12%,white)] text-[var(--color-positive)]'
 
   return (
     <Card className="flex h-full flex-col justify-between gap-5">
@@ -24,11 +34,7 @@ export function SummaryCard({ item }: SummaryCardProps) {
             {item.label}
           </p>
           <p
-            className={`mt-3 text-2xl font-semibold tracking-tight sm:text-[1.75rem] ${
-              item.tone === 'positive'
-                ? 'text-[var(--color-positive)]'
-                : 'text-[var(--color-text)]'
-            }`}
+            className={`mt-3 text-2xl font-semibold tracking-tight sm:text-[1.75rem] ${valueToneClass}`}
           >
             {item.value}
           </p>
@@ -39,7 +45,9 @@ export function SummaryCard({ item }: SummaryCardProps) {
       </div>
       <div className="space-y-2">
         {item.badge ? (
-          <span className="inline-flex rounded-full bg-[color:color-mix(in_srgb,var(--color-positive)_12%,white)] px-2.5 py-1 text-xs font-semibold text-[var(--color-positive)]">
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${badgeToneClass}`}
+          >
             {item.badge}
           </span>
         ) : null}
