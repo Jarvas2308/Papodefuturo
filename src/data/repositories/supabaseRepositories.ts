@@ -10,6 +10,7 @@ import type {
   AppRepositories,
   AssetPriceRepository,
   AssetRepository,
+  CreatePurchaseBatchInput,
   CreatePurchaseInput,
   ExchangeRateRepository,
   PurchaseRepository,
@@ -38,19 +39,13 @@ function createRepositoryQueryError(
   return new Error(`Failed to load ${resourceName}: ${error.message}`)
 }
 
-function createBrowserAssetId(): string {
+function createBrowserEntityId(): string {
   return crypto.randomUUID()
 }
 
-type PurchaseFactsInput = Pick<
-  CreatePurchaseInput,
-  | 'assetId'
-  | 'quantity'
-  | 'unitPriceInMinorUnits'
-  | 'currency'
-  | 'purchasedAt'
-  | 'notes'
->
+type PurchaseIdFactory = () => string
+
+type PurchaseFactsInput = Omit<CreatePurchaseInput, 'userId'>
 
 export function calculatePurchaseTotalInMinorUnits(
   quantity: number,
@@ -95,7 +90,7 @@ function toPurchaseFacts(input: PurchaseFactsInput) {
 
 export function createSupabaseAssetRepository(
   client: SupabaseBrowserClient,
-  createId: AssetIdFactory = createBrowserAssetId
+  createId: AssetIdFactory = createBrowserEntityId
 ): AssetRepository {
   async function listAssets() {
     const { data, error } = await client
@@ -136,7 +131,8 @@ export function createSupabaseAssetRepository(
 }
 
 export function createSupabasePurchaseRepository(
-  client: SupabaseBrowserClient
+  client: SupabaseBrowserClient,
+  createId: PurchaseIdFactory = createBrowserEntityId
 ): PurchaseRepository {
   async function listPurchases() {
     const { data, error } = await client
@@ -151,26 +147,54 @@ export function createSupabasePurchaseRepository(
     return (data ?? []).map(mapPurchaseRow)
   }
 
+  async function createMany(input: CreatePurchaseBatchInput) {
+    if (input.purchases.length === 0) {
+      throw new RangeError('At least one purchase is required')
+    }
+
+    const insertRows = input.purchases.map((purchase) => ({
+      id: createId(),
+      user_id: input.userId,
+      status: 'confirmed' as const,
+      ...toPurchaseFacts(purchase),
+    }))
+
+    const { data, error } = await client
+      .from('purchases')
+      .insert(insertRows)
+      .select('*')
+
+    if (error) {
+      throw createRepositoryQueryError('purchases', error)
+    }
+
+    return (data ?? []).map(mapPurchaseRow)
+  }
+
   return {
     list: listPurchases,
     async create(input) {
-      const { data, error } = await client
-        .from('purchases')
-        .insert({
-          id: crypto.randomUUID(),
-          user_id: input.userId,
-          status: 'confirmed',
-          ...toPurchaseFacts(input),
-        })
-        .select('*')
-        .single()
+      const [purchase] = await createMany({
+        userId: input.userId,
+        purchases: [
+          {
+            assetId: input.assetId,
+            quantity: input.quantity,
+            unitPriceInMinorUnits: input.unitPriceInMinorUnits,
+            currency: input.currency,
+            purchasedAt: input.purchasedAt,
+            notes: input.notes,
+          },
+        ],
+      })
 
-      if (error) {
-        throw createRepositoryQueryError('purchase', error)
+      if (!purchase) {
+        throw new Error('Failed to create purchase: no row returned')
       }
 
-      return mapPurchaseRow(data)
+      return purchase
     },
+    createMany,
     async update(input) {
       const { data, error } = await client
         .from('purchases')

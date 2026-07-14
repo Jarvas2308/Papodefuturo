@@ -1,4 +1,5 @@
 import { Check, CheckCircle2 } from 'lucide-react'
+import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
 import type { PortfolioPosition } from '../../portfolio/types'
 import type {
@@ -12,6 +13,7 @@ type ResultPosition = Pick<
 >
 
 type ContributionResultProps = {
+  onConfirmPurchases?: () => void
   positions: ResultPosition[]
   result: ContributionResultData
   strategy: ContributionStrategyType
@@ -27,6 +29,7 @@ function formatCents(valueInCents: number) {
 }
 
 export function ContributionResult({
+  onConfirmPurchases,
   positions,
   result,
   strategy,
@@ -103,9 +106,18 @@ export function ContributionResult({
         </div>
 
         <p className="mt-5 text-xs leading-5 text-[var(--color-text-muted)]">
-          A simulação não executa ordens nem movimenta valores. Registre as
-          compras realizadas no Histórico para atualizar a carteira real.
+          A simulação não executa ordens nem movimenta valores. Registre apenas
+          os fatos das compras que você realmente realizou.
         </p>
+        {onConfirmPurchases ? (
+          <Button
+            className="mt-5"
+            variant="secondary"
+            onClick={onConfirmPurchases}
+          >
+            Confirmar compras realizadas
+          </Button>
+        ) : null}
       </div>
     </Card>
   )

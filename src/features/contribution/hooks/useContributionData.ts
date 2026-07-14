@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth'
 import { createSupabaseRepositories } from '../../../data/repositories'
+import type { CreatePurchaseBatchItem } from '../../../data/repositories/contracts'
 import type {
   Asset,
   AssetPrice,
@@ -13,6 +14,7 @@ import {
 } from '../../strategy/realStrategy'
 import { contributionMock } from '../mocks/contributionMock'
 import type { AllocationTarget, ContributionPosition } from '../types'
+import { getContributionAssetCurrency } from '../utils/confirmedPurchases'
 
 type ContributionDataStatus = 'loading' | 'ready' | 'error'
 
@@ -73,6 +75,7 @@ export function useContributionData() {
   const [positions, setPositions] = useState<ContributionPosition[]>(() =>
     authStatus === 'demo' ? contributionMock.carteiraAtual : []
   )
+  const [assets, setAssets] = useState<Asset[]>([])
   const [resultPositions, setResultPositions] = useState<ResultPosition[]>(
     () => (authStatus === 'demo' ? contributionMock.posicoesVisuais : [])
   )
@@ -134,6 +137,7 @@ export function useContributionData() {
     }))
 
     setPositions(nextPositions)
+    setAssets(assets)
     setResultPositions(nextResultPositions)
     setTargets(nextTargets)
     setNeedsExchangeRate(realPositions.needsExchangeRate)
@@ -185,7 +189,46 @@ export function useContributionData() {
     await loadReal()
   }
 
+  async function registerConfirmedPurchases(
+    purchases: readonly CreatePurchaseBatchItem[]
+  ) {
+    if (authStatus === 'demo') {
+      throw new Error(
+        'O registro de compras confirmadas exige uma sessão autenticada.'
+      )
+    }
+
+    if (!client || !user) {
+      throw new Error('Sessão autenticada indisponível.')
+    }
+
+    const purchasesWithDerivedCurrency = purchases.map((purchase) => {
+      const asset = assets.find(
+        (candidate) => candidate.id === purchase.assetId
+      )
+
+      if (!asset) {
+        throw new Error('A compra informada precisa pertencer à sua carteira.')
+      }
+
+      return {
+        ...purchase,
+        currency: getContributionAssetCurrency(asset),
+      }
+    })
+
+    const repositories = createSupabaseRepositories(client)
+    const registeredPurchases = await repositories.purchases.createMany({
+      userId: user.id,
+      purchases: purchasesWithDerivedCurrency,
+    })
+    await loadReal()
+
+    return registeredPurchases
+  }
+
   return {
+    assets,
     positions,
     resultPositions,
     targets,
@@ -195,5 +238,6 @@ export function useContributionData() {
     latestUsdBrlRate,
     isDemo: authStatus === 'demo',
     saveManualUsdBrl,
+    registerConfirmedPurchases,
   }
 }

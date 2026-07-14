@@ -23,6 +23,13 @@ export type CreatePurchaseInput = {
   notes?: string
 }
 
+export type CreatePurchaseBatchItem = Omit<CreatePurchaseInput, 'userId'>
+
+export type CreatePurchaseBatchInput = {
+  userId: EntityId
+  purchases: readonly CreatePurchaseBatchItem[]
+}
+
 export type UpdatePurchaseInput = Omit<CreatePurchaseInput, 'userId'> & {
   purchaseId: EntityId
 }
@@ -30,6 +37,7 @@ export type UpdatePurchaseInput = Omit<CreatePurchaseInput, 'userId'> & {
 export type PurchaseRepository = {
   list(): Promise<Purchase[]>
   create(input: CreatePurchaseInput): Promise<Purchase>
+  createMany(input: CreatePurchaseBatchInput): Promise<Purchase[]>
   update(input: UpdatePurchaseInput): Promise<Purchase>
   cancel(purchaseId: EntityId): Promise<Purchase>
 }
