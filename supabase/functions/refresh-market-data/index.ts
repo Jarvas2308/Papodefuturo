@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.110.2'
 import { refreshMarketData, type MarketDataStorage } from './core.ts'
-import { createHgBrasilProvider } from './hgBrasilProvider.ts'
+import { createB3CotahistProvider } from './b3CotahistProvider.ts'
+import { extractCotahistText } from './b3CotahistZip.ts'
 import { createTwelveDataProvider } from './twelveDataProvider.ts'
 
 declare const Deno: {
@@ -104,12 +105,13 @@ Deno.serve(async (request) => {
         if (error) throw error
       },
     }
-    const hgKey = Deno.env.get('HG_BRASIL_API_KEY')?.trim()
     const twelveDataKey = Deno.env.get('TWELVE_DATA_API_KEY')?.trim()
     const result = await refreshMarketData({
       userId: authData.user.id,
       storage,
-      hgBrasil: hgKey ? createHgBrasilProvider(hgKey) : null,
+      b3Cotahist: createB3CotahistProvider({
+        extractText: extractCotahistText,
+      }),
       twelveData: twelveDataKey
         ? createTwelveDataProvider(twelveDataKey)
         : null,

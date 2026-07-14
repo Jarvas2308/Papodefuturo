@@ -5,6 +5,7 @@ import {
   getMissingClosedAssetDefinitions,
   normalizeAssetTicker,
 } from './assetUniverse'
+import { SERVER_CLOSED_ASSET_UNIVERSE } from '../../supabase/functions/_shared/closedAssetUniverse'
 
 describe('closed asset universe', () => {
   it('keeps a unique closed universe with twelve assets', () => {
@@ -14,6 +15,48 @@ describe('closed asset universe', () => {
 
     expect(CLOSED_ASSET_UNIVERSE).toHaveLength(12)
     expect(new Set(normalizedTickers).size).toBe(normalizedTickers.length)
+  })
+
+  it('keeps the server catalog synchronized with the web catalog', () => {
+    const webCatalog = CLOSED_ASSET_UNIVERSE.map(
+      ({ ticker, market, currency }) => ({ ticker, market, currency })
+    )
+
+    expect(SERVER_CLOSED_ASSET_UNIVERSE).toHaveLength(12)
+    expect(SERVER_CLOSED_ASSET_UNIVERSE).toEqual(webCatalog)
+  })
+
+  it('keeps server and web tickers synchronized', () => {
+    expect(SERVER_CLOSED_ASSET_UNIVERSE.map(({ ticker }) => ticker)).toEqual(
+      CLOSED_ASSET_UNIVERSE.map(({ ticker }) => ticker)
+    )
+  })
+
+  it('keeps server and web markets synchronized', () => {
+    expect(SERVER_CLOSED_ASSET_UNIVERSE.map(({ market }) => market)).toEqual(
+      CLOSED_ASSET_UNIVERSE.map(({ market }) => market)
+    )
+  })
+
+  it('keeps server and web currencies synchronized', () => {
+    expect(
+      SERVER_CLOSED_ASSET_UNIVERSE.map(({ currency }) => currency)
+    ).toEqual(CLOSED_ASSET_UNIVERSE.map(({ currency }) => currency))
+  })
+
+  it('keeps Edge Function production modules independent from src', () => {
+    const edgeModules = import.meta.glob(
+      '../../supabase/functions/{_shared,refresh-market-data}/**/*.ts',
+      { eager: true, import: 'default', query: '?raw' }
+    ) as Record<string, string>
+
+    for (const [filePath, content] of Object.entries(edgeModules)) {
+      if (filePath.endsWith('.test.ts')) {
+        continue
+      }
+
+      expect(content).not.toMatch(/(?:from|import\()\s*['"][^'"]*src\//)
+    }
   })
 
   it('detects missing assets without treating ticker casing as different', () => {

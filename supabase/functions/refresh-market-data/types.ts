@@ -1,5 +1,5 @@
 export type MarketDataWarningProvider =
-  'hg-brasil' | 'twelve-data' | 'configuration'
+  'b3-cotahist' | 'twelve-data' | 'configuration'
 
 export type MarketDataWarning = {
   provider: MarketDataWarningProvider

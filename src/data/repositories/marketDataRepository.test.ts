@@ -32,4 +32,30 @@ describe('Supabase market data repository', () => {
       createSupabaseMarketDataRepository(client).refresh()
     ).rejects.toThrow('Invalid market data refresh response')
   })
+
+  it('accepts B3 COTAHIST warnings from the server contract', async () => {
+    const result = {
+      refreshedAt: '2026-07-14T16:00:00.000Z',
+      updatedPrices: 8,
+      skippedFreshPrices: 0,
+      updatedExchangeRates: 1,
+      skippedFreshExchangeRates: 0,
+      warnings: [
+        {
+          provider: 'b3-cotahist',
+          ticker: 'KNRI11',
+          message: 'Cotação indisponível.',
+        },
+      ],
+    }
+    const client = {
+      functions: {
+        invoke: vi.fn().mockResolvedValue({ data: result, error: null }),
+      },
+    } as unknown as SupabaseBrowserClient
+
+    await expect(
+      createSupabaseMarketDataRepository(client).refresh()
+    ).resolves.toEqual(result)
+  })
 })

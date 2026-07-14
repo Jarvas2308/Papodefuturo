@@ -66,7 +66,7 @@ function parseMarketDataRefreshResult(value: unknown): MarketDataRefreshResult {
     !result.warnings.every(
       (warning) =>
         warning &&
-        ['hg-brasil', 'twelve-data', 'configuration'].includes(
+        ['b3-cotahist', 'twelve-data', 'configuration'].includes(
           warning.provider
         ) &&
         typeof warning.message === 'string' &&

@@ -57,7 +57,7 @@ export type AllocationTargetRepository = {
 }
 
 export type MarketDataWarning = {
-  provider: 'hg-brasil' | 'twelve-data' | 'configuration'
+  provider: 'b3-cotahist' | 'twelve-data' | 'configuration'
   ticker?: string
   message: string
 }

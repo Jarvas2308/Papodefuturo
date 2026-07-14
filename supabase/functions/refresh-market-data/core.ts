@@ -1,4 +1,4 @@
-import { CLOSED_ASSET_UNIVERSE } from '../../../src/data/assetUniverse.ts'
+import { SERVER_CLOSED_ASSET_UNIVERSE } from '../_shared/closedAssetUniverse.ts'
 import {
   getLatestAutomaticFact,
   isAutomaticFactFresh,
@@ -16,13 +16,13 @@ import type {
   StoredMarketPrice,
 } from './types.ts'
 
-type HgBrasilProvider = {
-  getAssetQuote(ticker: string): Promise<MarketQuote>
-  getUsdBrlQuote(): Promise<ExchangeRateQuote>
+type B3CotahistProvider = {
+  getAssetQuotes(tickers: readonly string[]): Promise<MarketQuote[]>
 }
 
 type TwelveDataProvider = {
   getAssetQuote(ticker: string): Promise<MarketQuote>
+  getUsdBrlQuote(): Promise<ExchangeRateQuote>
 }
 
 export type MarketDataStorage = {
@@ -36,24 +36,38 @@ export type MarketDataStorage = {
 export type RefreshMarketDataInput = {
   userId: string
   storage: MarketDataStorage
-  hgBrasil: HgBrasilProvider | null
+  b3Cotahist: B3CotahistProvider
   twelveData: TwelveDataProvider | null
   now?: Date
   createId?: () => string
 }
 
 const universeByTicker = new Map(
-  CLOSED_ASSET_UNIVERSE.map((asset) => [asset.ticker.toUpperCase(), asset])
+  SERVER_CLOSED_ASSET_UNIVERSE.map((asset) => [
+    asset.ticker.toUpperCase(),
+    asset,
+  ])
 )
 
 function providerFailureWarning(
-  provider: 'hg-brasil' | 'twelve-data',
+  provider: 'b3-cotahist' | 'twelve-data',
   ticker: string
 ): MarketDataWarning {
   return {
     provider,
     ticker,
     message: `Não foi possível atualizar a cotação automática de ${ticker}.`,
+  }
+}
+
+function staleQuoteWarning(
+  provider: 'b3-cotahist' | 'twelve-data',
+  ticker: string
+): MarketDataWarning {
+  return {
+    provider,
+    ticker,
+    message: `A cotação automática de ${ticker} não é mais recente que a armazenada.`,
   }
 }
 
@@ -77,7 +91,7 @@ function getLatestPriceByAsset(prices: readonly StoredMarketPrice[]) {
 export async function refreshMarketData({
   userId,
   storage,
-  hgBrasil,
+  b3Cotahist,
   twelveData,
   now = new Date(),
   createId = () => crypto.randomUUID(),
@@ -99,18 +113,8 @@ export async function refreshMarketData({
 
     return [{ asset, definition }]
   })
-  const hasUsAssets = eligibleAssets.some(
-    ({ definition }) => definition.market === 'US'
-  )
 
-  if (!hgBrasil) {
-    warnings.push({
-      provider: 'configuration',
-      message: 'HG Brasil não está configurada para atualização automática.',
-    })
-  }
-
-  if (!twelveData && hasUsAssets) {
+  if (!twelveData) {
     warnings.push({
       provider: 'configuration',
       message: 'Twelve Data não está configurada para atualização automática.',
@@ -118,53 +122,90 @@ export async function refreshMarketData({
   }
 
   let skippedFreshPrices = 0
-  const priceRows: MarketPriceInsert[] = []
-
-  for (const { asset, definition } of eligibleAssets) {
+  const staleAssets = eligibleAssets.filter(({ asset }) => {
     const latest = latestPriceByAsset.get(asset.id) ?? null
 
     if (isAutomaticFactFresh(latest, now)) {
       skippedFreshPrices += 1
-      continue
+      return false
     }
 
-    const provider = definition.market === 'BR' ? hgBrasil : twelveData
+    return true
+  })
+  const brazilianAssets = staleAssets.filter(
+    ({ definition }) => definition.market === 'BR'
+  )
+  const usAssets = staleAssets.filter(
+    ({ definition }) => definition.market === 'US'
+  )
+  const priceRows: MarketPriceInsert[] = []
 
-    if (
-      !provider ||
-      (definition.market !== 'BR' && definition.market !== 'US')
-    ) {
-      continue
-    }
-
+  if (brazilianAssets.length > 0) {
     try {
-      const quote = await provider.getAssetQuote(definition.ticker)
-
-      if (!isStrictlyNewerTimestamp(quote.pricedAt, latest)) {
-        warnings.push({
-          provider: definition.market === 'BR' ? 'hg-brasil' : 'twelve-data',
-          ticker: definition.ticker,
-          message: `A cotação automática de ${definition.ticker} não é mais recente que a armazenada.`,
-        })
-        continue
-      }
-
-      priceRows.push({
-        id: createId(),
-        user_id: userId,
-        asset_id: asset.id,
-        price_minor: quote.priceInMinorUnits,
-        currency: definition.currency,
-        priced_at: quote.pricedAt,
-        source: 'market-provider',
-      })
-    } catch {
-      warnings.push(
-        providerFailureWarning(
-          definition.market === 'BR' ? 'hg-brasil' : 'twelve-data',
-          definition.ticker
-        )
+      const quotes = await b3Cotahist.getAssetQuotes(
+        brazilianAssets.map(({ definition }) => definition.ticker)
       )
+      const quoteByTicker = new Map(
+        quotes.map((quote) => [quote.ticker.toUpperCase(), quote])
+      )
+
+      for (const { asset, definition } of brazilianAssets) {
+        const quote = quoteByTicker.get(definition.ticker)
+        const latest = latestPriceByAsset.get(asset.id) ?? null
+
+        if (!quote) {
+          warnings.push(
+            providerFailureWarning('b3-cotahist', definition.ticker)
+          )
+          continue
+        }
+
+        if (!isStrictlyNewerTimestamp(quote.pricedAt, latest)) {
+          warnings.push(staleQuoteWarning('b3-cotahist', definition.ticker))
+          continue
+        }
+
+        priceRows.push({
+          id: createId(),
+          user_id: userId,
+          asset_id: asset.id,
+          price_minor: quote.priceInMinorUnits,
+          currency: definition.currency,
+          priced_at: quote.pricedAt,
+          source: 'market-provider',
+        })
+      }
+    } catch {
+      for (const { definition } of brazilianAssets) {
+        warnings.push(providerFailureWarning('b3-cotahist', definition.ticker))
+      }
+    }
+  }
+
+  if (twelveData) {
+    for (const { asset, definition } of usAssets) {
+      const latest = latestPriceByAsset.get(asset.id) ?? null
+
+      try {
+        const quote = await twelveData.getAssetQuote(definition.ticker)
+
+        if (!isStrictlyNewerTimestamp(quote.pricedAt, latest)) {
+          warnings.push(staleQuoteWarning('twelve-data', definition.ticker))
+          continue
+        }
+
+        priceRows.push({
+          id: createId(),
+          user_id: userId,
+          asset_id: asset.id,
+          price_minor: quote.priceInMinorUnits,
+          currency: definition.currency,
+          priced_at: quote.pricedAt,
+          source: 'market-provider',
+        })
+      } catch {
+        warnings.push(providerFailureWarning('twelve-data', definition.ticker))
+      }
     }
   }
 
@@ -177,9 +218,9 @@ export async function refreshMarketData({
 
   if (isAutomaticFactFresh(latestAutomaticRate, now)) {
     skippedFreshExchangeRates = 1
-  } else if (hgBrasil) {
+  } else if (twelveData) {
     try {
-      const quote = await hgBrasil.getUsdBrlQuote()
+      const quote = await twelveData.getUsdBrlQuote()
 
       if (isStrictlyNewerTimestamp(quote.pricedAt, latestAutomaticRate)) {
         await storage.insertMarketExchangeRate({
@@ -194,15 +235,10 @@ export async function refreshMarketData({
         })
         updatedExchangeRates = 1
       } else {
-        warnings.push({
-          provider: 'hg-brasil',
-          ticker: 'USDBRL',
-          message:
-            'A cotação automática de USD/BRL não é mais recente que a armazenada.',
-        })
+        warnings.push(staleQuoteWarning('twelve-data', 'USDBRL'))
       }
     } catch {
-      warnings.push(providerFailureWarning('hg-brasil', 'USDBRL'))
+      warnings.push(providerFailureWarning('twelve-data', 'USDBRL'))
     }
   }
 
