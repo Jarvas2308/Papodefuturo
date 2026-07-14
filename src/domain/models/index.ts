@@ -7,6 +7,7 @@ export type {
 export {
   convertMoney,
   EXCHANGE_RATE_SCALE,
+  getLatestUsdBrlRate,
   isValidExchangeRate,
 } from './exchangeRate'
 export type { ExchangeRate, ExchangeRateSource } from './exchangeRate'

@@ -1,11 +1,14 @@
 import { CLOSED_ASSET_UNIVERSE } from '../../data/assetUniverse'
-import type {
-  AllocationTarget,
-  Asset,
-  AssetCategory,
-  AssetPrice,
-  CurrencyCode,
-  Purchase,
+import {
+  convertMoney,
+  getLatestUsdBrlRate,
+  type AllocationTarget,
+  type Asset,
+  type AssetCategory,
+  type AssetPrice,
+  type CurrencyCode,
+  type ExchangeRate,
+  type Purchase,
 } from '../../domain/models'
 import type {
   PortfolioAllocationItem,
@@ -103,7 +106,7 @@ function getCategoryTarget(
   )
 }
 
-type CalculatedPosition = {
+type NativeCalculatedPosition = {
   asset: Asset
   currency: CurrencyCode
   quantity: number
@@ -115,11 +118,16 @@ type CalculatedPosition = {
   resultPercentage: number
 }
 
-function calculatePositions(
+type CalculatedPosition = NativeCalculatedPosition & {
+  investedMinorInBrl: number
+  currentMinorInBrl: number
+}
+
+function calculateNativePositions(
   assets: readonly Asset[],
   purchases: readonly Purchase[],
   prices: readonly AssetPrice[]
-): CalculatedPosition[] {
+): NativeCalculatedPosition[] {
   const latestPriceByAsset = getLatestPriceByAsset(prices)
 
   return assets.flatMap((asset) => {
@@ -187,10 +195,45 @@ function calculatePositions(
   })
 }
 
+function normalizeToBrl(
+  amountInMinorUnits: number,
+  currency: CurrencyCode,
+  usdBrlRate: ExchangeRate | null
+): number {
+  if (currency === 'BRL') {
+    return amountInMinorUnits
+  }
+
+  if (!usdBrlRate) {
+    throw new Error('USD/BRL exchange rate is required for USD positions')
+  }
+
+  return convertMoney({ amountInMinorUnits, currency }, 'BRL', usdBrlRate)
+    .amountInMinorUnits
+}
+
+function normalizePositions(
+  positions: readonly NativeCalculatedPosition[],
+  usdBrlRate: ExchangeRate | null
+): CalculatedPosition[] {
+  return positions.map((position) => ({
+    ...position,
+    investedMinorInBrl: normalizeToBrl(
+      position.investedMinor,
+      position.currency,
+      usdBrlRate
+    ),
+    currentMinorInBrl: normalizeToBrl(
+      position.currentMinor,
+      position.currency,
+      usdBrlRate
+    ),
+  }))
+}
+
 function buildPositionItems(
   positions: readonly CalculatedPosition[],
-  canAggregate: boolean,
-  totalCurrentMinor: number
+  totalCurrentMinorInBrl: number
 ): PortfolioPosition[] {
   return positions.flatMap((position) => {
     const category = CATEGORY_CONFIG[position.asset.category]
@@ -200,9 +243,9 @@ function buildPositionItems(
     }
 
     const participation =
-      canAggregate && totalCurrentMinor > 0
-        ? (position.currentMinor / totalCurrentMinor) * 100
-        : null
+      totalCurrentMinorInBrl > 0
+        ? (position.currentMinorInBrl / totalCurrentMinorInBrl) * 100
+        : 0
 
     return [
       {
@@ -224,8 +267,7 @@ function buildPositionItems(
         ),
         investedValue: formatMoney(position.investedMinor, position.currency),
         currentValue: formatMoney(position.currentMinor, position.currency),
-        participation:
-          participation === null ? '—' : formatPercentage(participation),
+        participation: formatPercentage(participation),
         resultValue: formatMoney(position.resultMinor, position.currency),
         resultPercentage: formatPercentage(position.resultPercentage, true),
         tone: position.resultMinor >= 0 ? 'positive' : 'negative',
@@ -237,9 +279,7 @@ function buildPositionItems(
 function buildAllocationItems(
   positions: readonly CalculatedPosition[],
   targets: readonly AllocationTarget[],
-  canAggregate: boolean,
-  totalCurrentMinor: number,
-  aggregateCurrency: CurrencyCode
+  totalCurrentMinorInBrl: number
 ): PortfolioAllocationItem[] {
   return Object.entries(CATEGORY_CONFIG).flatMap(([category, config]) => {
     if (!config) {
@@ -247,12 +287,12 @@ function buildAllocationItems(
     }
 
     const typedCategory = category as AssetCategory
-    const currentMinor = positions
+    const currentMinorInBrl = positions
       .filter((position) => position.asset.category === typedCategory)
-      .reduce((total, position) => total + position.currentMinor, 0)
+      .reduce((total, position) => total + position.currentMinorInBrl, 0)
     const current =
-      canAggregate && totalCurrentMinor > 0
-        ? (currentMinor / totalCurrentMinor) * 100
+      totalCurrentMinorInBrl > 0
+        ? (currentMinorInBrl / totalCurrentMinorInBrl) * 100
         : 0
     const target = getCategoryTarget(targets, typedCategory) / 100
     const difference = current - target
@@ -262,136 +302,135 @@ function buildAllocationItems(
         id: config.id,
         category: config.label,
         current,
-        currentLabel: canAggregate
-          ? formatPercentage(current)
-          : 'Conversão pendente',
-        currentValue: canAggregate
-          ? formatMoney(currentMinor, aggregateCurrency)
-          : 'Múltiplas moedas',
+        currentLabel: formatPercentage(current),
+        currentValue: formatMoney(currentMinorInBrl, 'BRL'),
         target,
         targetLabel: formatPercentage(target),
-        differenceLabel: canAggregate
-          ? `${difference >= 0 ? '+' : ''}${difference
-              .toFixed(1)
-              .replace('.', ',')} p.p. ${
-              difference >= 0 ? 'acima da meta' : 'abaixo da meta'
-            }`
-          : 'Conversão cambial pendente',
-        tone: canAggregate && difference > 0.5 ? 'alert' : 'neutral',
+        differenceLabel: `${difference >= 0 ? '+' : ''}${difference
+          .toFixed(1)
+          .replace('.', ',')} p.p. ${
+          difference >= 0 ? 'acima da meta' : 'abaixo da meta'
+        }`,
+        tone: difference > 0.5 ? 'alert' : 'neutral',
       },
     ]
   })
+}
+
+export type PortfolioViewResult = {
+  data: PortfolioMock | null
+  needsExchangeRate: boolean
+  latestUsdBrlRate: ExchangeRate | null
 }
 
 export function buildPortfolioView(
   assets: readonly Asset[],
   purchases: readonly Purchase[],
   prices: readonly AssetPrice[],
-  targets: readonly AllocationTarget[]
-): PortfolioMock {
-  const calculatedPositions = calculatePositions(assets, purchases, prices)
-  const currencies = new Set(
-    calculatedPositions.map((position) => position.currency)
+  targets: readonly AllocationTarget[],
+  rates: readonly ExchangeRate[]
+): PortfolioViewResult {
+  const nativePositions = calculateNativePositions(assets, purchases, prices)
+  const hasConfirmedUsdPosition = nativePositions.some(
+    (position) => position.currency === 'USD'
   )
-  const canAggregate = currencies.size <= 1
-  const aggregateCurrency = calculatedPositions[0]?.currency ?? 'BRL'
-  const totalInvestedMinor = calculatedPositions.reduce(
-    (total, position) => total + position.investedMinor,
+  const latestUsdBrlRate = getLatestUsdBrlRate(rates)
+
+  if (hasConfirmedUsdPosition && !latestUsdBrlRate) {
+    return {
+      data: null,
+      needsExchangeRate: true,
+      latestUsdBrlRate: null,
+    }
+  }
+
+  const calculatedPositions = normalizePositions(
+    nativePositions,
+    latestUsdBrlRate
+  )
+  const totalInvestedMinorInBrl = calculatedPositions.reduce(
+    (total, position) => total + position.investedMinorInBrl,
     0
   )
-  const totalCurrentMinor = calculatedPositions.reduce(
-    (total, position) => total + position.currentMinor,
+  const totalCurrentMinorInBrl = calculatedPositions.reduce(
+    (total, position) => total + position.currentMinorInBrl,
     0
   )
-  const totalResultMinor = totalCurrentMinor - totalInvestedMinor
+  const totalResultMinorInBrl = totalCurrentMinorInBrl - totalInvestedMinorInBrl
   const totalResultPercentage =
-    totalInvestedMinor === 0 ? 0 : (totalResultMinor / totalInvestedMinor) * 100
+    totalInvestedMinorInBrl === 0
+      ? 0
+      : (totalResultMinorInBrl / totalInvestedMinorInBrl) * 100
 
   return {
-    disclaimer: 'Dados reais da sua conta',
-    header: {
-      title: 'Minha Carteira',
-      description:
-        'Visualize suas posições, compras e resultados consolidados.',
-      actionLabel: 'Planejar novo aporte',
-      actionTo: '/novo-aporte',
-    },
-    summary: [
-      {
-        id: 'monitored-equity',
-        label: 'Patrimônio monitorado',
-        value: canAggregate
-          ? formatMoney(totalCurrentMinor, aggregateCurrency)
-          : 'Múltiplas moedas',
-        helper: canAggregate
-          ? 'Valor atual calculado pelas últimas cotações disponíveis'
-          : 'Conversão cambial ainda não disponível',
-        icon: 'wallet',
+    data: {
+      disclaimer: 'Dados reais da sua conta',
+      header: {
+        title: 'Minha Carteira',
+        description:
+          'Visualize suas posições, compras e resultados consolidados.',
+        actionLabel: 'Planejar novo aporte',
+        actionTo: '/novo-aporte',
       },
-      {
-        id: 'total-invested',
-        label: 'Total investido',
-        value: canAggregate
-          ? formatMoney(totalInvestedMinor, aggregateCurrency)
-          : 'Múltiplas moedas',
-        helper: canAggregate
-          ? 'Capital acumulado em compras confirmadas'
-          : 'Conversão cambial ainda não disponível',
-        icon: 'landmark',
-      },
-      {
-        id: 'accumulated-return',
-        label: 'Rentabilidade acumulada',
-        value: canAggregate
-          ? formatMoney(totalResultMinor, aggregateCurrency)
-          : 'Múltiplas moedas',
-        helper: canAggregate
-          ? 'Resultado calculado sobre compras confirmadas'
-          : 'Conversão cambial ainda não disponível',
-        icon: 'trending-up',
-        tone: totalResultMinor >= 0 ? 'positive' : undefined,
-        badge: canAggregate
-          ? formatPercentage(totalResultPercentage, true)
-          : undefined,
-      },
-      {
-        id: 'positions-count',
-        label: 'Ativos com posição',
-        value: String(calculatedPositions.length),
-        helper: 'Ativos com compras confirmadas',
-        icon: 'layers',
-      },
-    ],
-    allocation: {
-      title: 'Distribuição da carteira',
-      description:
-        'Compare a participação atual das categorias acompanhadas com suas metas.',
-      note: canAggregate
-        ? 'Valores sem cotação usam o preço médio da posição como fallback.'
-        : 'Participações agregadas aguardam uma fonte de conversão cambial.',
-      items: buildAllocationItems(
-        calculatedPositions,
-        targets,
-        canAggregate,
-        totalCurrentMinor,
-        aggregateCurrency
-      ),
-    },
-    positions: {
-      title: 'Posições',
-      description:
-        'Ativos consolidados a partir das compras confirmadas da conta.',
-      filters: [
-        { id: 'all', label: 'Todos' },
-        ...Object.values(CATEGORY_CONFIG).flatMap((config) =>
-          config ? [{ id: config.id, label: config.filterLabel }] : []
-        ),
+      summary: [
+        {
+          id: 'monitored-equity',
+          label: 'Patrimônio monitorado',
+          value: formatMoney(totalCurrentMinorInBrl, 'BRL'),
+          helper: 'Valor atual calculado pelas últimas cotações disponíveis',
+          icon: 'wallet',
+        },
+        {
+          id: 'total-invested',
+          label: 'Total investido',
+          value: formatMoney(totalInvestedMinorInBrl, 'BRL'),
+          helper: 'Capital acumulado em compras confirmadas',
+          icon: 'landmark',
+        },
+        {
+          id: 'accumulated-return',
+          label: 'Rentabilidade acumulada',
+          value: formatMoney(totalResultMinorInBrl, 'BRL'),
+          helper: 'Resultado calculado sobre compras confirmadas',
+          icon: 'trending-up',
+          tone: totalResultMinorInBrl >= 0 ? 'positive' : undefined,
+          badge: formatPercentage(totalResultPercentage, true),
+        },
+        {
+          id: 'positions-count',
+          label: 'Ativos com posição',
+          value: String(calculatedPositions.length),
+          helper: 'Ativos com compras confirmadas',
+          icon: 'layers',
+        },
       ],
-      items: buildPositionItems(
-        calculatedPositions,
-        canAggregate,
-        totalCurrentMinor
-      ),
+      allocation: {
+        title: 'Distribuição da carteira',
+        description:
+          'Compare a participação atual das categorias acompanhadas com suas metas.',
+        note: hasConfirmedUsdPosition
+          ? 'Posições internacionais são convertidas para BRL pela taxa USD/BRL salva. Valores sem cotação usam o preço médio da posição como fallback.'
+          : 'Valores sem cotação usam o preço médio da posição como fallback.',
+        items: buildAllocationItems(
+          calculatedPositions,
+          targets,
+          totalCurrentMinorInBrl
+        ),
+      },
+      positions: {
+        title: 'Posições',
+        description:
+          'Ativos consolidados a partir das compras confirmadas da conta.',
+        filters: [
+          { id: 'all', label: 'Todos' },
+          ...Object.values(CATEGORY_CONFIG).flatMap((config) =>
+            config ? [{ id: config.id, label: config.filterLabel }] : []
+          ),
+        ],
+        items: buildPositionItems(calculatedPositions, totalCurrentMinorInBrl),
+      },
     },
+    needsExchangeRate: false,
+    latestUsdBrlRate: hasConfirmedUsdPosition ? latestUsdBrlRate : null,
   }
 }

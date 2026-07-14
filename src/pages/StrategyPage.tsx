@@ -1,4 +1,4 @@
-import { ExchangeRateSetup } from '../features/strategy/components/ExchangeRateSetup'
+import { ExchangeRateSetup } from '../components/ui/ExchangeRateSetup'
 import { StrategyEditor } from '../features/strategy/components/StrategyEditor'
 import { useStrategyData } from '../features/strategy/useStrategyData'
 

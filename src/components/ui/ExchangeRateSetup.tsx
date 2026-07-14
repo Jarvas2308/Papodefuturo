@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { EXCHANGE_RATE_SCALE } from '../../../domain/models'
-import { Button } from '../../../components/ui/Button'
-import { Card } from '../../../components/ui/Card'
+import { EXCHANGE_RATE_SCALE } from '../../domain/models'
+import { Button } from './Button'
+import { Card } from './Card'
 
 type ExchangeRateSetupProps = {
   description?: string
+  successMessage?: string
   onSave(rateScaled: number): Promise<void>
 }
 
@@ -27,6 +28,7 @@ function parseUsdBrlRate(value: string): number | null {
 
 export function ExchangeRateSetup({
   description,
+  successMessage = 'Cotação salva. Recalculando a estratégia em BRL.',
   onSave,
 }: ExchangeRateSetupProps) {
   const [value, setValue] = useState('')
@@ -47,7 +49,7 @@ export function ExchangeRateSetup({
 
     try {
       await onSave(parsedRate)
-      setFeedback('Cotação salva. Recalculando a estratégia em BRL.')
+      setFeedback(successMessage)
     } catch (error) {
       setFeedback(
         error instanceof Error

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ExchangeRateSetup } from '../components/ui/ExchangeRateSetup'
 import { ContributionForm } from '../features/contribution/components/ContributionForm'
 import { ContributionPurchaseConfirmation } from '../features/contribution/components/ContributionPurchaseConfirmation'
 import { ContributionPreview } from '../features/contribution/components/ContributionPreview'
@@ -12,7 +13,6 @@ import type {
   AllocationTarget,
   ContributionPosition,
 } from '../features/contribution/types'
-import { ExchangeRateSetup } from '../features/strategy/components/ExchangeRateSetup'
 import { shouldOfferContributionPurchaseConfirmation } from '../features/contribution/utils/confirmedPurchases'
 
 type ResultPosition = {

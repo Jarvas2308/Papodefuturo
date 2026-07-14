@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   convertMoney,
   EXCHANGE_RATE_SCALE,
+  getLatestUsdBrlRate,
   isValidExchangeRate,
   type ExchangeRate,
 } from './exchangeRate'
@@ -201,5 +202,54 @@ describe('exchange rate domain model', () => {
     )
 
     expect(typeof converted.amountInMinorUnits).toBe('number')
+  })
+
+  it('selects the latest USD/BRL rate by pricedAt from an out-of-order list', () => {
+    const newestRate = {
+      ...usdBrlRate,
+      id: 'newest-rate',
+      rateScaled: 5_500_000,
+      pricedAt: '2026-07-14T12:00:00.000Z',
+    }
+    const oldestRate = {
+      ...usdBrlRate,
+      id: 'oldest-rate',
+      rateScaled: 4_900_000,
+      pricedAt: '2026-07-12T12:00:00.000Z',
+    }
+
+    expect(getLatestUsdBrlRate([usdBrlRate, newestRate, oldestRate])).toBe(
+      newestRate
+    )
+  })
+
+  it('accepts a direct USD/BRL pair', () => {
+    expect(getLatestUsdBrlRate([usdBrlRate])).toBe(usdBrlRate)
+  })
+
+  it('accepts an inverse BRL/USD pair', () => {
+    const inverseRate: ExchangeRate = {
+      ...usdBrlRate,
+      id: 'brl-usd-rate',
+      baseCurrency: 'BRL',
+      quoteCurrency: 'USD',
+      rateScaled: 200_000,
+    }
+
+    expect(getLatestUsdBrlRate([inverseRate])).toBe(inverseRate)
+  })
+
+  it('ignores invalid, unrelated, and undated rates', () => {
+    expect(
+      getLatestUsdBrlRate([
+        { ...usdBrlRate, rateScaled: 0 },
+        { ...usdBrlRate, pricedAt: 'invalid-date' },
+        {
+          ...usdBrlRate,
+          baseCurrency: 'BRL',
+          quoteCurrency: 'BRL',
+        },
+      ])
+    ).toBeNull()
   })
 })

@@ -7,7 +7,7 @@ import type {
   ExchangeRate,
   Purchase,
 } from '../../domain/models'
-import { convertMoney } from '../../domain/models'
+import { convertMoney, getLatestUsdBrlRate } from '../../domain/models'
 import type { ContributionPosition } from '../contribution/types'
 import type { StrategyCategory, StrategyCategoryId } from './types'
 
@@ -113,18 +113,6 @@ function getLatestPriceByAsset(prices: readonly AssetPrice[]) {
   }
 
   return latestByAsset
-}
-
-export function getLatestUsdBrlRate(
-  rates: readonly ExchangeRate[]
-): ExchangeRate | null {
-  return (
-    rates.find(
-      (rate) =>
-        (rate.baseCurrency === 'USD' && rate.quoteCurrency === 'BRL') ||
-        (rate.baseCurrency === 'BRL' && rate.quoteCurrency === 'USD')
-    ) ?? null
-  )
 }
 
 export type RealStrategyPositions = {
