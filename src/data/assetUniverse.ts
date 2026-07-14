@@ -47,7 +47,7 @@ export const CLOSED_ASSET_UNIVERSE = [
     status: 'active',
   },
   {
-    ticker: 'WEG3',
+    ticker: 'WEGE3',
     name: 'WEG',
     category: 'brazilian-stock',
     market: 'BR',
