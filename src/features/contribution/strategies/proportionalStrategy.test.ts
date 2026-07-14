@@ -9,6 +9,7 @@ const position = (
   assetId,
   category: 'brazilian-stocks',
   currentValueInCents,
+  unitPriceInCents: null,
 })
 
 const input = (
@@ -18,6 +19,7 @@ const input = (
   valorAporteEmCentavos,
   carteiraAtual,
   metasAlocacao: [],
+  metasGlobaisPorAtivo: [],
   strategy: 'proportional',
 })
 
@@ -26,8 +28,10 @@ describe('proportionalStrategy', () => {
     expect(
       proportionalStrategy.execute(input(100_000, [position('a', 500)]))
     ).toEqual({
+      strategy: 'proportional',
       distribuicao: [{ assetId: 'a', valorEmCentavos: 100_000 }],
       totalDistribuidoEmCentavos: 100_000,
+      saldoNaoAlocadoEmCentavos: 0,
     })
   })
 

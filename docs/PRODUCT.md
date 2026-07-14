@@ -86,31 +86,22 @@ corretamente os ativos que são acompanhados dentro do sistema.
 
 ### Ações brasileiras
 
-- SANB11
-- SAPR4
-- TAEE11
-- CXSE3
-- CPLE3
-- ITSA4
-- PSSA3
-- FLRY3
 - BBAS3
-- WEG3
+- ITSA4
+- TAEE11
+- WEGE3
+- PSSA3
 
-Meta individual dentro da categoria: `10%`
+Meta individual dentro da categoria: `20%`
 
 ### Fundos imobiliários
 
 - KNRI11
 - VISC11
 - XPLG11
-- KNCR11
-- RECR11
 - HGRU11
-- HGCR11
-- GARE11
 
-Meta individual dentro da categoria: `12,5%`
+Meta individual dentro da categoria: `25%`
 
 ### Internacional
 
@@ -120,63 +111,36 @@ Meta individual dentro da categoria: `12,5%`
 
 Meta individual dentro da categoria: `33,3333%`
 
-Observações importantes:
-
-- os mocks visuais atuais não são fonte de verdade do domínio;
-- ativos, quantidades e totais exibidos no Dashboard são demonstrativos;
-- divergências entre mocks e o universo estratégico serão corrigidas quando as
-  telas forem conectadas ao domínio real.
-
-O universo monitorado previsto soma 21 ativos:
-
-- 10 ações;
-- 8 FIIs;
-- 3 ativos internacionais.
+O universo fechado real atual soma 12 ativos: 5 ações brasileiras, 4 fundos
+imobiliários e 3 ativos internacionais. O modo demo permanece disponível, mas
+seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ## Estado real da reconstrução
 
 ### Atual
 
-- fundação com Vite, React e TypeScript;
-- Tailwind CSS;
-- React Router;
-- layout principal responsivo;
-- sidebar;
-- menu móvel;
-- cabeçalho compartilhado;
-- página visual de login;
-- rotas para Dashboard, Minha Carteira, Novo Aporte, Histórico, Estratégia e
-  Configurações;
-- componentes básicos de interface;
-- Dashboard demonstrativo;
-- Minha Carteira demonstrativa;
-- Novo Aporte demonstrativo com engine local;
-- Histórico demonstrativo;
-- Estratégia demonstrativa com metas em pontos-base e edição local;
-- Configurações demonstrativas com preferências locais;
-- primeira fundação tipada do domínio financeiro em `src/domain`;
-- modelos iniciais para ativos, posições, compras, preços, metas e planos de
-  aporte;
-- publicação inicial no Vercel;
-- dados exclusivamente demonstrativos, sem backend, autenticação, Supabase, APIs
-  financeiras ou persistência real.
+- Supabase Auth real com isolamento por usuário e fallback demo;
+- compras reais persistidas e Histórico autenticado;
+- carteira real derivada somente de compras confirmadas;
+- Estratégia real persistida em pontos-base;
+- câmbio USD/BRL persistido e conversão determinística;
+- atualização automática de mercado para B3 e ativos internacionais;
+- Novo Aporte conectado a compras, cotações, metas e câmbio reais;
+- Motor Estratégico V2 multiativos determinístico;
+- modo demo preservado com os mesmos fluxos, sem provider ou persistência.
 
 ### Planejado
 
-- domínio financeiro completo conectado aos fluxos reais;
-- carteira funcional com dados persistidos;
-- planejamento de aporte conectado ao domínio real;
-- motor estratégico determinístico final;
-- persistência;
-- autenticação real;
-- integrações de mercado;
-- camada futura de IA explicativa.
+- Dossiê Técnico V1;
+- fundamentos, notícias e eventos;
+- camada futura de IA explicativa;
+- auditoria e polimento.
 
 ### Em aberto
 
-- critérios definitivos de priorização do roadmap após a fundação visual;
 - desenho final do dossiê técnico para explicação futura pela IA;
-- regras operacionais da futura versão multiativos do plano.
+- critérios de fundamentos, notícias e eventos que poderão contextualizar fatos
+  sem alterar o plano determinístico.
 
 ## Funcionamento futuro do planejamento de aporte
 
@@ -191,15 +155,13 @@ Fluxo conceitual planejado:
 7. futuramente, a IA poderá interpretar o dossiê e explicar o plano;
 8. usuário aceita, ajusta ou rejeita o plano.
 
-O repositório atual possui uma simulação demonstrativa de Novo Aporte conectada a
-um engine local e uma fundação tipada inicial do domínio financeiro. O fluxo
-completo acima ainda não está implementado como funcionalidade de produto, pois
-não há carteira persistida, cotações reais, confirmação de operações, backend,
-Supabase ou APIs.
+O Novo Aporte autenticado já consome carteira, cotações, metas e câmbio reais.
+Seu resultado continua sendo uma simulação em memória: não executa ordens e não
+persiste automaticamente um plano.
 
 ## Motor estratégico
 
-### V1 planejada
+### V1 histórica
 
 - participação atual;
 - meta individual;
@@ -207,16 +169,17 @@ Supabase ou APIs.
 - ranking técnico;
 - plano inicialmente limitado a um ativo.
 
-### V2 planejada
+### V2 atual
 
-- distribuição do aporte entre múltiplos ativos;
-- comparação do desvio antes e depois;
-- seleção da combinação que mais reduz o desvio total;
-- limite operacional de ativos por plano a ser definido na implementação.
+- metas globais individuais derivadas em basis points;
+- simulação gulosa de uma unidade inteira por iteração;
+- comparação exata do desvio total antes e depois;
+- seleção somente de unidades que melhoram estritamente a carteira;
+- limite operacional de até 3 ativos distintos por plano;
+- saldo não alocado quando nenhuma nova unidade acessível melhora o desvio.
 
-As estratégias demonstrativas existentes e a fundação tipada do domínio preparam
-a arquitetura, mas nenhuma das versões finais do motor estratégico de produto
-está concluída nesta fase.
+O futuro dossiê e a IA recebem esses fatos técnicos sem recalcular ou modificar
+o plano produzido pelo motor.
 
 ## Papel futuro da IA
 

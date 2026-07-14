@@ -103,7 +103,7 @@ export function ContributionForm({
               >
                 <option value="proportional">Proporcional demonstrativa</option>
                 <option value="target-allocation">
-                  Déficit por categoria — demonstrativa
+                  Plano técnico multiativos
                 </option>
               </select>
             </div>

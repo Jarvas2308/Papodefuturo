@@ -33,7 +33,7 @@ export function ContributionPreview({
         </h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
           {isTargetAllocation
-            ? 'A simulação por déficit de categoria prioriza apenas categorias abaixo das metas monitoradas.'
+            ? 'O motor testa uma unidade por vez e mantém apenas compras que reduzem o desvio total para as metas globais.'
             : 'A simulação proporcional usa o peso atual de cada posição para montar uma distribuição transparente.'}
         </p>
       </div>
@@ -50,7 +50,7 @@ export function ContributionPreview({
             </p>
             <p className="mt-1 font-semibold text-[var(--color-text)]">
               {isTargetAllocation
-                ? 'Déficit por categoria — demonstrativa'
+                ? 'Plano técnico multiativos'
                 : 'Proporcional demonstrativa'}
             </p>
           </div>
@@ -95,7 +95,7 @@ export function ContributionPreview({
           </ul>
           <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">
             {isTargetAllocation
-              ? 'Somente déficits positivos de categoria são elegíveis; isto não representa recomendação de ativos.'
+              ? 'Até três ativos podem ser selecionados. Preços e quantidades são referências técnicas, não ordens.'
               : 'As metas ficam visíveis como contexto; esta estratégia usa somente a proporção atual da carteira.'}
           </p>
         </div>

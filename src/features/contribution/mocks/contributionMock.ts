@@ -30,6 +30,10 @@ const domainPositions: ContributionPosition[] = visualPositions.map(
     assetId: position.id,
     category: position.category,
     currentValueInCents: parseBrazilianCurrencyToCents(position.currentValue),
+    unitPriceInCents: Math.round(
+      parseBrazilianCurrencyToCents(position.currentValue) /
+        Number(position.quantity)
+    ),
   })
 )
 const allocationTargets: AllocationTarget[] = [
@@ -38,10 +42,26 @@ const allocationTargets: AllocationTarget[] = [
   { category: 'international', targetPercentage: 29.4118 },
 ]
 
+const globalAssetTargets = [
+  { assetId: 'bbas3', targetInBasisPoints: 706 },
+  { assetId: 'itsa4', targetInBasisPoints: 706 },
+  { assetId: 'taee11', targetInBasisPoints: 706 },
+  { assetId: 'weg3', targetInBasisPoints: 706 },
+  { assetId: 'pssa3', targetInBasisPoints: 706 },
+  { assetId: 'knri11', targetInBasisPoints: 882 },
+  { assetId: 'visc11', targetInBasisPoints: 882 },
+  { assetId: 'xplg11', targetInBasisPoints: 882 },
+  { assetId: 'hgru11', targetInBasisPoints: 882 },
+  { assetId: 'voo', targetInBasisPoints: 981 },
+  { assetId: 'vnq', targetInBasisPoints: 981 },
+  { assetId: 'vea', targetInBasisPoints: 980 },
+]
+
 export const contributionMock = {
   valorInicialInterface: '1000',
   strategyInicial: 'proportional' as ContributionStrategyType,
   carteiraAtual: domainPositions,
   posicoesVisuais: visualPositions,
   metasAlocacao: allocationTargets,
+  metasGlobaisPorAtivo: globalAssetTargets,
 }

@@ -5,20 +5,28 @@ import {
   type AppRepositories,
 } from '../../../data/repositories'
 import { refreshMarketDataBestEffort } from '../../../data/marketDataRefresh'
+import { getLatestAssetPricesByAsset } from '../../../domain/latestAssetPrices'
 import type { CreatePurchaseBatchItem } from '../../../data/repositories/contracts'
 import type {
+  AllocationTarget as DomainAllocationTarget,
   Asset,
   AssetPrice,
   ExchangeRate,
   EntityId,
   Purchase,
 } from '../../../domain/models'
+import { convertMoney, getLatestUsdBrlRate } from '../../../domain/models'
 import {
   buildRealStrategyPositions,
   buildStrategyFromRealData,
 } from '../../strategy/realStrategy'
 import { contributionMock } from '../mocks/contributionMock'
-import type { AllocationTarget, ContributionPosition } from '../types'
+import type {
+  AllocationTarget,
+  ContributionAssetTarget,
+  ContributionPosition,
+} from '../types'
+import { buildGlobalAssetTargets } from '../utils/buildGlobalAssetTargets'
 import { getContributionAssetCurrency } from '../utils/confirmedPurchases'
 
 type ContributionDataStatus = 'loading' | 'ready' | 'error'
@@ -79,15 +87,51 @@ export function buildContributionPositions(
   const eligibleAssets = assets.filter(
     (asset) => asset.status === 'active' && asset.category in CATEGORY_BY_DOMAIN
   )
+  const latestPricesByAsset = getLatestAssetPricesByAsset(prices)
+  const latestUsdBrlRate = getLatestUsdBrlRate(rates)
 
   return {
-    positions: eligibleAssets.map((asset) => ({
-      assetId: asset.id,
-      category:
-        CATEGORY_BY_DOMAIN[asset.category as keyof typeof CATEGORY_BY_DOMAIN],
-      currentValueInCents: currentValueByAsset.get(asset.id) ?? 0,
-    })),
+    positions: eligibleAssets.map((asset) => {
+      const latestPrice = latestPricesByAsset.get(asset.id)
+      const currency = getContributionAssetCurrency(asset)
+
+      if (latestPrice && latestPrice.price.currency !== currency) {
+        throw new Error(`Asset price currency mismatch for ${asset.ticker}`)
+      }
+
+      const unitPriceInCents = latestPrice
+        ? currency === 'BRL'
+          ? latestPrice.price.amountInMinorUnits
+          : latestUsdBrlRate
+            ? convertMoney(latestPrice.price, 'BRL', latestUsdBrlRate)
+                .amountInMinorUnits
+            : null
+        : null
+
+      return {
+        assetId: asset.id,
+        category:
+          CATEGORY_BY_DOMAIN[asset.category as keyof typeof CATEGORY_BY_DOMAIN],
+        currentValueInCents: currentValueByAsset.get(asset.id) ?? 0,
+        unitPriceInCents,
+      }
+    }),
     realPositions,
+  }
+}
+
+export function buildContributionTargets(
+  assets: readonly Asset[],
+  allocationTargets: readonly DomainAllocationTarget[]
+) {
+  const strategy = buildStrategyFromRealData(assets, allocationTargets)
+
+  return {
+    categoryTargets: strategy.map((category) => ({
+      category: category.id,
+      targetPercentage: category.targetInBasisPoints / 100,
+    })),
+    assetTargets: buildGlobalAssetTargets(strategy),
   }
 }
 
@@ -102,6 +146,9 @@ export function useContributionData() {
   )
   const [targets, setTargets] = useState<AllocationTarget[]>(() =>
     authStatus === 'demo' ? contributionMock.metasAlocacao : []
+  )
+  const [assetTargets, setAssetTargets] = useState<ContributionAssetTarget[]>(
+    () => (authStatus === 'demo' ? contributionMock.metasGlobaisPorAtivo : [])
   )
   const [status, setStatus] = useState<ContributionDataStatus>(
     authStatus === 'demo' ? 'ready' : 'loading'
@@ -120,7 +167,10 @@ export function useContributionData() {
     const repositories = createSupabaseRepositories(client)
     const { assets, purchases, prices, allocationTargets, rates } =
       await loadRealContributionInputs(repositories, user.id)
-    const strategy = buildStrategyFromRealData(assets, allocationTargets)
+    const contributionTargets = buildContributionTargets(
+      assets,
+      allocationTargets
+    )
     const contributionPositions = buildContributionPositions(
       assets,
       purchases,
@@ -147,15 +197,14 @@ export function useContributionData() {
         }
       }
     )
-    const nextTargets: AllocationTarget[] = strategy.map((category) => ({
-      category: category.id,
-      targetPercentage: category.targetInBasisPoints / 100,
-    }))
+    const nextTargets: AllocationTarget[] = contributionTargets.categoryTargets
+    const nextAssetTargets = contributionTargets.assetTargets
 
     setPositions(nextPositions)
     setAssets(assets)
     setResultPositions(nextResultPositions)
     setTargets(nextTargets)
+    setAssetTargets(nextAssetTargets)
     setNeedsExchangeRate(realPositions.needsExchangeRate)
     setLatestUsdBrlRate(realPositions.latestUsdBrlRate)
     setError(null)
@@ -248,6 +297,7 @@ export function useContributionData() {
     positions,
     resultPositions,
     targets,
+    assetTargets,
     status,
     error,
     needsExchangeRate,

@@ -9,6 +9,7 @@ import {
   type ExchangeRate,
   type Purchase,
 } from './models'
+import { getLatestAssetPricesByAsset } from './latestAssetPrices'
 
 export type AssetCurrencyResolver = (asset: Asset) => CurrencyCode
 
@@ -68,27 +69,13 @@ type NativePosition = Omit<
   'investedMinorInBrl' | 'currentMinorInBrl' | 'resultMinorInBrl'
 >
 
-function getLatestPriceByAsset(prices: readonly AssetPrice[]) {
-  const latestByAsset = new Map<string, AssetPrice>()
-
-  for (const price of prices) {
-    const current = latestByAsset.get(price.assetId)
-
-    if (!current || price.pricedAt > current.pricedAt) {
-      latestByAsset.set(price.assetId, price)
-    }
-  }
-
-  return latestByAsset
-}
-
 function calculateNativePositions(
   assets: readonly Asset[],
   purchases: readonly Purchase[],
   prices: readonly AssetPrice[],
   resolveAssetCurrency: AssetCurrencyResolver
 ): NativePosition[] {
-  const latestPriceByAsset = getLatestPriceByAsset(prices)
+  const latestPriceByAsset = getLatestAssetPricesByAsset(prices)
 
   return assets.flatMap((asset) => {
     const confirmedPurchases = purchases.filter(

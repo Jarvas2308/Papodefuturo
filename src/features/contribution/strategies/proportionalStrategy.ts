@@ -66,11 +66,13 @@ function executeProportionalStrategy(
   )
 
   return {
+    strategy: 'proportional',
     distribuicao: allocations.map((allocation) => ({
       assetId: allocation.id,
       valorEmCentavos: allocation.valueInCents,
     })),
     totalDistribuidoEmCentavos: input.valorAporteEmCentavos,
+    saldoNaoAlocadoEmCentavos: 0,
   }
 }
 

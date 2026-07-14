@@ -78,6 +78,7 @@ Estado já integrado:
 - Histórico autenticado conectado a compras reais;
 - registro real de compras confirmadas;
 - Novo Aporte conectado a compras, preços, metas e câmbio reais;
+- Motor Estratégico V2 multiativos integrado ao fluxo de Novo Aporte;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -237,7 +238,11 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - o resultado é simulação, não execução de ordem;
 - o motor pode considerar ativos do universo fechado ainda sem posição quando a estratégia exigir correção de alocação;
 - estratégia proporcional exige patrimônio atual positivo;
-- estratégia por déficit pode operar em carteira vazia usando metas válidas;
+- `target-allocation` usa metas globais individuais por ativo;
+- o Motor V2 simula uma unidade inteira por iteração e escolhe de forma gulosa somente compras que reduzam o desvio total;
+- o plano técnico seleciona no máximo 3 ativos distintos;
+- o saldo pode permanecer não alocado quando nenhuma nova unidade acessível melhora estritamente a carteira;
+- a IA futura pode interpretar o resultado técnico, mas não modificá-lo;
 - não persistir automaticamente `ContributionPlan` até o fluxo de apresentação, aceite e confirmação estar arquiteturalmente fechado.
 
 ## 7. Modelos e valores atuais do domínio

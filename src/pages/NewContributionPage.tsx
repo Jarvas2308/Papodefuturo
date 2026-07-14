@@ -11,6 +11,7 @@ import type { CreatePurchaseBatchItem } from '../data/repositories/contracts'
 import type { Asset, ExchangeRate } from '../domain/models'
 import type {
   AllocationTarget,
+  ContributionAssetTarget,
   ContributionPosition,
 } from '../features/contribution/types'
 import { shouldOfferContributionPurchaseConfirmation } from '../features/contribution/utils/confirmedPurchases'
@@ -28,6 +29,7 @@ type ContributionWorkspaceProps = {
   positions: ContributionPosition[]
   resultPositions: ResultPosition[]
   targets: AllocationTarget[]
+  assetTargets: ContributionAssetTarget[]
   isDemo: boolean
   onRegisterPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
@@ -41,6 +43,7 @@ function ContributionWorkspace({
   positions,
   resultPositions,
   targets,
+  assetTargets,
   isDemo,
   onRegisterPurchases,
   onSaveExchangeRate,
@@ -58,6 +61,7 @@ function ContributionWorkspace({
     initialStrategy: contributionMock.strategyInicial,
     carteiraAtual: positions,
     metasAlocacao: targets,
+    metasGlobaisPorAtivo: assetTargets,
   })
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
 
@@ -90,6 +94,7 @@ function ContributionWorkspace({
           result={result}
           strategy={strategy}
           onConfirmPurchases={
+            result.distribuicao.length > 0 &&
             shouldOfferContributionPurchaseConfirmation(isDemo)
               ? () => setIsConfirmationOpen(true)
               : undefined
@@ -175,6 +180,7 @@ export function NewContributionPage() {
         exchangeRate={contributionData.latestUsdBrlRate}
         resultPositions={contributionData.resultPositions}
         targets={contributionData.targets}
+        assetTargets={contributionData.assetTargets}
         isDemo={contributionData.isDemo}
         onRegisterPurchases={contributionData.registerConfirmedPurchases}
         onSaveExchangeRate={contributionData.saveManualUsdBrl}

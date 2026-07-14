@@ -158,3 +158,20 @@ Este documento registra decisões de produto e arquitetura.
   correspondentes e registrar decisões relevantes.
 - Consequências: A documentação passa a ser parte do alinhamento do repositório,
   não apenas material opcional de apoio.
+
+## DEC-015 — Motor Estratégico V2 antes do dossiê de IA
+
+- Data: 14 de julho de 2026
+- Status: Aceita
+- Contexto: A atualização automática de mercado já está integrada, mas
+  `target-allocation` ainda usava déficit por categoria e pesos proporcionais.
+  O produto historicamente definiu o plano multiativos como etapa anterior à
+  interpretação por IA.
+- Decisão: `target-allocation` passa a usar o Motor V2 guloso, simulando uma
+  unidade inteira por iteração e escolhendo a unidade que mais reduz o desvio
+  global individual. O cálculo usa metas globais por ativo, limita o plano a até
+  3 ativos distintos e não força o gasto do saldo quando uma nova unidade não
+  melhora a carteira.
+- Consequências: O motor passa a produzir fatos técnicos de antes e depois, que
+  serão entrada do futuro dossiê. A IA continua sem poder alterar o plano
+  técnico.

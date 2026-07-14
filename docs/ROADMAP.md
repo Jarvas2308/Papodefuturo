@@ -363,75 +363,28 @@ substituição dos mocks por dados reais.
   de apresentação, aceite e confirmação estiverem sendo conectados;
 - nenhuma migration dessas tabelas deve ser criada neste momento.
 
+### Motor Estratégico V2 multiativos
+
+- fundação, carteira autenticada e compras reais preservadas;
+- Motor Estratégico V1 mantido como etapa histórica;
+- dados de mercado automáticos integrados ao universo fechado;
+- metas globais individuais totalizando exatamente 10.000 basis points;
+- simulação gulosa de uma unidade inteira por iteração;
+- comparação exata do desvio total com intermediários em `BigInt`;
+- plano limitado a até 3 ativos distintos;
+- saldo não alocado quando nenhuma unidade acessível melhora estritamente a
+  carteira;
+- resumo técnico de antes, depois e redução do desvio;
+- modo demo e estratégia proporcional preservados.
+
 ## Próximo
 
-### Fundação de dados e acesso
+1. Dossiê Técnico V1;
+2. Fundamentos;
+3. Notícias e eventos;
+4. Comitê de IA;
+5. Auditoria;
+6. Polimento.
 
-Ordem planejada:
-
-1. gerar ou preparar os types do schema Supabase atual;
-2. criar repositories isolados;
-3. implementar Auth real;
-4. preparar seed do universo fechado de ativos;
-5. criar testes de isolamento por usuário;
-6. conectar leitura real de carteira;
-7. conectar Estratégia a `allocation_targets`;
-8. conectar compras;
-9. fazer Novo Aporte consumir dados reais;
-10. evoluir o motor estratégico real;
-11. revisitar persistência de planos de aporte.
-
-Todas as etapas devem continuar em ciclos pequenos, revisáveis e sem conectar
-telas antes da base estar validada. Mocks permanecem como fallback durante a
-integração gradual.
-
-## Planejado
-
-### Supabase e persistência
-
-- projeto Supabase;
-- variáveis de ambiente;
-- Auth;
-- esquema inicial;
-- migrations;
-- RLS;
-- seed do universo fechado;
-- testes de isolamento por usuário.
-
-### Carteira funcional
-
-- compras;
-- edição;
-- exclusão;
-- consolidação;
-- preço médio;
-- valor investido;
-- valor atual;
-- rentabilidade;
-- participação;
-- histórico.
-
-### Motor estratégico
-
-#### V1
-
-- metas;
-- desvios;
-- ranking;
-- plano de um ativo;
-- simulação;
-- confirmação.
-
-#### V2
-
-- plano multiativos;
-- comparação antes/depois;
-- redução do desvio total;
-- limites operacionais;
-- testes de cenários.
-
-### Comitê de IA
-
-Planejado somente após o domínio determinístico:
-
-- dossiê;
+O dossiê e a IA permanecem futuros. O Comitê de IA deverá interpretar os fatos
+do motor determinístico sem alterar o plano técnico.
