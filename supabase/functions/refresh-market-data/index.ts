@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.110.2'
+import { corsHeaders } from 'npm:@supabase/supabase-js@2.110.2/cors'
 import { refreshMarketData, type MarketDataStorage } from './core.ts'
 import { createB3CotahistProvider } from './b3CotahistProvider.ts'
 import { extractCotahistText } from './b3CotahistZip.ts'
@@ -9,14 +10,13 @@ declare const Deno: {
   serve(handler: (request: Request) => Promise<Response> | Response): void
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
+const responseHeaders = {
+  ...corsHeaders,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 function jsonResponse(body: unknown, status = 200) {
-  return Response.json(body, { status, headers: corsHeaders })
+  return Response.json(body, { status, headers: responseHeaders })
 }
 
 function requireEnvironment(name: string): string {
@@ -31,7 +31,7 @@ function requireEnvironment(name: string): string {
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: responseHeaders })
   }
 
   if (request.method !== 'POST') {
