@@ -1,8 +1,8 @@
 import { Card } from '../../../components/ui/Card'
-import type { DashboardMock } from '../types'
+import type { DashboardView } from '../types'
 
 type AllocationOverviewProps = {
-  allocation: DashboardMock['allocation']
+  allocation: DashboardView['allocation']
 }
 
 export function AllocationOverview({ allocation }: AllocationOverviewProps) {

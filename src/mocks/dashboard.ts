@@ -1,6 +1,6 @@
-import type { DashboardMock } from '../features/dashboard/types'
+import type { DashboardView } from '../features/dashboard/types'
 
-export const dashboardMock: DashboardMock = {
+export const dashboardMock: DashboardView = {
   disclaimer: 'Dados demonstrativos',
   welcome: {
     title: 'Olá, Luis Fernando',
@@ -43,7 +43,7 @@ export const dashboardMock: DashboardMock = {
       detail: '24 de junho de 2026',
     },
   ],
-  evolution: {
+  investmentEvolution: {
     title: 'Evolução patrimonial',
     description:
       'Acompanhe a variação demonstrativa do patrimônio nos últimos seis meses.',
