@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(27);
+select extensions.plan(43);
 
 create function public.__test_statement_is_blocked(statement text)
 returns boolean
@@ -151,6 +151,38 @@ values
     5000
   );
 
+insert into public.exchange_rates (
+  id,
+  user_id,
+  base_currency,
+  quote_currency,
+  rate_scaled,
+  rate_scale,
+  priced_at,
+  source
+)
+values
+  (
+    '41000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    'USD',
+    'BRL',
+    5400000,
+    1000000,
+    '2026-07-13 12:00:00+00',
+    'manual'
+  ),
+  (
+    '42000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000002',
+    'USD',
+    'BRL',
+    5600000,
+    1000000,
+    '2026-07-13 12:00:00+00',
+    'manual'
+  );
+
 select extensions.policies_are(
   'public',
   'profiles',
@@ -211,6 +243,45 @@ select extensions.policies_are(
   'allocation_targets exposes only the expected user-scoped policies'
 );
 
+select extensions.policies_are(
+  'public',
+  'exchange_rates',
+  array[
+    'Users can select their own exchange rates',
+    'Users can insert their own exchange rates',
+    'Users can update their own exchange rates',
+    'Users can delete their own exchange rates'
+  ],
+  'exchange_rates exposes only the expected user-scoped policies'
+);
+
+select extensions.ok(
+  has_function_privilege(
+    'authenticated',
+    'public.replace_allocation_targets(jsonb)',
+    'execute'
+  ),
+  'authenticated can execute replace_allocation_targets'
+);
+
+select extensions.ok(
+  not has_function_privilege(
+    'anon',
+    'public.replace_allocation_targets(jsonb)',
+    'execute'
+  ),
+  'anon cannot execute replace_allocation_targets'
+);
+
+select extensions.ok(
+  not has_function_privilege(
+    'public',
+    'public.replace_allocation_targets(jsonb)',
+    'execute'
+  ),
+  'PUBLIC has no execute privilege on replace_allocation_targets'
+);
+
 set local role authenticated;
 set local request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
 
@@ -242,6 +313,64 @@ select extensions.results_eq(
   'select count(*) from public.allocation_targets',
   array[1::bigint],
   'user A sees only their own allocation targets'
+);
+
+select extensions.results_eq(
+  'select count(*) from public.exchange_rates',
+  array[1::bigint],
+  'user A sees only their own exchange rates'
+);
+
+select extensions.lives_ok(
+  $$
+    insert into public.exchange_rates (
+      id,
+      user_id,
+      base_currency,
+      quote_currency,
+      rate_scaled,
+      rate_scale,
+      priced_at,
+      source
+    ) values (
+      '43000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000001',
+      'USD',
+      'BRL',
+      5500000,
+      1000000,
+      '2026-07-13 13:00:00+00',
+      'manual'
+    )
+  $$,
+  'user A can insert an exchange rate in their own scope'
+);
+
+select extensions.ok(
+  public.__test_statement_is_blocked(
+    $$
+      insert into public.exchange_rates (
+        id,
+        user_id,
+        base_currency,
+        quote_currency,
+        rate_scaled,
+        rate_scale,
+        priced_at,
+        source
+      ) values (
+        '44000000-0000-4000-8000-000000000002',
+        '20000000-0000-4000-8000-000000000002',
+        'USD',
+        'BRL',
+        5700000,
+        1000000,
+        '2026-07-13 13:00:00+00',
+        'manual'
+      )
+    $$
+  ),
+  'user A cannot insert an exchange rate for user B'
 );
 
 select extensions.lives_ok(
@@ -509,6 +638,101 @@ select extensions.results_ne(
   'user A cannot delete user B assets'
 );
 
+select extensions.results_eq(
+  $$
+    update public.exchange_rates
+    set rate_scaled = 5700000
+    where id = '42000000-0000-4000-8000-000000000002'
+    returning rate_scaled
+  $$,
+  $$select 1::bigint where false$$,
+  'user A cannot reach user B exchange rate for update'
+);
+
+select extensions.results_eq(
+  $$
+    delete from public.exchange_rates
+    where id = '42000000-0000-4000-8000-000000000002'
+    returning id
+  $$,
+  $$select null::uuid where false$$,
+  'user A cannot reach user B exchange rate for delete'
+);
+
+select extensions.lives_ok(
+  $$
+    select public.replace_allocation_targets(
+      '[
+        {
+          "id": "45000000-0000-4000-8000-000000000001",
+          "target_type": "category",
+          "asset_id": null,
+          "category": "brazilian-stock",
+          "target_basis_points": 6000
+        },
+        {
+          "id": "46000000-0000-4000-8000-000000000001",
+          "target_type": "category",
+          "asset_id": null,
+          "category": "international-etf",
+          "target_basis_points": 4000
+        }
+      ]'::jsonb
+    )
+  $$,
+  'user A can atomically replace their allocation targets'
+);
+
+select extensions.results_eq(
+  $$
+    select
+      id,
+      user_id,
+      target_type,
+      asset_id,
+      category,
+      target_basis_points
+    from public.allocation_targets
+    order by id
+  $$,
+  $$
+    values
+      (
+        '45000000-0000-4000-8000-000000000001'::uuid,
+        '10000000-0000-4000-8000-000000000001'::uuid,
+        'category'::text,
+        null::uuid,
+        'brazilian-stock'::text,
+        6000::integer
+      ),
+      (
+        '46000000-0000-4000-8000-000000000001'::uuid,
+        '10000000-0000-4000-8000-000000000001'::uuid,
+        'category'::text,
+        null::uuid,
+        'international-etf'::text,
+        4000::integer
+      )
+  $$,
+  'RPC replaces user A old targets with only the requested owned targets'
+);
+
+select extensions.throws_ok(
+  $$select public.replace_allocation_targets('{}'::jsonb)$$,
+  'P0001',
+  'targets must be a JSON array',
+  'replace_allocation_targets rejects a non-array JSON payload'
+);
+
+set local request.jwt.claim.sub = '';
+
+select extensions.throws_ok(
+  $$select public.replace_allocation_targets('[]'::jsonb)$$,
+  'P0001',
+  'Authenticated user is required',
+  'replace_allocation_targets rejects an authenticated role without auth.uid()'
+);
+
 set local request.jwt.claim.sub = '20000000-0000-4000-8000-000000000002';
 
 select extensions.results_eq(
@@ -539,6 +763,42 @@ select extensions.results_eq(
   'select count(*) from public.allocation_targets',
   array[1::bigint],
   'user B sees only their own allocation targets'
+);
+
+select extensions.results_eq(
+  'select count(*) from public.exchange_rates',
+  array[1::bigint],
+  'user B sees only their own exchange rates'
+);
+
+select extensions.results_eq(
+  $$
+    select rate_scaled
+    from public.exchange_rates
+    where id = '42000000-0000-4000-8000-000000000002'
+  $$,
+  array[5600000::bigint],
+  'user B exchange rate remains unchanged after user A update and delete attempts'
+);
+
+select extensions.results_eq(
+  $$
+    select
+      id,
+      user_id,
+      category,
+      target_basis_points
+    from public.allocation_targets
+  $$,
+  $$
+    values (
+      '25000000-0000-4000-8000-000000000002'::uuid,
+      '20000000-0000-4000-8000-000000000002'::uuid,
+      'international-etf'::text,
+      5000::integer
+    )
+  $$,
+  'user B target remains intact after user A replaces their own targets'
 );
 
 reset role;
