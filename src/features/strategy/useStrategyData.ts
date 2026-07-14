@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
-import { createSupabaseRepositories } from '../../data/repositories'
+import {
+  createSupabaseRepositories,
+  type AppRepositories,
+} from '../../data/repositories'
+import { refreshMarketDataBestEffort } from '../../data/marketDataRefresh'
 import type {
   Asset,
   AssetPrice,
+  EntityId,
   ExchangeRate,
   Purchase,
 } from '../../domain/models'
@@ -23,6 +28,26 @@ type RealInputs = {
   purchases: Purchase[]
   prices: AssetPrice[]
   rates: ExchangeRate[]
+}
+
+export async function loadRealStrategyInputs(
+  repositories: AppRepositories,
+  userId: EntityId
+): Promise<
+  RealInputs & {
+    targets: Awaited<ReturnType<AppRepositories['allocationTargets']['list']>>
+  }
+> {
+  const assets = await repositories.assets.ensureClosedUniverse(userId)
+  await refreshMarketDataBestEffort(repositories.marketData)
+  const [purchases, prices, targets, rates] = await Promise.all([
+    repositories.purchases.list(),
+    repositories.assetPrices.list(),
+    repositories.allocationTargets.list(),
+    repositories.exchangeRates.list(),
+  ])
+
+  return { assets, purchases, prices, targets, rates }
 }
 
 export type StrategyDataState = {
@@ -63,13 +88,8 @@ export function useStrategyData(): StrategyDataState {
     }
 
     const repositories = createSupabaseRepositories(client)
-    const assets = await repositories.assets.ensureClosedUniverse(user.id)
-    const [purchases, prices, targets, rates] = await Promise.all([
-      repositories.purchases.list(),
-      repositories.assetPrices.list(),
-      repositories.allocationTargets.list(),
-      repositories.exchangeRates.list(),
-    ])
+    const { assets, purchases, prices, targets, rates } =
+      await loadRealStrategyInputs(repositories, user.id)
     const nextDefaultStrategy = buildStrategyFromRealData(assets, [])
     const nextStrategy = buildStrategyFromRealData(assets, targets)
     const realPositions = buildRealStrategyPositions(

@@ -13,6 +13,8 @@ import type {
   CreatePurchaseBatchInput,
   CreatePurchaseInput,
   ExchangeRateRepository,
+  MarketDataRefreshResult,
+  MarketDataRepository,
   PurchaseRepository,
 } from './contracts'
 import { mapExchangeRateRow } from './exchangeRateMapper'
@@ -41,6 +43,40 @@ function createRepositoryQueryError(
 
 function createBrowserEntityId(): string {
   return crypto.randomUUID()
+}
+
+function parseMarketDataRefreshResult(value: unknown): MarketDataRefreshResult {
+  if (!value || typeof value !== 'object') {
+    throw new Error('Invalid market data refresh response')
+  }
+
+  const result = value as Partial<MarketDataRefreshResult>
+  const counts = [
+    result.updatedPrices,
+    result.skippedFreshPrices,
+    result.updatedExchangeRates,
+    result.skippedFreshExchangeRates,
+  ]
+
+  if (
+    typeof result.refreshedAt !== 'string' ||
+    Number.isNaN(Date.parse(result.refreshedAt)) ||
+    !counts.every((count) => Number.isSafeInteger(count) && count! >= 0) ||
+    !Array.isArray(result.warnings) ||
+    !result.warnings.every(
+      (warning) =>
+        warning &&
+        ['hg-brasil', 'twelve-data', 'configuration'].includes(
+          warning.provider
+        ) &&
+        typeof warning.message === 'string' &&
+        (warning.ticker === undefined || typeof warning.ticker === 'string')
+    )
+  ) {
+    throw new Error('Invalid market data refresh response')
+  }
+
+  return result as MarketDataRefreshResult
 }
 
 type PurchaseIdFactory = () => string
@@ -337,6 +373,24 @@ export function createSupabaseAllocationTargetRepository(
   }
 }
 
+export function createSupabaseMarketDataRepository(
+  client: SupabaseBrowserClient
+): MarketDataRepository {
+  return {
+    async refresh() {
+      const { data, error } = await client.functions.invoke(
+        'refresh-market-data'
+      )
+
+      if (error) {
+        throw createRepositoryQueryError('market data refresh', error)
+      }
+
+      return parseMarketDataRefreshResult(data)
+    },
+  }
+}
+
 export function createSupabaseRepositories(
   client: SupabaseBrowserClient
 ): AppRepositories {
@@ -346,5 +400,6 @@ export function createSupabaseRepositories(
     assetPrices: createSupabaseAssetPriceRepository(client),
     exchangeRates: createSupabaseExchangeRateRepository(client),
     allocationTargets: createSupabaseAllocationTargetRepository(client),
+    marketData: createSupabaseMarketDataRepository(client),
   }
 }
