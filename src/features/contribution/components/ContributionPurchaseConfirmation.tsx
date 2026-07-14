@@ -3,9 +3,9 @@ import { CheckCircle2, ShoppingCart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
+import { ExchangeRateSetup } from '../../../components/ui/ExchangeRateSetup'
 import type { CreatePurchaseBatchItem } from '../../../data/repositories/contracts'
 import type { Asset, ExchangeRate } from '../../../domain/models'
-import { ExchangeRateSetup } from '../../strategy/components/ExchangeRateSetup'
 import type { ContributionResult } from '../types'
 import {
   buildConfirmedPurchaseBatch,

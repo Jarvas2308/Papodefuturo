@@ -30,6 +30,36 @@ export function isValidExchangeRate(rate: ExchangeRate): boolean {
   )
 }
 
+export function getLatestUsdBrlRate(
+  rates: readonly ExchangeRate[]
+): ExchangeRate | null {
+  return rates.reduce<ExchangeRate | null>((latest, rate) => {
+    const isUsdBrlPair =
+      (rate.baseCurrency === 'USD' && rate.quoteCurrency === 'BRL') ||
+      (rate.baseCurrency === 'BRL' && rate.quoteCurrency === 'USD')
+    const pricedAt = Date.parse(rate.pricedAt)
+
+    if (!isUsdBrlPair || !isValidExchangeRate(rate) || Number.isNaN(pricedAt)) {
+      return latest
+    }
+
+    if (!latest) {
+      return rate
+    }
+
+    const latestPricedAt = Date.parse(latest.pricedAt)
+
+    if (
+      pricedAt > latestPricedAt ||
+      (pricedAt === latestPricedAt && rate.id > latest.id)
+    ) {
+      return rate
+    }
+
+    return latest
+  }, null)
+}
+
 function divideAndRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
   if (numerator < 0n || denominator <= 0n) {
     throw new RangeError(

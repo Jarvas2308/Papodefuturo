@@ -1,57 +1,90 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { createSupabaseRepositories } from '../../data/repositories'
+import type { ExchangeRate } from '../../domain/models'
 import { portfolioMock } from '../../mocks/portfolio'
-import type { PortfolioMock } from './types'
 import { buildPortfolioView } from './buildPortfolioView'
+import type { PortfolioMock } from './types'
 
 type PortfolioDataStatus = 'loading' | 'ready' | 'error'
 
-type PortfolioDataState = {
+export type PortfolioLoadState = {
   data: PortfolioMock | null
   status: PortfolioDataStatus
   error: string | null
+  needsExchangeRate: boolean
+  latestUsdBrlRate: ExchangeRate | null
+}
+
+export type PortfolioDataState = PortfolioLoadState & {
+  isDemo: boolean
+  saveManualUsdBrl(rateScaled: number): Promise<void>
+}
+
+export function createInitialPortfolioLoadState(
+  isDemo: boolean
+): PortfolioLoadState {
+  return {
+    data: isDemo ? portfolioMock : null,
+    status: isDemo ? 'ready' : 'loading',
+    error: null,
+    needsExchangeRate: false,
+    latestUsdBrlRate: null,
+  }
 }
 
 export function usePortfolioData(): PortfolioDataState {
   const { status: authStatus, client, user } = useAuth()
-  const [state, setState] = useState<PortfolioDataState>(() => ({
-    data: authStatus === 'demo' ? portfolioMock : null,
-    status: authStatus === 'demo' ? 'ready' : 'loading',
-    error: null,
-  }))
+  const [state, setState] = useState<PortfolioLoadState>(() =>
+    createInitialPortfolioLoadState(authStatus === 'demo')
+  )
+
+  const loadReal = useCallback(async (): Promise<PortfolioLoadState | null> => {
+    if (authStatus !== 'authenticated' || !client || !user) {
+      return null
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    const assets = await repositories.assets.ensureClosedUniverse(user.id)
+    const [purchases, prices, targets, rates] = await Promise.all([
+      repositories.purchases.list(),
+      repositories.assetPrices.list(),
+      repositories.allocationTargets.list(),
+      repositories.exchangeRates.list(),
+    ])
+    const portfolio = buildPortfolioView(
+      assets,
+      purchases,
+      prices,
+      targets,
+      rates
+    )
+
+    return {
+      data: portfolio.data,
+      status: 'ready',
+      error: null,
+      needsExchangeRate: portfolio.needsExchangeRate,
+      latestUsdBrlRate: portfolio.latestUsdBrlRate,
+    }
+  }, [authStatus, client, user])
 
   useEffect(() => {
     if (authStatus !== 'authenticated') {
       return
     }
 
-    if (!client || !user) {
-      return
-    }
-
     let isActive = true
-    const repositories = createSupabaseRepositories(client)
 
-    void (async () => {
-      try {
-        const assets = await repositories.assets.ensureClosedUniverse(user.id)
-        const [purchases, prices, targets] = await Promise.all([
-          repositories.purchases.list(),
-          repositories.assetPrices.list(),
-          repositories.allocationTargets.list(),
-        ])
-
-        if (!isActive) {
+    void loadReal()
+      .then((nextState) => {
+        if (!isActive || !nextState) {
           return
         }
 
-        setState({
-          data: buildPortfolioView(assets, purchases, prices, targets),
-          status: 'ready',
-          error: null,
-        })
-      } catch (error) {
+        setState(nextState)
+      })
+      .catch((error) => {
         if (!isActive) {
           return
         }
@@ -63,14 +96,39 @@ export function usePortfolioData(): PortfolioDataState {
             error instanceof Error
               ? error.message
               : 'Não foi possível carregar a carteira real.',
+          needsExchangeRate: false,
+          latestUsdBrlRate: null,
         })
-      }
-    })()
+      })
 
     return () => {
       isActive = false
     }
-  }, [authStatus, client, user])
+  }, [authStatus, loadReal])
 
-  return state
+  async function saveManualUsdBrl(rateScaled: number) {
+    if (authStatus === 'demo') {
+      return
+    }
+
+    if (!client || !user) {
+      throw new Error('Sessão autenticada indisponível.')
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    await repositories.exchangeRates.saveManualUsdBrl(user.id, rateScaled)
+    const nextState = await loadReal()
+
+    if (!nextState) {
+      throw new Error('Não foi possível recarregar a carteira real.')
+    }
+
+    setState(nextState)
+  }
+
+  return {
+    ...state,
+    isDemo: authStatus === 'demo',
+    saveManualUsdBrl,
+  }
 }
