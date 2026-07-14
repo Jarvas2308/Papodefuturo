@@ -17,6 +17,13 @@ describe('closed asset universe', () => {
     expect(new Set(normalizedTickers).size).toBe(normalizedTickers.length)
   })
 
+  it('uses the official WEGE3 ticker for WEG', () => {
+    const tickers = CLOSED_ASSET_UNIVERSE.map(({ ticker }) => ticker)
+
+    expect(tickers).toContain('WEGE3')
+    expect(tickers).not.toContain('WEG3')
+  })
+
   it('keeps the server catalog synchronized with the web catalog', () => {
     const webCatalog = CLOSED_ASSET_UNIVERSE.map(
       ({ ticker, market, currency }) => ({ ticker, market, currency })
