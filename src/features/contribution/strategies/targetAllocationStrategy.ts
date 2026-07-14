@@ -1,169 +1,287 @@
 import type {
+  ContributionAssetTarget,
   ContributionInput,
+  ContributionPosition,
   ContributionResult,
+  ContributionStopReason,
   ContributionStrategy,
 } from '../types'
-import { allocateByWeights } from '../utils/allocateByWeights'
 
-const TARGET_SUM_TOLERANCE = 0.0001
+const TOTAL_BASIS_POINTS = 10_000n
+const MAX_SAFE_INTEGER = BigInt(Number.MAX_SAFE_INTEGER)
 
-function executeTargetAllocationStrategy(
-  input: ContributionInput
-): ContributionResult {
-  if (
-    !Number.isSafeInteger(input.valorAporteEmCentavos) ||
-    input.valorAporteEmCentavos < 0
-  ) {
-    throw new RangeError(
-      'Contribution value must be a non-negative safe integer'
-    )
+export const MAX_PLAN_ASSETS = 3
+
+type Deviation = {
+  numerator: bigint
+  total: bigint
+}
+
+function assertSafeNonNegativeInteger(value: number, description: string) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new RangeError(`${description} must be a non-negative safe integer`)
   }
-  if (input.carteiraAtual.length === 0) {
+}
+
+function toSafeNumber(value: bigint, description: string): number {
+  if (value < 0n || value > MAX_SAFE_INTEGER) {
+    throw new RangeError(`${description} exceeds the safe integer range`)
+  }
+  return Number(value)
+}
+
+function divideAndRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
+  if (numerator < 0n || denominator <= 0n) {
+    throw new RangeError('Invalid financial division')
+  }
+
+  const quotient = numerator / denominator
+  const remainder = numerator % denominator
+  return remainder * 2n >= denominator ? quotient + 1n : quotient
+}
+
+function calculateDeviation(
+  values: readonly bigint[],
+  targets: readonly bigint[]
+): Deviation {
+  const total = values.reduce((sum, value) => sum + value, 0n)
+  if (total === 0n) {
+    return { numerator: TOTAL_BASIS_POINTS, total: 1n }
+  }
+
+  const numerator = values.reduce((sum, value, index) => {
+    const target = targets[index] ?? 0n
+    const difference = value * TOTAL_BASIS_POINTS - target * total
+    return sum + (difference < 0n ? -difference : difference)
+  }, 0n)
+
+  return { numerator, total }
+}
+
+function compareDeviation(left: Deviation, right: Deviation): number {
+  const comparison = left.numerator * right.total - right.numerator * left.total
+  return comparison < 0n ? -1 : comparison > 0n ? 1 : 0
+}
+
+function deviationInBasisPoints(deviation: Deviation): number {
+  return toSafeNumber(
+    divideAndRoundHalfUp(deviation.numerator, deviation.total),
+    'Deviation'
+  )
+}
+
+function participationDifferenceInBasisPoints(
+  value: bigint,
+  total: bigint,
+  target: bigint
+): number {
+  const participation =
+    total === 0n ? 0n : divideAndRoundHalfUp(value * TOTAL_BASIS_POINTS, total)
+  const difference = participation - target
+
+  if (difference < -MAX_SAFE_INTEGER || difference > MAX_SAFE_INTEGER) {
+    throw new RangeError('Participation difference exceeds safe integer range')
+  }
+  return Number(difference)
+}
+
+function validateAndAlignTargets(
+  positions: readonly ContributionPosition[],
+  targets: readonly ContributionAssetTarget[]
+): bigint[] {
+  if (positions.length === 0) {
     throw new RangeError('Portfolio must contain at least one position')
   }
 
-  const targetsByCategory = new Map<string, number>()
-  let targetPercentageTotal = 0
-
-  for (const target of input.metasAlocacao) {
-    if (
-      !Number.isFinite(target.targetPercentage) ||
-      target.targetPercentage < 0 ||
-      target.targetPercentage > 100
-    ) {
-      throw new RangeError(`Invalid allocation target: ${target.category}`)
-    }
-    if (targetsByCategory.has(target.category)) {
-      throw new Error(`Duplicate allocation target: ${target.category}`)
-    }
-    targetsByCategory.set(target.category, target.targetPercentage)
-    targetPercentageTotal += target.targetPercentage
-  }
-
-  if (Math.abs(targetPercentageTotal - 100) > TARGET_SUM_TOLERANCE) {
-    throw new RangeError('Allocation targets must total 100%')
-  }
-
-  const seenAssetIds = new Set<string>()
-  const currentValueByCategory = new Map<string, number>()
-  const positionsByCategory = new Map<string, typeof input.carteiraAtual>()
-  let totalCurrentValue = 0
-
-  for (const position of input.carteiraAtual) {
-    if (!position.assetId || seenAssetIds.has(position.assetId)) {
+  const positionsById = new Set<string>()
+  for (const position of positions) {
+    if (!position.assetId || positionsById.has(position.assetId)) {
       throw new Error(
         `Invalid or duplicate portfolio asset id: ${position.assetId}`
       )
     }
+    assertSafeNonNegativeInteger(
+      position.currentValueInCents,
+      `Current value for ${position.assetId}`
+    )
     if (
-      !Number.isSafeInteger(position.currentValueInCents) ||
-      position.currentValueInCents < 0
+      position.unitPriceInCents === null ||
+      !Number.isSafeInteger(position.unitPriceInCents) ||
+      position.unitPriceInCents <= 0
     ) {
       throw new RangeError(
-        `Invalid current value for asset: ${position.assetId}`
+        'Não há cotações suficientes para calcular o plano técnico multiativos.'
       )
     }
-
-    seenAssetIds.add(position.assetId)
-    totalCurrentValue += position.currentValueInCents
-    currentValueByCategory.set(
-      position.category,
-      (currentValueByCategory.get(position.category) ?? 0) +
-        position.currentValueInCents
-    )
-    positionsByCategory.set(position.category, [
-      ...(positionsByCategory.get(position.category) ?? []),
-      position,
-    ])
+    positionsById.add(position.assetId)
   }
 
-  if (!Number.isSafeInteger(totalCurrentValue) || totalCurrentValue < 0) {
-    throw new RangeError(
-      'Portfolio current value must be a non-negative safe integer'
-    )
-  }
-
-  for (const category of positionsByCategory.keys()) {
-    if (!targetsByCategory.has(category)) {
-      throw new Error(`Missing allocation target for category: ${category}`)
-    }
-  }
-
-  for (const category of targetsByCategory.keys()) {
-    if (!positionsByCategory.has(category)) {
+  const targetsByAsset = new Map<string, number>()
+  let targetTotal = 0
+  for (const target of targets) {
+    if (!target.assetId || targetsByAsset.has(target.assetId)) {
       throw new Error(
-        `Allocation target has no portfolio positions: ${category}`
+        `Invalid or duplicate contribution asset target: ${target.assetId}`
       )
     }
-  }
-
-  const totalFinal = totalCurrentValue + input.valorAporteEmCentavos
-  if (!Number.isSafeInteger(totalFinal)) {
-    throw new RangeError(
-      'Projected portfolio total exceeds the safe integer range'
-    )
-  }
-
-  if (input.valorAporteEmCentavos === 0) {
-    const allocations = allocateByWeights(
-      0,
-      input.carteiraAtual.map((position, originalOrder) => ({
-        id: position.assetId,
-        weight: 1,
-        originalOrder,
-      }))
-    )
-
-    return {
-      distribuicao: allocations.map((allocation) => ({
-        assetId: allocation.id,
-        valorEmCentavos: allocation.valueInCents,
-      })),
-      totalDistribuidoEmCentavos: 0,
+    if (
+      !Number.isSafeInteger(target.targetInBasisPoints) ||
+      target.targetInBasisPoints < 0 ||
+      target.targetInBasisPoints > Number(TOTAL_BASIS_POINTS)
+    ) {
+      throw new RangeError(`Invalid asset target: ${target.assetId}`)
     }
-  }
-
-  const deficitByCategory = new Map<string, number>()
-  for (const [category, targetPercentage] of targetsByCategory) {
-    const categoryValue = currentValueByCategory.get(category) ?? 0
-    const desiredFinalValue = (totalFinal * targetPercentage) / 100
-    deficitByCategory.set(
-      category,
-      Math.max(desiredFinalValue - categoryValue, 0)
-    )
-  }
-
-  const weightedAssets = input.carteiraAtual.map((position, originalOrder) => {
-    const categoryDeficit = deficitByCategory.get(position.category) ?? 0
-    const categoryValue = currentValueByCategory.get(position.category) ?? 0
-    const categoryPositions = positionsByCategory.get(position.category) ?? []
-    const positionShare =
-      categoryValue > 0
-        ? position.currentValueInCents / categoryValue
-        : 1 / categoryPositions.length
-
-    return {
-      id: position.assetId,
-      weight: categoryDeficit * positionShare,
-      originalOrder,
+    if (!positionsById.has(target.assetId)) {
+      throw new Error(
+        `Asset target has no portfolio position: ${target.assetId}`
+      )
     }
+
+    targetsByAsset.set(target.assetId, target.targetInBasisPoints)
+    targetTotal += target.targetInBasisPoints
+  }
+
+  if (targetTotal !== Number(TOTAL_BASIS_POINTS)) {
+    throw new RangeError('Global asset targets must total 10000 basis points')
+  }
+
+  return positions.map((position) => {
+    const target = targetsByAsset.get(position.assetId)
+    if (target === undefined) {
+      throw new Error(`Missing asset target: ${position.assetId}`)
+    }
+    return BigInt(target)
   })
+}
 
-  if (!weightedAssets.some((asset) => asset.weight > 0)) {
-    throw new RangeError('No eligible category deficit found')
-  }
-
-  const allocations = allocateByWeights(
+function executeTargetAllocationStrategy(
+  input: ContributionInput
+): ContributionResult {
+  assertSafeNonNegativeInteger(
     input.valorAporteEmCentavos,
-    weightedAssets
+    'Contribution value'
   )
 
+  const targets = validateAndAlignTargets(
+    input.carteiraAtual,
+    input.metasGlobaisPorAtivo
+  )
+  const initialValues = input.carteiraAtual.map((position) =>
+    BigInt(position.currentValueInCents)
+  )
+  const values = [...initialValues]
+  const unitPrices = input.carteiraAtual.map((position) =>
+    BigInt(position.unitPriceInCents!)
+  )
+  const quantities = input.carteiraAtual.map(() => 0n)
+  const selected = new Set<number>()
+  const selectionOrder: number[] = []
+  const deviationBefore = calculateDeviation(initialValues, targets)
+  let currentDeviation = deviationBefore
+  let remaining = BigInt(input.valorAporteEmCentavos)
+  let stopReason: ContributionStopReason = 'zero-contribution'
+
+  while (remaining > 0n) {
+    let bestIndex: number | null = null
+    let bestDeviation: Deviation | null = null
+
+    for (let index = 0; index < values.length; index += 1) {
+      if (selected.size >= MAX_PLAN_ASSETS && !selected.has(index)) {
+        continue
+      }
+      if ((unitPrices[index] ?? 0n) > remaining) {
+        continue
+      }
+
+      const candidateValues = [...values]
+      candidateValues[index] =
+        (candidateValues[index] ?? 0n) + (unitPrices[index] ?? 0n)
+      const candidateDeviation = calculateDeviation(candidateValues, targets)
+
+      if (
+        bestDeviation === null ||
+        compareDeviation(candidateDeviation, bestDeviation) < 0
+      ) {
+        bestIndex = index
+        bestDeviation = candidateDeviation
+      }
+    }
+
+    if (bestIndex === null || bestDeviation === null) {
+      stopReason = 'no-affordable-unit'
+      break
+    }
+    if (compareDeviation(bestDeviation, currentDeviation) >= 0) {
+      stopReason = 'no-improving-purchase'
+      break
+    }
+
+    if (!selected.has(bestIndex)) {
+      selected.add(bestIndex)
+      selectionOrder.push(bestIndex)
+    }
+    values[bestIndex] =
+      (values[bestIndex] ?? 0n) + (unitPrices[bestIndex] ?? 0n)
+    quantities[bestIndex] = (quantities[bestIndex] ?? 0n) + 1n
+    remaining -= unitPrices[bestIndex] ?? 0n
+    currentDeviation = bestDeviation
+
+    if (remaining === 0n) {
+      stopReason = 'budget-exhausted'
+    }
+  }
+
+  const totalAfter = values.reduce((sum, value) => sum + value, 0n)
+  const totalBefore = initialValues.reduce((sum, value) => sum + value, 0n)
+  const totalDistributed = BigInt(input.valorAporteEmCentavos) - remaining
+  const beforeInBasisPoints = deviationInBasisPoints(deviationBefore)
+  const afterInBasisPoints = deviationInBasisPoints(currentDeviation)
+
   return {
-    distribuicao: allocations.map((allocation) => ({
-      assetId: allocation.id,
-      valorEmCentavos: allocation.valueInCents,
+    strategy: 'target-allocation',
+    distribuicao: selectionOrder.map((index) => ({
+      assetId: input.carteiraAtual[index]!.assetId,
+      valorEmCentavos: toSafeNumber(
+        (quantities[index] ?? 0n) * (unitPrices[index] ?? 0n),
+        'Allocated amount'
+      ),
     })),
-    totalDistribuidoEmCentavos: input.valorAporteEmCentavos,
+    totalDistribuidoEmCentavos: toSafeNumber(
+      totalDistributed,
+      'Distributed amount'
+    ),
+    saldoNaoAlocadoEmCentavos: toSafeNumber(remaining, 'Unallocated amount'),
+    technicalImpact: {
+      totalDeviationBeforeInBasisPoints: beforeInBasisPoints,
+      totalDeviationAfterInBasisPoints: afterInBasisPoints,
+      totalDeviationReductionInBasisPoints: Math.max(
+        beforeInBasisPoints - afterInBasisPoints,
+        0
+      ),
+      stopReason,
+      items: selectionOrder.map((index) => ({
+        assetId: input.carteiraAtual[index]!.assetId,
+        suggestedQuantity: toSafeNumber(
+          quantities[index] ?? 0n,
+          'Suggested quantity'
+        ),
+        unitPriceInCents: input.carteiraAtual[index]!.unitPriceInCents!,
+        allocatedInCents: toSafeNumber(
+          (quantities[index] ?? 0n) * (unitPrices[index] ?? 0n),
+          'Allocated amount'
+        ),
+        differenceBeforeInBasisPoints: participationDifferenceInBasisPoints(
+          initialValues[index] ?? 0n,
+          totalBefore,
+          targets[index] ?? 0n
+        ),
+        differenceAfterInBasisPoints: participationDifferenceInBasisPoints(
+          values[index] ?? 0n,
+          totalAfter,
+          targets[index] ?? 0n
+        ),
+      })),
+    },
   }
 }
 

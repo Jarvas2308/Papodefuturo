@@ -50,6 +50,7 @@ describe('buildRealStrategyPositions', () => {
         assetId: asset.id,
         category: 'brazilian-stocks',
         currentValueInCents: 2_000,
+        unitPriceInCents: null,
       },
     ])
   })
@@ -101,6 +102,7 @@ describe('buildRealStrategyPositions', () => {
         assetId: usdAsset.id,
         category: 'international',
         currentValueInCents: 10_000,
+        unitPriceInCents: null,
       },
     ])
   })

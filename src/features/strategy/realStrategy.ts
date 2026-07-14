@@ -1,4 +1,5 @@
 import { CLOSED_ASSET_UNIVERSE } from '../../data/assetUniverse'
+import { getLatestAssetPricesByAsset } from '../../domain/latestAssetPrices'
 import type {
   AllocationTarget,
   Asset,
@@ -102,19 +103,6 @@ export function buildStrategyFromRealData(
   })
 }
 
-function getLatestPriceByAsset(prices: readonly AssetPrice[]) {
-  const latestByAsset = new Map<string, AssetPrice>()
-
-  for (const price of prices) {
-    const current = latestByAsset.get(price.assetId)
-    if (!current || price.pricedAt > current.pricedAt) {
-      latestByAsset.set(price.assetId, price)
-    }
-  }
-
-  return latestByAsset
-}
-
 export type RealStrategyPositions = {
   positions: ContributionPosition[]
   needsExchangeRate: boolean
@@ -127,7 +115,7 @@ export function buildRealStrategyPositions(
   prices: readonly AssetPrice[],
   rates: readonly ExchangeRate[]
 ): RealStrategyPositions {
-  const latestPriceByAsset = getLatestPriceByAsset(prices)
+  const latestPriceByAsset = getLatestAssetPricesByAsset(prices)
   const latestUsdBrlRate = getLatestUsdBrlRate(rates)
   const hasConfirmedUsdPosition = assets.some((asset) => {
     if (getAssetCurrency(asset) !== 'USD') {
@@ -197,12 +185,19 @@ export function buildRealStrategyPositions(
         ? currentAmount.amountInMinorUnits
         : convertMoney(currentAmount, 'BRL', latestUsdBrlRate!)
             .amountInMinorUnits
+    const unitPriceInCents = latestPrice
+      ? currency === 'BRL'
+        ? latestPrice.price.amountInMinorUnits
+        : convertMoney(latestPrice.price, 'BRL', latestUsdBrlRate!)
+            .amountInMinorUnits
+      : null
 
     return [
       {
         assetId: asset.id,
         category,
         currentValueInCents,
+        unitPriceInCents,
       },
     ]
   })

@@ -11,14 +11,20 @@ const baseInput: ContributionInput = {
       assetId: 'stocks',
       category: 'brazilian-stocks',
       currentValueInCents: 80,
+      unitPriceInCents: 10,
     },
     {
       assetId: 'international',
       category: 'international',
       currentValueInCents: 20,
+      unitPriceInCents: 10,
     },
   ],
   metasAlocacao: [{ category: 'international', targetPercentage: 30 }],
+  metasGlobaisPorAtivo: [
+    { assetId: 'stocks', targetInBasisPoints: 7_000 },
+    { assetId: 'international', targetInBasisPoints: 3_000 },
+  ],
   strategy: 'proportional',
 }
 

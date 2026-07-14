@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { calculateContribution as contributionEngine } from '../contributionEngine'
 import type {
   AllocationTarget,
+  ContributionAssetTarget,
   ContributionPosition,
   ContributionResult,
   ContributionStrategyType,
@@ -13,6 +14,7 @@ type UseContributionOptions = {
   initialStrategy: ContributionStrategyType
   carteiraAtual: ContributionPosition[]
   metasAlocacao: AllocationTarget[]
+  metasGlobaisPorAtivo: ContributionAssetTarget[]
 }
 
 export function useContribution({
@@ -20,6 +22,7 @@ export function useContribution({
   initialStrategy,
   carteiraAtual,
   metasAlocacao,
+  metasGlobaisPorAtivo,
 }: UseContributionOptions) {
   const [valorAporte, setValorAporte] = useState(initialValue)
   const [strategy, setStrategy] =
@@ -46,6 +49,7 @@ export function useContribution({
         valorAporteEmCentavos,
         carteiraAtual,
         metasAlocacao,
+        metasGlobaisPorAtivo,
         strategy,
       })
 
@@ -55,7 +59,8 @@ export function useContribution({
       setResult(null)
       setError(
         caughtError instanceof RangeError &&
-          caughtError.message.startsWith('Informe')
+          (caughtError.message.startsWith('Informe') ||
+            caughtError.message.startsWith('Não há cotações'))
           ? caughtError.message
           : 'Não foi possível simular o aporte com os dados atuais.'
       )
