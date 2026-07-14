@@ -194,12 +194,12 @@ export function useContributionData() {
   ) {
     if (authStatus === 'demo') {
       throw new Error(
-        'O registro de compras confirmadas exige uma sessÃ£o autenticada.'
+        'O registro de compras confirmadas exige uma sessão autenticada.'
       )
     }
 
     if (!client || !user) {
-      throw new Error('SessÃ£o autenticada indisponÃ­vel.')
+      throw new Error('Sessão autenticada indisponível.')
     }
 
     const purchasesWithDerivedCurrency = purchases.map((purchase) => {
@@ -208,7 +208,7 @@ export function useContributionData() {
       )
 
       if (!asset) {
-        throw new Error('A compra informada precisa pertencer Ã  sua carteira.')
+        throw new Error('A compra informada precisa pertencer à sua carteira.')
       }
 
       return {
