@@ -1,6 +1,13 @@
-import type { CurrencyCode, EntityId, MoneyAmount } from './shared'
+import {
+  isValidMoneyInMinorUnits,
+  type CurrencyCode,
+  type EntityId,
+  type MoneyAmount,
+} from './shared'
 
 export const EXCHANGE_RATE_SCALE = 1_000_000
+
+const MAX_SAFE_INTEGER_AS_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)
 
 export type ExchangeRateSource = 'manual' | 'market-provider'
 
@@ -23,11 +30,30 @@ export function isValidExchangeRate(rate: ExchangeRate): boolean {
   )
 }
 
+function divideAndRoundHalfUp(numerator: bigint, denominator: bigint): bigint {
+  if (numerator < 0n || denominator <= 0n) {
+    throw new RangeError(
+      'Financial division requires a non-negative numerator and positive denominator'
+    )
+  }
+
+  const quotient = numerator / denominator
+  const remainder = numerator % denominator
+
+  return remainder * 2n >= denominator ? quotient + 1n : quotient
+}
+
 export function convertMoney(
   money: MoneyAmount,
   targetCurrency: CurrencyCode,
   rate: ExchangeRate
 ): MoneyAmount {
+  if (!isValidMoneyInMinorUnits(money.amountInMinorUnits)) {
+    throw new RangeError(
+      'Money amount must be a non-negative safe integer in minor units'
+    )
+  }
+
   if (money.currency === targetCurrency) {
     return money
   }
@@ -45,12 +71,21 @@ export function convertMoney(
     )
   }
 
-  const convertedAmount = isDirectPair
-    ? Math.round((money.amountInMinorUnits * rate.rateScaled) / rate.rateScale)
-    : Math.round((money.amountInMinorUnits * rate.rateScale) / rate.rateScaled)
+  const amount = BigInt(money.amountInMinorUnits)
+  const numerator = isDirectPair
+    ? amount * BigInt(rate.rateScaled)
+    : amount * BigInt(rate.rateScale)
+  const denominator = BigInt(isDirectPair ? rate.rateScale : rate.rateScaled)
+  const convertedAmount = divideAndRoundHalfUp(numerator, denominator)
+
+  if (convertedAmount > MAX_SAFE_INTEGER_AS_BIGINT) {
+    throw new RangeError(
+      'Converted money amount exceeds the safe integer range'
+    )
+  }
 
   return {
-    amountInMinorUnits: convertedAmount,
+    amountInMinorUnits: Number(convertedAmount),
     currency: targetCurrency,
   }
 }

@@ -51,20 +51,155 @@ describe('exchange rate domain model', () => {
     expect(convertMoney(money, 'BRL', usdBrlRate)).toBe(money)
   })
 
-  it('rejects a rate that does not support the requested currency pair', () => {
-    expect(() =>
-      convertMoney({ amountInMinorUnits: 10_000, currency: 'USD' }, 'BRL', {
-        ...usdBrlRate,
-        baseCurrency: 'BRL',
-        quoteCurrency: 'USD',
-      })
-    ).not.toThrow()
-
+  it('rejects an invalid exchange rate', () => {
     expect(() =>
       convertMoney({ amountInMinorUnits: 10_000, currency: 'USD' }, 'BRL', {
         ...usdBrlRate,
         rateScaled: 0,
       })
     ).toThrow(RangeError)
+  })
+
+  it('rejects a rate that does not support the requested currency pair', () => {
+    const unsupportedRate: ExchangeRate = {
+      ...usdBrlRate,
+      quoteCurrency: 'EUR' as ExchangeRate['quoteCurrency'],
+    }
+
+    expect(() =>
+      convertMoney(
+        { amountInMinorUnits: 10_000, currency: 'USD' },
+        'BRL',
+        unsupportedRate
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('rejects a fractional amount in minor units', () => {
+    expect(() =>
+      convertMoney(
+        { amountInMinorUnits: 10_000.5, currency: 'USD' },
+        'BRL',
+        usdBrlRate
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('rejects a NaN amount in minor units', () => {
+    expect(() =>
+      convertMoney(
+        { amountInMinorUnits: Number.NaN, currency: 'USD' },
+        'BRL',
+        usdBrlRate
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('rejects an infinite amount in minor units', () => {
+    expect(() =>
+      convertMoney(
+        { amountInMinorUnits: Number.POSITIVE_INFINITY, currency: 'USD' },
+        'BRL',
+        usdBrlRate
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('rejects an unsafe amount before the same-currency early return', () => {
+    expect(() =>
+      convertMoney(
+        {
+          amountInMinorUnits: Number.MAX_SAFE_INTEGER + 1,
+          currency: 'BRL',
+        },
+        'BRL',
+        usdBrlRate
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('rejects a negative amount in minor units', () => {
+    expect(() =>
+      convertMoney(
+        { amountInMinorUnits: -1, currency: 'USD' },
+        'BRL',
+        usdBrlRate
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('rounds down when the remainder is below half', () => {
+    expect(
+      convertMoney({ amountInMinorUnits: 1, currency: 'USD' }, 'BRL', {
+        ...usdBrlRate,
+        rateScaled: 499_999,
+      })
+    ).toEqual({ amountInMinorUnits: 0, currency: 'BRL' })
+  })
+
+  it('rounds up when the remainder is exactly half', () => {
+    expect(
+      convertMoney({ amountInMinorUnits: 1, currency: 'USD' }, 'BRL', {
+        ...usdBrlRate,
+        rateScaled: 500_000,
+      })
+    ).toEqual({ amountInMinorUnits: 1, currency: 'BRL' })
+  })
+
+  it('rounds up when the remainder is above half', () => {
+    expect(
+      convertMoney({ amountInMinorUnits: 1, currency: 'USD' }, 'BRL', {
+        ...usdBrlRate,
+        rateScaled: 500_001,
+      })
+    ).toEqual({ amountInMinorUnits: 1, currency: 'BRL' })
+  })
+
+  it('keeps direct conversion exact when the intermediate product is unsafe as a number', () => {
+    const amountInMinorUnits = 9_007_199_254_728_646
+    const rateScaled = 761
+
+    expect(Number.isSafeInteger(amountInMinorUnits * rateScaled)).toBe(false)
+    expect(
+      convertMoney({ amountInMinorUnits, currency: 'USD' }, 'BRL', {
+        ...usdBrlRate,
+        rateScaled,
+      })
+    ).toEqual({ amountInMinorUnits: 6_854_478_632_848, currency: 'BRL' })
+  })
+
+  it('keeps inverse conversion exact when the intermediate product is unsafe as a number', () => {
+    const amountInMinorUnits = 9_007_199_254_728_646
+    const rateScaled = 1_000_001
+
+    expect(Number.isSafeInteger(amountInMinorUnits * EXCHANGE_RATE_SCALE)).toBe(
+      false
+    )
+    expect(
+      convertMoney({ amountInMinorUnits, currency: 'BRL' }, 'USD', {
+        ...usdBrlRate,
+        rateScaled,
+      })
+    ).toEqual({ amountInMinorUnits: 9_007_190_247_538_398, currency: 'USD' })
+  })
+
+  it('rejects a converted result outside the safe integer range', () => {
+    expect(() =>
+      convertMoney(
+        { amountInMinorUnits: Number.MAX_SAFE_INTEGER, currency: 'USD' },
+        'BRL',
+        { ...usdBrlRate, rateScaled: 2_000_000 }
+      )
+    ).toThrow(RangeError)
+  })
+
+  it('returns the converted amount as a number', () => {
+    const converted = convertMoney(
+      { amountInMinorUnits: 10_000, currency: 'USD' },
+      'BRL',
+      usdBrlRate
+    )
+
+    expect(typeof converted.amountInMinorUnits).toBe('number')
   })
 })
