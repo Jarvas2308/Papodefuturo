@@ -8,7 +8,7 @@ export const SERVER_CLOSED_ASSET_UNIVERSE = [
   { ticker: 'BBAS3', market: 'BR', currency: 'BRL' },
   { ticker: 'ITSA4', market: 'BR', currency: 'BRL' },
   { ticker: 'TAEE11', market: 'BR', currency: 'BRL' },
-  { ticker: 'WEG3', market: 'BR', currency: 'BRL' },
+  { ticker: 'WEGE3', market: 'BR', currency: 'BRL' },
   { ticker: 'PSSA3', market: 'BR', currency: 'BRL' },
   { ticker: 'KNRI11', market: 'BR', currency: 'BRL' },
   { ticker: 'VISC11', market: 'BR', currency: 'BRL' },
