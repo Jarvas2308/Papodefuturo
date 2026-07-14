@@ -56,10 +56,30 @@ export type AllocationTargetRepository = {
   replaceAll(targets: readonly AllocationTarget[]): Promise<AllocationTarget[]>
 }
 
+export type MarketDataWarning = {
+  provider: 'b3-cotahist' | 'twelve-data' | 'configuration'
+  ticker?: string
+  message: string
+}
+
+export type MarketDataRefreshResult = {
+  refreshedAt: string
+  updatedPrices: number
+  skippedFreshPrices: number
+  updatedExchangeRates: number
+  skippedFreshExchangeRates: number
+  warnings: MarketDataWarning[]
+}
+
+export type MarketDataRepository = {
+  refresh(): Promise<MarketDataRefreshResult>
+}
+
 export type AppRepositories = {
   assets: AssetRepository
   purchases: PurchaseRepository
   assetPrices: AssetPriceRepository
   exchangeRates: ExchangeRateRepository
   allocationTargets: AllocationTargetRepository
+  marketData: MarketDataRepository
 }

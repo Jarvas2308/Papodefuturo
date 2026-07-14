@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../auth/useAuth'
-import { createSupabaseRepositories } from '../../../data/repositories'
+import {
+  createSupabaseRepositories,
+  type AppRepositories,
+} from '../../../data/repositories'
+import { refreshMarketDataBestEffort } from '../../../data/marketDataRefresh'
 import type { CreatePurchaseBatchItem } from '../../../data/repositories/contracts'
 import type {
   Asset,
   AssetPrice,
   ExchangeRate,
+  EntityId,
   Purchase,
 } from '../../../domain/models'
 import {
@@ -36,6 +41,22 @@ const CATEGORY_LABELS = {
   'real-estate-funds': 'Fundos imobiliários',
   international: 'Internacional',
 } as const
+
+export async function loadRealContributionInputs(
+  repositories: AppRepositories,
+  userId: EntityId
+) {
+  const assets = await repositories.assets.ensureClosedUniverse(userId)
+  await refreshMarketDataBestEffort(repositories.marketData)
+  const [purchases, prices, allocationTargets, rates] = await Promise.all([
+    repositories.purchases.list(),
+    repositories.assetPrices.list(),
+    repositories.allocationTargets.list(),
+    repositories.exchangeRates.list(),
+  ])
+
+  return { assets, purchases, prices, allocationTargets, rates }
+}
 
 export function buildContributionPositions(
   assets: readonly Asset[],
@@ -97,13 +118,8 @@ export function useContributionData() {
     }
 
     const repositories = createSupabaseRepositories(client)
-    const assets = await repositories.assets.ensureClosedUniverse(user.id)
-    const [purchases, prices, allocationTargets, rates] = await Promise.all([
-      repositories.purchases.list(),
-      repositories.assetPrices.list(),
-      repositories.allocationTargets.list(),
-      repositories.exchangeRates.list(),
-    ])
+    const { assets, purchases, prices, allocationTargets, rates } =
+      await loadRealContributionInputs(repositories, user.id)
     const strategy = buildStrategyFromRealData(assets, allocationTargets)
     const contributionPositions = buildContributionPositions(
       assets,

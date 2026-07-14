@@ -52,8 +52,14 @@ export function DashboardContent({ data }: DashboardContentProps) {
 }
 
 export function DashboardPage() {
-  const { data, status, error, needsExchangeRate, saveManualUsdBrl } =
-    useDashboardData()
+  const {
+    data,
+    status,
+    error,
+    needsExchangeRate,
+    marketDataWarning,
+    saveManualUsdBrl,
+  } = useDashboardData()
 
   if (status === 'error') {
     return (
@@ -90,5 +96,17 @@ export function DashboardPage() {
     )
   }
 
-  return data ? <DashboardContent data={data} /> : null
+  return data ? (
+    <section className="space-y-6">
+      {marketDataWarning ? (
+        <p
+          role="status"
+          className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]"
+        >
+          {marketDataWarning}
+        </p>
+      ) : null}
+      <DashboardContent data={data} />
+    </section>
+  ) : null
 }

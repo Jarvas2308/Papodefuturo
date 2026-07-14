@@ -13,6 +13,7 @@ export function PortfolioPage() {
     error,
     needsExchangeRate,
     latestUsdBrlRate,
+    marketDataWarning,
     saveManualUsdBrl,
   } = usePortfolioData()
 
@@ -58,6 +59,15 @@ export function PortfolioPage() {
   return (
     <section className="space-y-6">
       <PortfolioHeader disclaimer={data.disclaimer} header={data.header} />
+
+      {marketDataWarning ? (
+        <p
+          role="status"
+          className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]"
+        >
+          {marketDataWarning}
+        </p>
+      ) : null}
 
       {latestUsdBrlRate ? (
         <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]">

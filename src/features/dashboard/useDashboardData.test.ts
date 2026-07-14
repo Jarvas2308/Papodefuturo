@@ -68,6 +68,16 @@ function createRepositories(rates: ExchangeRate[]) {
         return saved
       }),
     },
+    marketData: {
+      refresh: vi.fn().mockResolvedValue({
+        refreshedAt: '2026-07-14T00:00:00.000Z',
+        updatedPrices: 0,
+        skippedFreshPrices: 0,
+        updatedExchangeRates: 0,
+        skippedFreshExchangeRates: 0,
+        warnings: [],
+      }),
+    },
   } as AppRepositories
 }
 
@@ -79,6 +89,7 @@ describe('Dashboard data loading', () => {
       error: null,
       needsExchangeRate: false,
       latestUsdBrlRate: null,
+      marketDataWarning: null,
     })
   })
 
@@ -97,6 +108,7 @@ describe('Dashboard data loading', () => {
       error: null,
       needsExchangeRate: true,
       latestUsdBrlRate: null,
+      marketDataWarning: null,
     })
     expect(repositories.assets.ensureClosedUniverse).toHaveBeenCalledWith(
       'authenticated-user'
@@ -127,5 +139,23 @@ describe('Dashboard data loading', () => {
     expect(state.needsExchangeRate).toBe(false)
     expect(state.data?.welcome.title).toBe('Olá, Clara')
     expect(state.data?.summary[1].value).toBe('R$\u00a055,00')
+  })
+
+  it('loads persisted dashboard data when automatic refresh is unavailable', async () => {
+    const repositories = createRepositories([rate])
+    repositories.marketData.refresh = vi
+      .fn()
+      .mockRejectedValue(new Error('function unavailable'))
+
+    const state = await loadRealDashboardState({
+      repositories,
+      userId: 'authenticated-user',
+      userMetadata: null,
+      now: new Date('2026-07-14T00:00:00.000Z'),
+    })
+
+    expect(state.status).toBe('ready')
+    expect(state.data).not.toBeNull()
+    expect(state.marketDataWarning).toContain('últimos dados disponíveis')
   })
 })

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { createSupabaseRepositories } from '../../data/repositories'
-import type { ExchangeRate } from '../../domain/models'
+import type { AppRepositories } from '../../data/repositories'
+import { refreshMarketDataBestEffort } from '../../data/marketDataRefresh'
+import type { EntityId, ExchangeRate } from '../../domain/models'
 import { portfolioMock } from '../../mocks/portfolio'
 import { buildPortfolioView } from './buildPortfolioView'
 import type { PortfolioMock } from './types'
@@ -14,6 +16,7 @@ export type PortfolioLoadState = {
   error: string | null
   needsExchangeRate: boolean
   latestUsdBrlRate: ExchangeRate | null
+  marketDataWarning: string | null
 }
 
 export type PortfolioDataState = PortfolioLoadState & {
@@ -30,6 +33,39 @@ export function createInitialPortfolioLoadState(
     error: null,
     needsExchangeRate: false,
     latestUsdBrlRate: null,
+    marketDataWarning: null,
+  }
+}
+
+export async function loadRealPortfolioState(
+  repositories: AppRepositories,
+  userId: EntityId
+): Promise<PortfolioLoadState> {
+  const assets = await repositories.assets.ensureClosedUniverse(userId)
+  const marketDataRefresh = await refreshMarketDataBestEffort(
+    repositories.marketData
+  )
+  const [purchases, prices, targets, rates] = await Promise.all([
+    repositories.purchases.list(),
+    repositories.assetPrices.list(),
+    repositories.allocationTargets.list(),
+    repositories.exchangeRates.list(),
+  ])
+  const portfolio = buildPortfolioView(
+    assets,
+    purchases,
+    prices,
+    targets,
+    rates
+  )
+
+  return {
+    data: portfolio.data,
+    status: 'ready',
+    error: null,
+    needsExchangeRate: portfolio.needsExchangeRate,
+    latestUsdBrlRate: portfolio.latestUsdBrlRate,
+    marketDataWarning: marketDataRefresh.warning,
   }
 }
 
@@ -45,28 +81,7 @@ export function usePortfolioData(): PortfolioDataState {
     }
 
     const repositories = createSupabaseRepositories(client)
-    const assets = await repositories.assets.ensureClosedUniverse(user.id)
-    const [purchases, prices, targets, rates] = await Promise.all([
-      repositories.purchases.list(),
-      repositories.assetPrices.list(),
-      repositories.allocationTargets.list(),
-      repositories.exchangeRates.list(),
-    ])
-    const portfolio = buildPortfolioView(
-      assets,
-      purchases,
-      prices,
-      targets,
-      rates
-    )
-
-    return {
-      data: portfolio.data,
-      status: 'ready',
-      error: null,
-      needsExchangeRate: portfolio.needsExchangeRate,
-      latestUsdBrlRate: portfolio.latestUsdBrlRate,
-    }
+    return loadRealPortfolioState(repositories, user.id)
   }, [authStatus, client, user])
 
   useEffect(() => {
@@ -98,6 +113,7 @@ export function usePortfolioData(): PortfolioDataState {
               : 'Não foi possível carregar a carteira real.',
           needsExchangeRate: false,
           latestUsdBrlRate: null,
+          marketDataWarning: null,
         })
       })
 

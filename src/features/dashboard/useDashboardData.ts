@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { getClosedAssetCurrency } from '../../data/assetUniverse'
+import { refreshMarketDataBestEffort } from '../../data/marketDataRefresh'
 import {
   createSupabaseRepositories,
   type AppRepositories,
@@ -19,6 +20,7 @@ export type DashboardLoadState = {
   error: string | null
   needsExchangeRate: boolean
   latestUsdBrlRate: ExchangeRate | null
+  marketDataWarning: string | null
 }
 
 export type DashboardDataState = DashboardLoadState & {
@@ -42,6 +44,7 @@ export function createInitialDashboardLoadState(
     error: null,
     needsExchangeRate: false,
     latestUsdBrlRate: null,
+    marketDataWarning: null,
   }
 }
 
@@ -52,6 +55,9 @@ export async function loadRealDashboardState({
   now,
 }: LoadRealDashboardInput): Promise<DashboardLoadState> {
   const assets = await repositories.assets.ensureClosedUniverse(userId)
+  const marketDataRefresh = await refreshMarketDataBestEffort(
+    repositories.marketData
+  )
   const [purchases, prices, targets, rates] = await Promise.all([
     repositories.purchases.list(),
     repositories.assetPrices.list(),
@@ -74,6 +80,7 @@ export async function loadRealDashboardState({
       error: null,
       needsExchangeRate: result.needsExchangeRate,
       latestUsdBrlRate: result.latestUsdBrlRate,
+      marketDataWarning: marketDataRefresh.warning,
     }
   }
 
@@ -89,6 +96,7 @@ export async function loadRealDashboardState({
     error: null,
     needsExchangeRate: false,
     latestUsdBrlRate: result.latestUsdBrlRate,
+    marketDataWarning: marketDataRefresh.warning,
   }
 }
 
@@ -147,6 +155,7 @@ export function useDashboardData(): DashboardDataState {
               : 'Não foi possível carregar o painel real.',
           needsExchangeRate: false,
           latestUsdBrlRate: null,
+          marketDataWarning: null,
         })
       })
 
