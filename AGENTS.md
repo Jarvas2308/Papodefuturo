@@ -81,6 +81,8 @@ Estado já integrado:
 - Motor Estratégico V2 multiativos integrado ao fluxo de Novo Aporte;
 - Dossiê Técnico V1 puro e determinístico como fronteira derivada em memória
   entre o Motor V2 e futuras camadas qualitativas;
+- Fundamental Facts V1 puro e determinístico como contrato normalizado em
+  memória, ainda sem providers CVM/SEC ou integração com o dossiê;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -260,6 +262,23 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - não inventar ranking técnico enquanto o Motor V2 não expuser esse fato;
 - não persistir o dossiê nem enviá-lo a IA ou serviço externo sem nova decisão
   arquitetural explícita.
+
+### Fundamental Facts V1
+
+- fundamentos V1 representam fatos normalizados, não interpretação ou
+  recomendação;
+- manter o contrato independente de `TechnicalDossierV1`, React, Supabase,
+  providers e APIs;
+- valores contábeis monetários usam unidades menores inteiras signed em tipo
+  próprio, sem alterar ou reutilizar a semântica não negativa de `MoneyAmount`;
+- preservar período, fonte oficial conceitual, documento, data de referência e
+  moeda factual sem conversão cambial;
+- não calcular P/L, P/VP, margens, crescimento, valuation, ranking ou score na
+  camada factual;
+- `generatedAt` deve ser injetado, e o builder deve permanecer puro,
+  determinístico e sem relógio ambiental;
+- providers CVM e SEC, persistência e derivados exigem ciclos posteriores
+  explícitos.
 
 ## 7. Modelos e valores atuais do domínio
 

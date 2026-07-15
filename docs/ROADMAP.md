@@ -391,13 +391,34 @@ substituição dos mocks por dados reais.
 - ranking técnico não inventado enquanto não for exposto pelo Motor V2;
 - sem tabela, migration, persistência, UI, IA ou chamadas externas.
 
+### Fundação de Fundamental Facts V1
+
+- contrato `fundamental-facts.v1` puro, determinístico e em memória;
+- união discriminada para ações brasileiras, FIIs e ETFs internacionais;
+- fatos contábeis monetários signed em unidades menores inteiras;
+- preservação de período, fonte, documento, data de referência e moeda;
+- validações runtime de categoria, kind, source, período, datas e duplicidade;
+- cobertura explícita de ativos e snapshots sem política de freshness;
+- ausência de derivados, valuation, ranking, score ou recomendação;
+- sem provider, tabela, migration, persistência, UI ou integração com o Dossiê
+  Técnico V1.
+
 ## Próximo
 
-1. Fundamentos;
+1. Fundamentos — provider CVM para ações brasileiras;
 2. Notícias e eventos;
 3. Comitê de IA;
 4. Auditoria;
 5. Polimento.
 
-As futuras camadas qualitativas deverão consumir o Dossiê Técnico V1 sem
-recalcular ou alterar o plano técnico do motor determinístico.
+Sequência restante da etapa Fundamentos:
+
+1. provider CVM para ações brasileiras;
+2. provider CVM para FIIs;
+3. provider SEC para ETFs internacionais;
+4. derivados fundamentalistas auditáveis.
+
+Fundamentos ainda não está concluído. Não avançar para Notícias antes dos
+ciclos restantes da etapa. As futuras camadas qualitativas deverão consumir os
+contratos factuais sem recalcular ou alterar o plano técnico do motor
+determinístico.

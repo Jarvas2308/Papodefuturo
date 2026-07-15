@@ -129,11 +129,16 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - Motor Estratégico V2 multiativos determinístico;
 - Dossiê Técnico V1 puro e determinístico, derivado em memória a partir do
   snapshot, estratégia, fatos de mercado e plano técnico já calculado;
+- fundação de `FundamentalFactsV1` como contrato normalizado, determinístico e
+  em memória para fatos contábeis de ações brasileiras, FIIs e ETFs
+  internacionais;
 - modo demo preservado com os mesmos fluxos, sem provider ou persistência.
 
 ### Planejado
 
-- fundamentos, notícias e eventos;
+- providers oficiais CVM e SEC para fundamentos;
+- derivados fundamentalistas auditáveis;
+- notícias e eventos;
 - camada futura de IA explicativa;
 - auditoria e polimento.
 
@@ -195,6 +200,25 @@ somente em memória que consolida:
 
 O dossiê não é persistido, não recalcula a carteira ou o plano, não expõe um
 ranking técnico inexistente e não chama IA, APIs ou serviços externos.
+
+## Fundamental Facts V1
+
+O estado atual inclui `FundamentalFactsV1` como contrato independente,
+determinístico e somente em memória. Ele normaliza fatos mínimos por classe de
+ativo:
+
+- ações brasileiras: receita, lucro líquido, ativos, patrimônio líquido e
+  fluxo de caixa operacional;
+- FIIs: patrimônio líquido, quantidade de cotas e número de cotistas;
+- ETFs internacionais: ativos, passivos e patrimônio líquido.
+
+Valores contábeis monetários usam unidades menores inteiras signed, preservando
+BRL ou USD conforme a fonte normalizada. Ausência de fato permanece `null` e
+não é convertida em zero.
+
+A fundação ainda não consulta CVM ou SEC, não persiste fatos, não calcula
+índices, crescimento, margens, valuation, ranking ou score e não modifica o
+Motor V2 nem `TechnicalDossierV1`.
 
 ## Papel futuro da IA
 
