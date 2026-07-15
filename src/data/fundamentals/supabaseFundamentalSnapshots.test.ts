@@ -2,14 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildFundamentalFactsV1 } from '../../domain/fundamentals'
 import type { Asset } from '../../domain/models'
 import type { CvmBrazilianStockFundamentalRecord } from './cvm/types'
-import type {
-  FundamentalSnapshotRow,
-  FundamentalSnapshotSupabaseClient,
-} from './fundamentalSnapshotSchema'
 import {
   createSupabaseFundamentalSnapshotRepository,
   createSupabaseFundamentalSnapshotStorage,
   mapFundamentalSnapshotRow,
+  type FundamentalSnapshotRow,
+  type FundamentalSnapshotSupabaseClient,
 } from './supabaseFundamentalSnapshots'
 
 function createProvenance() {

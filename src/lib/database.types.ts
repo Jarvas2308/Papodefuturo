@@ -135,6 +135,114 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          id: string
+          priced_at: string
+          quote_currency: string
+          rate_scale: number
+          rate_scaled: number
+          source: string
+          user_id: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string
+          id: string
+          priced_at: string
+          quote_currency: string
+          rate_scale?: number
+          rate_scaled: number
+          source?: string
+          user_id: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          id?: string
+          priced_at?: string
+          quote_currency?: string
+          rate_scale?: number
+          rate_scaled?: number
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fundamental_snapshots: {
+        Row: {
+          category: string
+          created_at: string
+          currency: string
+          exercise_order: string
+          filing_version: number
+          id: number
+          kind: string
+          market: string
+          net_income_minor: number | null
+          operating_cash_flow_minor: number | null
+          period: string
+          provenance: Json
+          reference_date: string
+          source: string
+          source_archive: string
+          source_document_id: string
+          ticker: string
+          total_assets_minor: number | null
+          total_equity_minor: number | null
+          total_revenue_minor: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          currency: string
+          exercise_order: string
+          filing_version: number
+          id?: number
+          kind: string
+          market: string
+          net_income_minor?: number | null
+          operating_cash_flow_minor?: number | null
+          period: string
+          provenance: Json
+          reference_date: string
+          source: string
+          source_archive: string
+          source_document_id: string
+          ticker: string
+          total_assets_minor?: number | null
+          total_equity_minor?: number | null
+          total_revenue_minor?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          currency?: string
+          exercise_order?: string
+          filing_version?: number
+          id?: number
+          kind?: string
+          market?: string
+          net_income_minor?: number | null
+          operating_cash_flow_minor?: number | null
+          period?: string
+          provenance?: Json
+          reference_date?: string
+          source?: string
+          source_archive?: string
+          source_document_id?: string
+          ticker?: string
+          total_assets_minor?: number | null
+          total_equity_minor?: number | null
+          total_revenue_minor?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -214,7 +322,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      replace_allocation_targets: {
+        Args: { targets: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
