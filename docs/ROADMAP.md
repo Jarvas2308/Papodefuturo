@@ -403,9 +403,35 @@ substituição dos mocks por dados reais.
 - sem provider, tabela, migration, persistência, UI ou integração com o Dossiê
   Técnico V1.
 
+### Provider CVM V1 para ações brasileiras
+
+- universo fechado: BBAS3, ITSA4, TAEE11, WEGE3 e PSSA3;
+- arquivos oficiais DFP e ITR consolidados, com leitura de ZIP Windows-1252 e
+  CSV separado por ponto e vírgula;
+- seleção do filing mais recente, maior `VERSAO` numérica e exercício corrente;
+- parsing monetário decimal exato com `BigInt`, escala oficial e validação de
+  safe integer em unidades menores;
+- `netIncome`, `totalAssets`, `totalEquity` e `operatingCashFlow` selecionados
+  por códigos e descrições oficiais auditados;
+- `totalRevenue` preservado como `null` por decisão explícita de comparabilidade
+  semântica;
+- seleção de patrimônio líquido por descrição exata, sem mapping por ticker ou
+  código universal presumido;
+- proveniência factual de demonstrativo, conta, descrição, data, versão e
+  exercício;
+- `sourceDocumentId` determinístico;
+- ingestão testável com fetch e storage injetados;
+- migration global `fundamental_snapshots` versionada, com upsert idempotente,
+  RLS e leitura autenticada;
+- sem scheduler, integração com UI, ratios, score, ranking, IA ou alteração do
+  Motor V2 e do Dossiê Técnico.
+
+A migration permanece apenas versionada neste ciclo e ainda não foi aplicada ao
+Supabase real.
+
 ## Próximo
 
-1. Fundamentos — provider CVM para ações brasileiras;
+1. Fundamentos — providers restantes e derivados auditáveis;
 2. Notícias e eventos;
 3. Comitê de IA;
 4. Auditoria;
@@ -413,10 +439,9 @@ substituição dos mocks por dados reais.
 
 Sequência restante da etapa Fundamentos:
 
-1. provider CVM para ações brasileiras;
-2. provider CVM para FIIs;
-3. provider SEC para ETFs internacionais;
-4. derivados fundamentalistas auditáveis.
+1. provider CVM para FIIs;
+2. provider SEC para ETFs internacionais;
+3. derivados fundamentalistas auditáveis.
 
 Fundamentos ainda não está concluído. Não avançar para Notícias antes dos
 ciclos restantes da etapa. As futuras camadas qualitativas deverão consumir os

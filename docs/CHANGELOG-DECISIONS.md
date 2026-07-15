@@ -209,3 +209,36 @@ Este documento registra decisões de produto e arquitetura.
   esse contrato em ciclos posteriores. P/L, P/VP, margens, crescimento,
   rankings e scores permanecem fora da camada factual. `FundamentalFactsV1`
   não modifica o Motor V2 nem `TechnicalDossierV1`.
+
+## DEC-018 — Fundamentos como fatos globais compartilhados
+
+- Data: 15 de julho de 2026
+- Status: Aceita
+- Contexto: O mesmo fato contábil oficial da CVM descreve a companhia e não um
+  usuário específico. As tabelas `assets` são materializadas por usuário e não
+  podem ser usadas como identidade global de fundamentos.
+- Decisão: Persistir snapshots fundamentalistas como fatos globais, sem
+  `user_id` e sem FK para `assets.id`. A identidade de junção do MVP usa ticker
+  normalizado, categoria e mercado. A escrita fica reservada a contexto
+  server-side privilegiado e a leitura é permitida a usuários autenticados.
+- Consequências: A ingestão usa storage injetado e upsert idempotente. Nenhuma
+  chave privilegiada pode existir no browser. A associação ao ativo de cada
+  usuário ocorre somente na leitura, sem duplicar o fato contábil global.
+
+## DEC-019 — Comparabilidade semântica governa a extração fundamentalista CVM
+
+- Data: 15 de julho de 2026
+- Status: Aceita
+- Contexto: A auditoria oficial mostrou que uniformidade de `CD_CONTA` não
+  prova comparabilidade econômica. DRE 3.01 representa receitas de
+  intermediação financeira em BBAS3 e receita de venda de bens ou serviços nas
+  outras quatro companhias do universo.
+- Decisão: Um fato só entra em um campo normalizado quando sua semântica oficial
+  é compatível com o conceito do domínio. Quando a comparabilidade não é
+  comprovada, o fato permanece `null`. `totalRevenue` continua no contrato V1,
+  mas o provider CVM V1 não o preenche nem força conceitos setoriais distintos
+  para o mesmo campo.
+- Consequências: Cobertura parcial é explícita e não significa valor zero ou
+  falha silenciosa. Métricas setoriais ou uma abstração futura de top line
+  exigem decisão própria. A seleção atual usa allowlists exatas de descrições,
+  sem fuzzy matching, `contains` ou exceções por ticker.
