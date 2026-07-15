@@ -53,6 +53,11 @@ function createProvenance() {
 function createRecord(): CvmBrazilianStockFundamentalRecord {
   return {
     ticker: 'BBAS3',
+    companyIdentity: {
+      officialName: 'BCO BRASIL S.A.',
+      cvmCode: '001023',
+      cnpj: '00.000.000/0001-91',
+    },
     category: 'brazilian-stock',
     market: 'BR',
     kind: 'brazilian-stock',
@@ -137,6 +142,42 @@ describe('Supabase fundamental snapshot persistence', () => {
     )
   })
 
+  it('validates BRL currency and safe minor units before upsert', async () => {
+    const upsert = vi.fn()
+    const client = {
+      from: vi.fn(() => ({ upsert })),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+    const wrongCurrency = createRecord()
+    wrongCurrency.facts.netIncome!.currency = 'USD'
+    const unsafeAmount = createRecord()
+    unsafeAmount.facts.totalAssets!.amountInMinorUnits =
+      Number.MAX_SAFE_INTEGER + 1
+
+    await expect(storage.upsertMany([wrongCurrency])).rejects.toThrow(
+      'Net income must use BRL currency'
+    )
+    await expect(storage.upsertMany([unsafeAmount])).rejects.toThrow(
+      'Total assets must use signed safe minor units'
+    )
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('validates exercise order provenance before upsert', async () => {
+    const upsert = vi.fn()
+    const client = {
+      from: vi.fn(() => ({ upsert })),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+    const record = createRecord()
+    record.provenance.totalEquity.exerciseOrder = 'PENÚLTIMO'
+
+    await expect(storage.upsertMany([record])).rejects.toThrow(
+      'Fundamental provenance does not match filing identity'
+    )
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
   it('reconstructs a domain snapshot while preserving totalRevenue null', () => {
     const snapshot = mapFundamentalSnapshotRow(createRow(), 'asset-bbas3')
 
@@ -162,7 +203,16 @@ describe('Supabase fundamental snapshot persistence', () => {
     ).toThrow('Fundamental provenance does not match filing identity')
   })
 
-  it('loads global rows and maps them to per-user asset ids by normalized ticker', async () => {
+  it('rejects persisted exercise order that diverges from provenance', () => {
+    expect(() =>
+      mapFundamentalSnapshotRow(
+        { ...createRow(), exercise_order: 'PENÚLTIMO' },
+        'asset-bbas3'
+      )
+    ).toThrow('Fundamental provenance does not match filing identity')
+  })
+
+  it('queries and joins by normalized ticker, category and market', async () => {
     const query = {
       select: vi.fn(),
       eq: vi.fn(),
@@ -195,11 +245,102 @@ describe('Supabase fundamental snapshot persistence', () => {
     })
 
     expect(snapshots[0]?.assetId).toBe('user-specific-bbas3')
+    expect(query.eq).toHaveBeenNthCalledWith(1, 'kind', 'brazilian-stock')
+    expect(query.eq).toHaveBeenNthCalledWith(2, 'category', 'brazilian-stock')
+    expect(query.eq).toHaveBeenNthCalledWith(3, 'market', 'BR')
+    expect(query.in).toHaveBeenCalledWith('ticker', ['BBAS3'])
     const persistedSnapshot = facts.assets[0]?.snapshots[0]
     expect(persistedSnapshot?.kind).toBe('brazilian-stock')
     if (persistedSnapshot?.kind !== 'brazilian-stock') {
       throw new Error('Expected a Brazilian stock fixture')
     }
     expect(persistedSnapshot.facts.totalRevenue).toBeNull()
+  })
+
+  it('does not query Brazilian-stock assets outside the BR market', async () => {
+    const from = vi.fn()
+    const client = { from } as unknown as FundamentalSnapshotSupabaseClient
+    const repository = createSupabaseFundamentalSnapshotRepository(client)
+    const assets: Asset[] = [
+      {
+        id: 'wrong-market',
+        ticker: 'BBAS3',
+        name: 'Banco do Brasil',
+        category: 'brazilian-stock',
+        market: 'US',
+        status: 'active',
+      },
+    ]
+
+    await expect(
+      repository.listBrazilianStockSnapshots(assets)
+    ).resolves.toEqual([])
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['category', { category: 'international-etf' }],
+    ['market', { market: 'US' }],
+  ])('rejects a snapshot with divergent %s identity', async (_field, patch) => {
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      in: vi.fn(),
+      order: vi.fn(async () => ({
+        data: [{ ...createRow(), ...patch }],
+        error: null,
+      })),
+    }
+    query.select.mockReturnValue(query)
+    query.eq.mockReturnValue(query)
+    query.in.mockReturnValue(query)
+    const client = {
+      from: vi.fn(() => query),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const repository = createSupabaseFundamentalSnapshotRepository(client)
+    const assets: Asset[] = [
+      {
+        id: 'asset-bbas3',
+        ticker: 'BBAS3',
+        name: 'Banco do Brasil',
+        category: 'brazilian-stock',
+        market: 'BR',
+        status: 'active',
+      },
+    ]
+
+    await expect(
+      repository.listBrazilianStockSnapshots(assets)
+    ).rejects.toThrow('unknown global asset identity')
+  })
+
+  it('rejects duplicate ticker, category and market identities', async () => {
+    const client = {
+      from: vi.fn(),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const repository = createSupabaseFundamentalSnapshotRepository(client)
+    const assets: Asset[] = [
+      {
+        id: 'first-bbas3',
+        ticker: 'BBAS3',
+        name: 'Banco do Brasil',
+        category: 'brazilian-stock',
+        market: 'BR',
+        status: 'active',
+      },
+      {
+        id: 'second-bbas3',
+        ticker: ' bbas3 ',
+        name: 'Banco do Brasil duplicado',
+        category: 'brazilian-stock',
+        market: 'BR',
+        status: 'active',
+      },
+    ]
+
+    await expect(
+      repository.listBrazilianStockSnapshots(assets)
+    ).rejects.toThrow('Duplicate Brazilian stock identity')
+    expect(client.from).not.toHaveBeenCalled()
   })
 })

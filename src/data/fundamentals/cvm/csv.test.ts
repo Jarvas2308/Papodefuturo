@@ -15,6 +15,7 @@ describe('parseCvmStatementCsv', () => {
     expect(rows).toEqual([
       {
         companyName: 'BCO BRASIL S.A.',
+        companyCnpj: '00.000.000/0001-91',
         cvmCode: '001023',
         referenceDate: '2026-03-31',
         version: '1',

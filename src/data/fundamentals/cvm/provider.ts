@@ -1,5 +1,6 @@
 import type { BrazilianStockFundamentalFacts } from '../../../domain/fundamentals'
 import { CVM_BRAZILIAN_STOCK_COMPANIES } from './companies'
+import { normalizeCvmCnpj } from './cnpj'
 import { parseCvmStatementCsv } from './csv'
 import { parseCvmMonetaryFact } from './money'
 import { normalizeCvmDescription } from './normalizeDescription'
@@ -104,14 +105,25 @@ function selectLatestFilingRows(
   const filingRows = latestDateRows
     .filter((candidate) => candidate.version === version)
     .map((candidate) => candidate.row)
+  const expectedCnpj = normalizeCvmCnpj(company.cnpj)
 
   for (const row of filingRows) {
+    if (normalizeCvmCode(row.cvmCode) !== company.cvmCode) {
+      throw new Error(
+        `Unexpected official CVM code for ${company.ticker}: ${row.cvmCode}`
+      )
+    }
     if (
       normalizeCvmDescription(row.companyName) !==
       normalizeCvmDescription(company.officialName)
     ) {
       throw new Error(
         `Unexpected official company name for ${company.ticker}: ${row.companyName}`
+      )
+    }
+    if (normalizeCvmCnpj(row.companyCnpj) !== expectedCnpj) {
+      throw new Error(
+        `Unexpected official company CNPJ for ${company.ticker}: ${row.companyCnpj}`
       )
     }
   }
@@ -248,6 +260,11 @@ function buildRecord(
 
   return {
     ticker: company.ticker,
+    companyIdentity: {
+      officialName: company.officialName,
+      cvmCode: company.cvmCode,
+      cnpj: company.cnpj,
+    },
     category: 'brazilian-stock',
     market: 'BR',
     kind: 'brazilian-stock',

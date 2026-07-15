@@ -12,6 +12,7 @@ export type CvmStatementDocument = {
 
 export type CvmStatementRow = {
   companyName: string
+  companyCnpj: string
   cvmCode: string
   referenceDate: string
   version: string
@@ -47,6 +48,11 @@ export type CvmFactProvenance = {
 
 export type CvmBrazilianStockFundamentalRecord = {
   ticker: CvmBrazilianStockTicker
+  companyIdentity: {
+    officialName: string
+    cvmCode: string
+    cnpj: string
+  }
   category: 'brazilian-stock'
   market: 'BR'
   kind: 'brazilian-stock'

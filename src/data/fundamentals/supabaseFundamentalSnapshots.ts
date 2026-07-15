@@ -33,6 +33,12 @@ const UPSERT_CONFLICT_COLUMNS = [
 
 type QueryError = { message: string }
 
+type BrazilianStockAssetIdentity = {
+  ticker: string
+  category: string
+  market: string
+}
+
 function createQueryError(operation: string, error: QueryError): Error {
   return new Error(
     `Failed to ${operation} fundamental snapshots: ${error.message}`
@@ -64,12 +70,62 @@ function toJson(
   }
 }
 
+function assertBrlSafeFact(
+  fact: SignedMonetaryFact | null,
+  fieldName: string
+): void {
+  if (fact === null) {
+    return
+  }
+  if (fact.currency !== 'BRL') {
+    throw new Error(`${fieldName} must use BRL currency`)
+  }
+  if (!Number.isSafeInteger(fact.amountInMinorUnits)) {
+    throw new RangeError(`${fieldName} must use signed safe minor units`)
+  }
+}
+
+function assertRecordProvenance(
+  record: CvmBrazilianStockFundamentalRecord
+): void {
+  for (const fact of [
+    record.provenance.netIncome,
+    record.provenance.totalAssets,
+    record.provenance.totalEquity,
+    record.provenance.operatingCashFlow,
+  ]) {
+    if (
+      fact.referenceDate !== record.referenceDate ||
+      fact.version !== record.filingVersion ||
+      fact.exerciseOrder !== record.exerciseOrder
+    ) {
+      throw new Error('Fundamental provenance does not match filing identity')
+    }
+  }
+}
+
+function buildBrazilianStockAssetIdentity(
+  asset: BrazilianStockAssetIdentity
+): string {
+  return JSON.stringify([
+    normalizeAssetTicker(asset.ticker),
+    asset.category,
+    asset.market,
+  ])
+}
+
 function toInsertRow(
   record: CvmBrazilianStockFundamentalRecord
 ): FundamentalSnapshotInsert {
   if (record.facts.totalRevenue !== null) {
     throw new Error('CVM totalRevenue must remain null in provider V1')
   }
+
+  assertBrlSafeFact(record.facts.netIncome, 'Net income')
+  assertBrlSafeFact(record.facts.totalAssets, 'Total assets')
+  assertBrlSafeFact(record.facts.totalEquity, 'Total equity')
+  assertBrlSafeFact(record.facts.operatingCashFlow, 'Operating cash flow')
+  assertRecordProvenance(record)
 
   return {
     ticker: normalizeAssetTicker(record.ticker),
@@ -212,7 +268,8 @@ export function mapFundamentalSnapshotRow(
   ]) {
     if (
       fact.referenceDate !== row.reference_date ||
-      fact.version !== row.filing_version
+      fact.version !== row.filing_version ||
+      fact.exerciseOrder !== row.exercise_order
     ) {
       throw new Error('Fundamental provenance does not match filing identity')
     }
@@ -270,17 +327,19 @@ export function createSupabaseFundamentalSnapshotRepository(
     async listBrazilianStockSnapshots(assets: readonly Asset[]) {
       const brazilianAssets = assets.filter(
         (asset) =>
-          asset.category === 'brazilian-stock' && asset.status === 'active'
+          asset.category === 'brazilian-stock' &&
+          asset.market === 'BR' &&
+          asset.status === 'active'
       )
-      const assetsByTicker = new Map(
+      const assetsByIdentity = new Map(
         brazilianAssets.map((asset) => [
-          normalizeAssetTicker(asset.ticker),
+          buildBrazilianStockAssetIdentity(asset),
           asset,
         ])
       )
 
-      if (assetsByTicker.size !== brazilianAssets.length) {
-        throw new Error('Duplicate Brazilian stock ticker in asset list')
+      if (assetsByIdentity.size !== brazilianAssets.length) {
+        throw new Error('Duplicate Brazilian stock identity in asset list')
       }
       if (brazilianAssets.length === 0) {
         return []
@@ -290,7 +349,12 @@ export function createSupabaseFundamentalSnapshotRepository(
         .from('fundamental_snapshots')
         .select('*')
         .eq('kind', 'brazilian-stock')
-        .in('ticker', [...assetsByTicker.keys()])
+        .eq('category', 'brazilian-stock')
+        .eq('market', 'BR')
+        .in(
+          'ticker',
+          brazilianAssets.map((asset) => normalizeAssetTicker(asset.ticker))
+        )
         .order('reference_date', { ascending: false })
 
       if (error) {
@@ -298,10 +362,16 @@ export function createSupabaseFundamentalSnapshotRepository(
       }
 
       return (data ?? []).map((row) => {
-        const asset = assetsByTicker.get(normalizeAssetTicker(row.ticker))
+        const asset = assetsByIdentity.get(
+          buildBrazilianStockAssetIdentity({
+            ticker: row.ticker,
+            category: row.category,
+            market: row.market,
+          })
+        )
         if (!asset) {
           throw new Error(
-            `Snapshot references an unknown ticker: ${row.ticker}`
+            `Snapshot references an unknown global asset identity: ${row.ticker}/${row.category}/${row.market}`
           )
         }
         return mapFundamentalSnapshotRow(row, asset.id)

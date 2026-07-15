@@ -5,6 +5,7 @@ import type {
 } from './types'
 
 const REQUIRED_HEADERS = [
+  'CNPJ_CIA',
   'DENOM_CIA',
   'CD_CVM',
   'GRUPO_DFP',
@@ -88,6 +89,7 @@ function toStatementRow(
 ): CvmStatementRow {
   return {
     companyName: readField(values, headerIndexes, 'DENOM_CIA'),
+    companyCnpj: readField(values, headerIndexes, 'CNPJ_CIA'),
     cvmCode: readField(values, headerIndexes, 'CD_CVM'),
     referenceDate: readField(values, headerIndexes, 'DT_REFER'),
     version: readField(values, headerIndexes, 'VERSAO'),

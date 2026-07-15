@@ -5,6 +5,7 @@ import {
   CVM_BRAZILIAN_STOCK_COMPANIES,
   getCvmBrazilianStockCompany,
 } from './companies'
+import { normalizeCvmCnpj } from './cnpj'
 import { extractCvmBrazilianStockFundamentals } from './provider'
 import type {
   CvmArchiveSource,
@@ -15,6 +16,7 @@ import type {
 type FixtureRow = {
   statement: CvmStatement
   companyName: string
+  companyCnpj: string
   cvmCode: string
   referenceDate: string
   version: string
@@ -50,6 +52,7 @@ function createRows(): FixtureRow[] {
       {
         statement: 'DRE',
         companyName: company.officialName,
+        companyCnpj: company.cnpj,
         cvmCode: company.cvmCode,
         referenceDate: '2026-03-31',
         version,
@@ -63,6 +66,7 @@ function createRows(): FixtureRow[] {
       {
         statement: 'DRE',
         companyName: company.officialName,
+        companyCnpj: company.cnpj,
         cvmCode: company.cvmCode,
         referenceDate: '2026-03-31',
         version,
@@ -76,6 +80,7 @@ function createRows(): FixtureRow[] {
       {
         statement: 'BPA',
         companyName: company.officialName,
+        companyCnpj: company.cnpj,
         cvmCode: company.cvmCode,
         referenceDate: '2026-03-31',
         version,
@@ -87,6 +92,7 @@ function createRows(): FixtureRow[] {
       {
         statement: 'BPP',
         companyName: company.officialName,
+        companyCnpj: company.cnpj,
         cvmCode: company.cvmCode,
         referenceDate: '2026-03-31',
         version,
@@ -98,6 +104,7 @@ function createRows(): FixtureRow[] {
       {
         statement: 'DFC_MI',
         companyName: company.officialName,
+        companyCnpj: company.cnpj,
         cvmCode: company.cvmCode,
         referenceDate: '2026-03-31',
         version,
@@ -114,7 +121,7 @@ function createRows(): FixtureRow[] {
 
 function rowToCsv(row: FixtureRow): string {
   return [
-    '00.000.000/0001-00',
+    row.companyCnpj,
     row.referenceDate,
     row.version,
     row.companyName,
@@ -211,6 +218,41 @@ describe('extractCvmBrazilianStockFundamentals', () => {
     expect(() => getCvmBrazilianStockCompany('PETR4')).toThrow(
       'Unsupported CVM Brazilian stock ticker'
     )
+    expect(extract().map((record) => record.companyIdentity.cnpj)).toEqual(
+      CVM_BRAZILIAN_STOCK_COMPANIES.map((company) => company.cnpj)
+    )
+  })
+
+  it('normalizes punctuated and digits-only CNPJ to the same official identity', () => {
+    expect(normalizeCvmCnpj('00.000.000/0001-91')).toBe('00000000000191')
+    expect(normalizeCvmCnpj('00000000000191')).toBe('00000000000191')
+    expect(findRecord(extract(), 'BBAS3').companyIdentity.cnpj).toBe(
+      '00.000.000/0001-91'
+    )
+  })
+
+  it('rejects divergent, empty and invalid company CNPJ values', () => {
+    const divergent = replaceRow(
+      createRows(),
+      (row) => row.cvmCode === '001023' && row.accountCode === '3.11',
+      { companyCnpj: '11.111.111/0001-11' }
+    )
+    const empty = replaceRow(
+      createRows(),
+      (row) => row.cvmCode === '001023' && row.accountCode === '3.11',
+      { companyCnpj: ' ' }
+    )
+    const invalid = replaceRow(
+      createRows(),
+      (row) => row.cvmCode === '001023' && row.accountCode === '3.11',
+      { companyCnpj: '00.000.000/0001-9X' }
+    )
+
+    expect(() => extract(divergent)).toThrow(
+      'Unexpected official company CNPJ for BBAS3'
+    )
+    expect(() => extract(empty)).toThrow('CVM company CNPJ must not be empty')
+    expect(() => extract(invalid)).toThrow('Invalid CVM company CNPJ')
   })
 
   it('maps DFP and ITR to the approved source and period without de-accumulating ITR', () => {

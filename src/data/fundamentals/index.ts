@@ -11,6 +11,7 @@ export {
   CVM_BRAZILIAN_STOCK_COMPANIES,
   getCvmBrazilianStockCompany,
 } from './cvm/companies'
+export { normalizeCvmCnpj } from './cvm/cnpj'
 export { parseCvmStatementCsv } from './cvm/csv'
 export { parseCvmMonetaryFact } from './cvm/money'
 export { normalizeCvmDescription } from './cvm/normalizeDescription'
