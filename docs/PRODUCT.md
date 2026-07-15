@@ -204,7 +204,7 @@ ranking técnico inexistente e não chama IA, APIs ou serviços externos.
 ## Fundamental Facts V1
 
 O estado atual inclui `FundamentalFactsV1` como contrato independente,
-determinístico e somente em memória. Ele normaliza fatos mínimos por classe de
+determinístico e derivado em memória. Ele normaliza fatos mínimos por classe de
 ativo:
 
 - ações brasileiras: receita, lucro líquido, ativos, patrimônio líquido e
@@ -216,9 +216,17 @@ Valores contábeis monetários usam unidades menores inteiras signed, preservand
 BRL ou USD conforme a fonte normalizada. Ausência de fato permanece `null` e
 não é convertida em zero.
 
-A fundação ainda não consulta CVM ou SEC, não persiste fatos, não calcula
-índices, crescimento, margens, valuation, ranking ou score e não modifica o
-Motor V2 nem `TechnicalDossierV1`.
+O provider CVM V1 para BBAS3, ITSA4, TAEE11, WEGE3 e PSSA3 lê DFP e ITR
+consolidados oficiais, normaliza lucro líquido, ativo total, patrimônio líquido
+e fluxo de caixa operacional e preserva proveniência do filing. `totalRevenue`
+permanece `null`: a linha DRE 3.01 de BBAS3 não possui comparabilidade econômica
+com a linha DRE 3.01 das demais companhias auditadas.
+
+A persistência global foi preparada por migration versionada, sem `user_id` e
+sem relação com `assets.id`, mas ainda não foi aplicada ao Supabase real nem
+conectada ao runtime. Não existem scheduler, provider de FIIs ou SEC, índices,
+crescimento, margens, valuation, ranking ou score, e fundamentos não modificam
+o Motor V2 nem `TechnicalDossierV1`.
 
 ## Papel futuro da IA
 

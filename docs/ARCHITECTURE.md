@@ -39,6 +39,8 @@ No estado atual:
   Dossiê Técnico V1;
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
   Fundamental Facts V1;
+- `src/data/fundamentals` contém o provider CVM isolado, parsing contábil,
+  ingestão com storage injetado e adapters de persistência global;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
@@ -192,13 +194,19 @@ alterar a verdade matemática do Motor V2.
 ### Fronteira de Fundamental Facts V1
 
 ```text
-futuros parsers oficiais CVM / SEC
+arquivos oficiais CVM DFP / ITR
                   ↓
-        FundamentalFactsV1
+leitura ZIP + parsing CSV consolidado
                   ↓
- futuros derivados auditáveis
+seleção de filing, versão e exercício
                   ↓
- futuras camadas qualitativas
+seleção contábil por regras auditadas
+                  ↓
+FundamentalFactsV1 + proveniência factual
+                  ↓
+storage global injetado
+                  ↓
+futuros derivados auditáveis
 ```
 
 `FundamentalFactsV1` é independente de `TechnicalDossierV1`. O contrato
@@ -210,13 +218,20 @@ Princípios da fronteira:
 - fatos contábeis monetários podem ser negativos e usam representação signed
   própria em unidades menores inteiras;
 - moeda, período, fonte, documento e data de referência são preservados;
-- `null` representa ausência de fato e não é transformado em zero;
-- não há conversão cambial, persistência, provider ou chamada externa;
+- `null` representa ausência de fato ou conceito não normalizado e não é
+  transformado em zero;
+- no provider CVM V1, `totalRevenue` é `null` por falta de comparabilidade
+  econômica comprovada entre as linhas oficiais DRE 3.01 auditadas;
+- não há conversão cambial;
 - não há P/L, P/VP, margens, crescimento, valuation, ranking ou score;
 - o contrato não altera o Motor V2 nem o schema `technical-dossier.v1`.
 
-Providers CVM DFP/ITR, CVM Informe Mensal de FII e SEC N-PORT deverão produzir
-esse contrato em ciclos posteriores.
+O provider CVM DFP/ITR para ações brasileiras já produz o contrato, mas ainda
+não possui scheduler ou integração com telas. A migration
+`fundamental_snapshots` prepara persistência global, sem `user_id` ou FK para
+`assets.id`, com leitura autenticada e escrita reservada a contexto server-side
+privilegiado. Providers de Informe Mensal de FII e SEC N-PORT permanecem para
+ciclos posteriores.
 
 ### Infraestrutura
 

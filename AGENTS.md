@@ -82,7 +82,11 @@ Estado já integrado:
 - Dossiê Técnico V1 puro e determinístico como fronteira derivada em memória
   entre o Motor V2 e futuras camadas qualitativas;
 - Fundamental Facts V1 puro e determinístico como contrato normalizado em
-  memória, ainda sem providers CVM/SEC ou integração com o dossiê;
+  memória;
+- provider CVM V1 isolado para as cinco ações brasileiras do universo fechado,
+  com ingestão e storage injetados, ainda sem scheduler ou integração com telas;
+- migration global de `fundamental_snapshots` versionada, ainda não aplicada no
+  Supabase real;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -277,8 +281,16 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   camada factual;
 - `generatedAt` deve ser injetado, e o builder deve permanecer puro,
   determinístico e sem relógio ambiental;
-- providers CVM e SEC, persistência e derivados exigem ciclos posteriores
-  explícitos.
+- o provider CVM de ações brasileiras usa somente demonstrações consolidadas,
+  versão numérica máxima, exercício corrente e seleção contábil auditável;
+- uniformidade de `CD_CONTA` não basta para normalizar um fato: a semântica
+  oficial deve ser compatível com o conceito do domínio;
+- `totalRevenue` permanece `null` no provider CVM V1 porque DRE 3.01 não é
+  economicamente comparável no universo auditado;
+- fatos fundamentalistas persistidos são globais, sem `user_id` e sem FK para
+  `assets`, e se associam ao universo por ticker, categoria e mercado;
+- providers CVM para FIIs, SEC, integração runtime e derivados exigem ciclos
+  posteriores explícitos.
 
 ## 7. Modelos e valores atuais do domínio
 

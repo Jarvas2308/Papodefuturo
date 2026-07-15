@@ -1,0 +1,205 @@
+import { describe, expect, it, vi } from 'vitest'
+import { buildFundamentalFactsV1 } from '../../domain/fundamentals'
+import type { Asset } from '../../domain/models'
+import type { CvmBrazilianStockFundamentalRecord } from './cvm/types'
+import type {
+  FundamentalSnapshotRow,
+  FundamentalSnapshotSupabaseClient,
+} from './fundamentalSnapshotSchema'
+import {
+  createSupabaseFundamentalSnapshotRepository,
+  createSupabaseFundamentalSnapshotStorage,
+  mapFundamentalSnapshotRow,
+} from './supabaseFundamentalSnapshots'
+
+function createProvenance() {
+  return {
+    totalRevenue: null,
+    netIncome: {
+      statement: 'DRE' as const,
+      accountCode: '3.11',
+      accountDescription: 'Lucro/Prejuízo Consolidado do Período',
+      referenceDate: '2026-03-31',
+      version: 1,
+      exerciseOrder: 'ÚLTIMO',
+    },
+    totalAssets: {
+      statement: 'BPA' as const,
+      accountCode: '1',
+      accountDescription: 'Ativo Total',
+      referenceDate: '2026-03-31',
+      version: 1,
+      exerciseOrder: 'ÚLTIMO',
+    },
+    totalEquity: {
+      statement: 'BPP' as const,
+      accountCode: '2.07',
+      accountDescription: 'Patrimônio Líquido Consolidado',
+      referenceDate: '2026-03-31',
+      version: 1,
+      exerciseOrder: 'ÚLTIMO',
+    },
+    operatingCashFlow: {
+      statement: 'DFC_MI' as const,
+      accountCode: '6.01',
+      accountDescription: 'Caixa Líquido das Atividades Operacionais',
+      referenceDate: '2026-03-31',
+      version: 1,
+      exerciseOrder: 'ÚLTIMO',
+    },
+  }
+}
+
+function createRecord(): CvmBrazilianStockFundamentalRecord {
+  return {
+    ticker: 'BBAS3',
+    category: 'brazilian-stock',
+    market: 'BR',
+    kind: 'brazilian-stock',
+    referenceDate: '2026-03-31',
+    period: 'quarterly',
+    source: 'cvm-itr',
+    sourceDocumentId: 'itr:archive:001023:2026-03-31:v1',
+    sourceArchive: 'itr_cia_aberta_2026.zip',
+    filingVersion: 1,
+    exerciseOrder: 'ÚLTIMO',
+    facts: {
+      totalRevenue: null,
+      netIncome: { amountInMinorUnits: 100, currency: 'BRL' },
+      totalAssets: { amountInMinorUnits: 200, currency: 'BRL' },
+      totalEquity: { amountInMinorUnits: 50, currency: 'BRL' },
+      operatingCashFlow: { amountInMinorUnits: -10, currency: 'BRL' },
+    },
+    provenance: createProvenance(),
+  }
+}
+
+function createRow(): FundamentalSnapshotRow {
+  return {
+    id: 1,
+    ticker: 'BBAS3',
+    category: 'brazilian-stock',
+    market: 'BR',
+    kind: 'brazilian-stock',
+    reference_date: '2026-03-31',
+    period: 'quarterly',
+    source: 'cvm-itr',
+    source_document_id: 'itr:archive:001023:2026-03-31:v1',
+    source_archive: 'itr_cia_aberta_2026.zip',
+    filing_version: 1,
+    exercise_order: 'ÚLTIMO',
+    currency: 'BRL',
+    total_revenue_minor: null,
+    net_income_minor: 100,
+    total_assets_minor: 200,
+    total_equity_minor: 50,
+    operating_cash_flow_minor: -10,
+    provenance: createProvenance(),
+    created_at: '2026-07-15T12:00:00.000Z',
+    updated_at: '2026-07-15T12:00:00.000Z',
+  }
+}
+
+describe('Supabase fundamental snapshot persistence', () => {
+  it('uses an idempotent bulk upsert with the complete logical identity', async () => {
+    const upsert = vi.fn(async () => ({ error: null }))
+    const client = {
+      from: vi.fn(() => ({ upsert })),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+
+    await storage.upsertMany([createRecord()])
+    await storage.upsertMany([createRecord()])
+
+    expect(upsert).toHaveBeenCalledTimes(2)
+    expect(upsert).toHaveBeenLastCalledWith(
+      [expect.objectContaining({ ticker: 'BBAS3', total_revenue_minor: null })],
+      {
+        onConflict:
+          'ticker,category,market,kind,period,source,reference_date,source_document_id',
+      }
+    )
+  })
+
+  it('refuses to persist normalized CVM revenue in provider V1', async () => {
+    const client = {
+      from: vi.fn(() => ({ upsert: vi.fn() })),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+    const record = createRecord()
+    record.facts.totalRevenue = {
+      amountInMinorUnits: 999,
+      currency: 'BRL',
+    }
+
+    await expect(storage.upsertMany([record])).rejects.toThrow(
+      'CVM totalRevenue must remain null'
+    )
+  })
+
+  it('reconstructs a domain snapshot while preserving totalRevenue null', () => {
+    const snapshot = mapFundamentalSnapshotRow(createRow(), 'asset-bbas3')
+
+    expect(snapshot.facts.totalRevenue).toBeNull()
+    expect(snapshot.facts.operatingCashFlow?.amountInMinorUnits).toBe(-10)
+  })
+
+  it('rejects persisted CVM revenue that violates the V1 comparability decision', () => {
+    expect(() =>
+      mapFundamentalSnapshotRow(
+        { ...createRow(), total_revenue_minor: 999 },
+        'asset-bbas3'
+      )
+    ).toThrow('CVM totalRevenue must remain null')
+  })
+
+  it('rejects provenance that diverges from the persisted filing identity', () => {
+    const provenance = createProvenance()
+    provenance.netIncome.version = 2
+
+    expect(() =>
+      mapFundamentalSnapshotRow({ ...createRow(), provenance }, 'asset-bbas3')
+    ).toThrow('Fundamental provenance does not match filing identity')
+  })
+
+  it('loads global rows and maps them to per-user asset ids by normalized ticker', async () => {
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      in: vi.fn(),
+      order: vi.fn(async () => ({ data: [createRow()], error: null })),
+    }
+    query.select.mockReturnValue(query)
+    query.eq.mockReturnValue(query)
+    query.in.mockReturnValue(query)
+    const client = {
+      from: vi.fn(() => query),
+    } as unknown as FundamentalSnapshotSupabaseClient
+    const repository = createSupabaseFundamentalSnapshotRepository(client)
+    const assets: Asset[] = [
+      {
+        id: 'user-specific-bbas3',
+        ticker: 'bbas3',
+        name: 'Banco do Brasil',
+        category: 'brazilian-stock',
+        market: 'BR',
+        status: 'active',
+      },
+    ]
+
+    const snapshots = await repository.listBrazilianStockSnapshots(assets)
+    const facts = buildFundamentalFactsV1({
+      generatedAt: '2026-07-15T12:00:00.000Z',
+      assets,
+      snapshots,
+    })
+
+    expect(snapshots[0]?.assetId).toBe('user-specific-bbas3')
+    const persistedSnapshot = facts.assets[0]?.snapshots[0]
+    expect(persistedSnapshot?.kind).toBe('brazilian-stock')
+    if (persistedSnapshot?.kind !== 'brazilian-stock') {
+      throw new Error('Expected a Brazilian stock fixture')
+    }
+    expect(persistedSnapshot.facts.totalRevenue).toBeNull()
+  })
+})
