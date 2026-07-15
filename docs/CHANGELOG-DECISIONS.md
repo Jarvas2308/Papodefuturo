@@ -191,3 +191,21 @@ Este documento registra decisões de produto e arquitetura.
   consumir o contrato do dossiê ou evoluções versionadas dele. Ranking técnico
   completo não será inventado enquanto o Motor V2 não expuser esse fato.
   Persistência exige decisão arquitetural futura explícita.
+
+## DEC-017 — Fatos fundamentalistas normalizados antes dos providers
+
+- Data: 14 de julho de 2026
+- Status: Aceita
+- Contexto: As fontes oficiais de fundamentos possuem contratos diferentes
+  para ações brasileiras, FIIs e ETFs. Acoplar o domínio diretamente aos
+  formatos CVM ou SEC criaria dependência de infraestrutura e dificultaria a
+  futura interpretação qualitativa.
+- Decisão: Criar `FundamentalFactsV1` como contrato puro, determinístico e em
+  memória. O contrato normaliza fatos contábeis mínimos por classe de ativo,
+  preserva período, fonte, documento e moeda e não calcula derivados ou scores.
+  Valores contábeis monetários usam representação signed em unidades menores,
+  sem alterar `MoneyAmount`.
+- Consequências: Providers CVM DFP/ITR, CVM FII e SEC N-PORT deverão produzir
+  esse contrato em ciclos posteriores. P/L, P/VP, margens, crescimento,
+  rankings e scores permanecem fora da camada factual. `FundamentalFactsV1`
+  não modifica o Motor V2 nem `TechnicalDossierV1`.

@@ -37,6 +37,8 @@ No estado atual:
 - `src/domain/models` possui os primeiros tipos compartilhados do domínio;
 - `src/domain/technicalDossier` contém o contrato derivado e o builder puro do
   Dossiê Técnico V1;
+- `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
+  Fundamental Facts V1;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
@@ -186,6 +188,35 @@ O dossiê:
 Futuras camadas de fundamentos, notícias, eventos e interpretação qualitativa
 devem consumir esse contrato ou evoluções explicitamente versionadas dele, sem
 alterar a verdade matemática do Motor V2.
+
+### Fronteira de Fundamental Facts V1
+
+```text
+futuros parsers oficiais CVM / SEC
+                  ↓
+        FundamentalFactsV1
+                  ↓
+ futuros derivados auditáveis
+                  ↓
+ futuras camadas qualitativas
+```
+
+`FundamentalFactsV1` é independente de `TechnicalDossierV1`. O contrato
+normaliza fatos mínimos de ações brasileiras, FIIs e ETFs internacionais sem
+acoplamento a formatos de infraestrutura.
+
+Princípios da fronteira:
+
+- fatos contábeis monetários podem ser negativos e usam representação signed
+  própria em unidades menores inteiras;
+- moeda, período, fonte, documento e data de referência são preservados;
+- `null` representa ausência de fato e não é transformado em zero;
+- não há conversão cambial, persistência, provider ou chamada externa;
+- não há P/L, P/VP, margens, crescimento, valuation, ranking ou score;
+- o contrato não altera o Motor V2 nem o schema `technical-dossier.v1`.
+
+Providers CVM DFP/ITR, CVM Informe Mensal de FII e SEC N-PORT deverão produzir
+esse contrato em ciclos posteriores.
 
 ### Infraestrutura
 
