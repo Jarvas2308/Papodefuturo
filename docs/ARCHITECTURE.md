@@ -35,6 +35,8 @@ No estado atual:
 - Novo Aporte possui engine, estratégias, utilitários e UI demonstrativa em
   `src/features/contribution`;
 - `src/domain/models` possui os primeiros tipos compartilhados do domínio;
+- `src/domain/technicalDossier` contém o contrato derivado e o builder puro do
+  Dossiê Técnico V1;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
@@ -153,6 +155,37 @@ Helpers puros já disponíveis:
 
 Essa fundação ainda não está conectada às telas, mocks, Supabase, autenticação,
 APIs ou persistência.
+
+### Fronteira do Dossiê Técnico V1
+
+```text
+PortfolioSnapshot
++ Strategy
++ Market Facts
++ TargetAllocationContributionResult
+                ↓
+        TechnicalDossierV1
+                ↓
+ futuras camadas qualitativas
+```
+
+`TechnicalDossierV1` é um contrato puro, determinístico, versionado e derivado
+somente em memória. Ele consolida fatos já calculados e preserva a ordem das
+fontes de verdade recebidas.
+
+O dossiê:
+
+- não é persistência;
+- não é uma engine;
+- não é IA;
+- não recalcula o plano técnico;
+- não recalcula carteira, participação, preço médio, câmbio ou desvios;
+- não inventa ranking técnico que o Motor V2 ainda não expõe;
+- não depende de React, Supabase, APIs ou relógio ambiental.
+
+Futuras camadas de fundamentos, notícias, eventos e interpretação qualitativa
+devem consumir esse contrato ou evoluções explicitamente versionadas dele, sem
+alterar a verdade matemática do Motor V2.
 
 ### Infraestrutura
 

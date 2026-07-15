@@ -175,3 +175,19 @@ Este documento registra decisões de produto e arquitetura.
 - Consequências: O motor passa a produzir fatos técnicos de antes e depois, que
   serão entrada do futuro dossiê. A IA continua sem poder alterar o plano
   técnico.
+
+## DEC-016 — Dossiê Técnico V1 como contrato derivado em memória
+
+- Data: 14 de julho de 2026
+- Status: Aceita
+- Contexto: O Motor Estratégico V2 já produz o plano técnico e seus impactos
+  determinísticos. A futura camada qualitativa precisa de uma fronteira
+  estruturada e auditável sem duplicar cálculo financeiro.
+- Decisão: O Dossiê Técnico V1 será um objeto puro, determinístico e derivado
+  em memória. Ele consolida `PortfolioSnapshot`, estratégia, fatos atuais de
+  mercado e o `TargetAllocationContributionResult` já calculado. Não possui
+  persistência, não chama IA e não recalcula o Motor V2.
+- Consequências: A futura camada de fundamentos, notícias, eventos e IA deve
+  consumir o contrato do dossiê ou evoluções versionadas dele. Ranking técnico
+  completo não será inventado enquanto o Motor V2 não expuser esse fato.
+  Persistência exige decisão arquitetural futura explícita.

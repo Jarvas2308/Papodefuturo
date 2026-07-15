@@ -377,14 +377,27 @@ substituição dos mocks por dados reais.
 - resumo técnico de antes, depois e redução do desvio;
 - modo demo e estratégia proporcional preservados.
 
+### Dossiê Técnico V1
+
+- contrato `technical-dossier.v1` puro, determinístico e derivado em memória;
+- consolidação do `PortfolioSnapshot` sem recalcular a carteira;
+- estratégia e metas globais associadas a partir das fontes existentes;
+- últimas cotações e último câmbio USD/BRL selecionados pelos helpers
+  compartilhados;
+- plano target-allocation e impactos copiados diretamente do Motor V2;
+- cobertura de preços e câmbio explicitada sem criar política de freshness;
+- limitações contratuais explícitas, incluindo simulação, ausência de
+  persistência, algoritmo guloso de unidades inteiras e limite de três ativos;
+- ranking técnico não inventado enquanto não for exposto pelo Motor V2;
+- sem tabela, migration, persistência, UI, IA ou chamadas externas.
+
 ## Próximo
 
-1. Dossiê Técnico V1;
-2. Fundamentos;
-3. Notícias e eventos;
-4. Comitê de IA;
-5. Auditoria;
-6. Polimento.
+1. Fundamentos;
+2. Notícias e eventos;
+3. Comitê de IA;
+4. Auditoria;
+5. Polimento.
 
-O dossiê e a IA permanecem futuros. O Comitê de IA deverá interpretar os fatos
-do motor determinístico sem alterar o plano técnico.
+As futuras camadas qualitativas deverão consumir o Dossiê Técnico V1 sem
+recalcular ou alterar o plano técnico do motor determinístico.

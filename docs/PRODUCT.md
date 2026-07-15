@@ -127,18 +127,18 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - atualização automática de mercado para B3 e ativos internacionais;
 - Novo Aporte conectado a compras, cotações, metas e câmbio reais;
 - Motor Estratégico V2 multiativos determinístico;
+- Dossiê Técnico V1 puro e determinístico, derivado em memória a partir do
+  snapshot, estratégia, fatos de mercado e plano técnico já calculado;
 - modo demo preservado com os mesmos fluxos, sem provider ou persistência.
 
 ### Planejado
 
-- Dossiê Técnico V1;
 - fundamentos, notícias e eventos;
 - camada futura de IA explicativa;
 - auditoria e polimento.
 
 ### Em aberto
 
-- desenho final do dossiê técnico para explicação futura pela IA;
 - critérios de fundamentos, notícias e eventos que poderão contextualizar fatos
   sem alterar o plano determinístico.
 
@@ -178,8 +178,23 @@ persiste automaticamente um plano.
 - limite operacional de até 3 ativos distintos por plano;
 - saldo não alocado quando nenhuma nova unidade acessível melhora o desvio.
 
-O futuro dossiê e a IA recebem esses fatos técnicos sem recalcular ou modificar
-o plano produzido pelo motor.
+O Dossiê Técnico V1 recebe esses fatos sem recalcular ou modificar o plano
+produzido pelo motor. Futuras camadas qualitativas deverão consumir esse
+contrato ou uma evolução explicitamente versionada dele.
+
+## Dossiê Técnico V1
+
+O estado atual inclui `TechnicalDossierV1`, um objeto puro, determinístico e
+somente em memória que consolida:
+
+- `PortfolioSnapshot` já calculado;
+- estratégia e metas globais individuais já derivadas;
+- últimas cotações e último câmbio USD/BRL selecionados pelos helpers do domínio;
+- `TargetAllocationContributionResult` e impactos produzidos pelo Motor V2;
+- cobertura dos fatos de mercado e limitações explícitas do plano.
+
+O dossiê não é persistido, não recalcula a carteira ou o plano, não expõe um
+ranking técnico inexistente e não chama IA, APIs ou serviços externos.
 
 ## Papel futuro da IA
 
