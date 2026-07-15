@@ -79,6 +79,8 @@ Estado já integrado:
 - registro real de compras confirmadas;
 - Novo Aporte conectado a compras, preços, metas e câmbio reais;
 - Motor Estratégico V2 multiativos integrado ao fluxo de Novo Aporte;
+- Dossiê Técnico V1 puro e determinístico como fronteira derivada em memória
+  entre o Motor V2 e futuras camadas qualitativas;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -244,6 +246,20 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - o saldo pode permanecer não alocado quando nenhuma nova unidade acessível melhora estritamente a carteira;
 - a IA futura pode interpretar o resultado técnico, mas não modificá-lo;
 - não persistir automaticamente `ContributionPlan` até o fluxo de apresentação, aceite e confirmação estar arquiteturalmente fechado.
+
+### Dossiê Técnico V1
+
+- o dossiê é um contrato derivado em memória, não uma engine ou persistência;
+- consolidar somente fatos já produzidos por `PortfolioSnapshot`, estratégia,
+  helpers compartilhados de mercado e `TargetAllocationContributionResult`;
+- não recalcular carteira, metas globais, câmbio, seleção, quantidades, preços
+  de referência ou desvios dentro do dossiê;
+- manter o builder puro, determinístico e independente de React, Supabase, APIs
+  e fontes ambientais;
+- `generatedAt` deve ser injetado pelo chamador;
+- não inventar ranking técnico enquanto o Motor V2 não expuser esse fato;
+- não persistir o dossiê nem enviá-lo a IA ou serviço externo sem nova decisão
+  arquitetural explícita.
 
 ## 7. Modelos e valores atuais do domínio
 
