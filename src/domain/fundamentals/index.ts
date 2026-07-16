@@ -1,9 +1,15 @@
 export { buildFundamentalFactsV1 } from './buildFundamentalFactsV1'
+export {
+  formatExactDecimalQuantity,
+  MAX_EXACT_DECIMAL_SCALE,
+  normalizeExactDecimalQuantity,
+} from './exactDecimalQuantity'
 export { FUNDAMENTAL_FACTS_V1_SCHEMA_VERSION } from './types'
 export type {
   BrazilianStockFundamentalFacts,
   BrazilianStockFundamentalSnapshotInput,
   BuildFundamentalFactsV1Input,
+  ExactDecimalQuantity,
   FundamentalAssetKind,
   FundamentalFactsAsset,
   FundamentalFactsDataCoverage,

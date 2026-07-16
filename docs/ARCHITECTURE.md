@@ -39,8 +39,9 @@ No estado atual:
   Dossiê Técnico V1;
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
   Fundamental Facts V1;
-- `src/data/fundamentals` contém o provider CVM isolado, parsing contábil,
-  ingestão com storage injetado e adapters de persistência global;
+- `src/data/fundamentals` contém providers CVM isolados para ações e FIIs,
+  parsing factual, ingestão com storage injetado e adapters de persistência
+  global;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
@@ -194,7 +195,7 @@ alterar a verdade matemática do Motor V2.
 ### Fronteira de Fundamental Facts V1
 
 ```text
-arquivos oficiais CVM DFP / ITR
+arquivos oficiais CVM DFP / ITR / Informe Mensal de FII
                   ↓
 leitura ZIP + parsing CSV consolidado
                   ↓
@@ -226,12 +227,21 @@ Princípios da fronteira:
 - não há P/L, P/VP, margens, crescimento, valuation, ranking ou score;
 - o contrato não altera o Motor V2 nem o schema `technical-dossier.v1`.
 
-O provider CVM DFP/ITR para ações brasileiras já produz o contrato, mas ainda
-não possui scheduler ou integração com telas. A migration
-`fundamental_snapshots` prepara persistência global, sem `user_id` ou FK para
-`assets.id`, com leitura autenticada e escrita reservada a contexto server-side
-privilegiado. Providers de Informe Mensal de FII e SEC N-PORT permanecem para
-ciclos posteriores.
+Os providers CVM DFP/ITR para ações brasileiras e Informe Mensal para FIIs já
+produzem o contrato, mas ainda não possuem scheduler ou integração com telas. A
+tabela global `fundamental_snapshots`, sem `user_id` ou FK para `assets.id`, já
+está aplicada e vazia no Supabase real, com leitura autenticada, escrita
+reservada a contexto server-side privilegiado e tipos sincronizados na PR #73.
+A migration multi-kind deste ciclo adiciona colunas factuais específicas de FII
+e constraints discriminadas por `kind`, mas ainda não foi aplicada. O provider
+SEC N-PORT permanece para ciclo posterior.
+
+Quantidades oficiais de cotas podem conter casas decimais. O domínio usa
+`ExactDecimalQuantity`, formado por coeficiente inteiro seguro e escala inteira
+não negativa, e a persistência separa `issued_shares_unscaled` de
+`issued_shares_scale`. Essa fronteira preserva o valor publicado sem
+arredondamento, truncamento ou aritmética de ponto flutuante; o texto bruto
+continua disponível na proveniência.
 
 ### Infraestrutura
 
@@ -362,7 +372,8 @@ Estado atual:
 - factory isolada de cliente Supabase criada;
 - migrations versionadas iniciais criadas;
 - tabelas reais `public.profiles`, `public.assets`, `public.purchases`,
-  `public.asset_prices` e `public.allocation_targets` aplicadas no Supabase;
+  `public.asset_prices`, `public.allocation_targets` e
+  `public.fundamental_snapshots` aplicadas no Supabase;
 - RLS habilitado em `public.profiles`;
 - RLS habilitado em `public.assets`;
 - RLS habilitado em `public.purchases`;
