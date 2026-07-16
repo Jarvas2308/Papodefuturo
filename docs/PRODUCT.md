@@ -132,6 +132,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - fundação de `FundamentalFactsV1` como contrato normalizado, determinístico e
   em memória para fatos contábeis de ações brasileiras, FIIs e ETFs
   internacionais;
+- `FundamentalDerivedFactsV1` como camada auditável, determinística e em
+  memória para razões e reconciliações derivadas dos snapshots factuais;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -141,7 +143,6 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- derivados fundamentalistas auditáveis;
 - notícias e eventos;
 - camada futura de IA explicativa;
 - auditoria e polimento.
@@ -249,9 +250,33 @@ na PR #76 foi aplicada como
 `20260716203927_generalize_fundamental_snapshots_for_sec_nport`, preservando
 leitura para `authenticated` e escrita privilegiada para `service_role`. Os
 tipos Supabase e os adapters isolados de ações, FIIs e ETFs estão sincronizados;
-os fluxos de FII e SEC foram integrados nas PRs #75 e #76. Ainda não existem
-ingestão real, scheduler, integração runtime ou UI, derivados, ranking, score
-ou IA, e fundamentos não modificam o Motor V2 nem `TechnicalDossierV1`.
+os fluxos de FII e SEC foram integrados nas PRs #75 e #77. Ainda não existem
+ingestão real, scheduler ou integração runtime e UI para fundamentos. A tabela
+permanece vazia, e fundamentos não modificam o Motor V2 nem
+`TechnicalDossierV1`.
+
+## Fundamental Derived Facts V1
+
+O estado atual inclui `FundamentalDerivedFactsV1` como contrato separado dos
+fatos normalizados. Para cada snapshot factual, a camada produz apenas métricas
+compatíveis com a classe do ativo:
+
+- ações brasileiras: patrimônio líquido sobre ativos;
+- FIIs: valor patrimonial em BRL por cota emitida;
+- ETFs internacionais: passivos sobre ativos, patrimônio líquido sobre ativos
+  e delta assinado de reconciliação do balanço em USD.
+
+Razões usam escala fixa de 1.000.000, intermediários em `BigInt` e
+arredondamento half-away-from-zero. Cotas decimais são consumidas pela
+representação exata de coeficiente e escala. Ausência de input, denominador não
+positivo, moeda divergente e aritmética fora do intervalo seguro são estados
+explícitos de indisponibilidade, não valores inventados.
+
+Os derivados preservam asset, período, fonte, data e documento do snapshot
+factual. Não usam preço de mercado, não calculam crescimento, score, ranking ou
+recomendação, não alteram o Motor V2 e não são persistidos. Neste ciclo, o
+builder permanece somente em memória, sem runtime, UI, chamada externa ou
+alteração na tabela global vazia `fundamental_snapshots`.
 
 ## Papel futuro da IA
 
