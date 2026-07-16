@@ -292,8 +292,10 @@ Este documento registra decisões de produto e arquitetura.
   passivos e patrimônio líquido são preservados como publicados, sem derivar um
   fato ausente a partir dos demais.
 - Consequências: O provider não depende de React, navegador, Supabase ou rede em
-  testes. A tabela global será estendida de forma não destrutiva para
-  `international-etf` e `sec-nport`, mas a migration deste ciclo ainda não foi
-  aplicada. Adapter Supabase, scheduler, execução real, derivados e UI exigem
-  ciclos posteriores; o provider não inventa fatos ausentes nem altera o Motor
-  V2 ou o Dossiê Técnico.
+  testes. A tabela global foi estendida de forma não destrutiva para
+  `international-etf` e `sec-nport` na PR #76, com migration aplicada como
+  `20260716203927_generalize_fundamental_snapshots_for_sec_nport`. Os tipos e o
+  adapter Supabase foram sincronizados para escrita e leitura globais, mantendo
+  a tabela vazia e as barreiras de segurança existentes. Scheduler, execução
+  real, derivados e UI exigem ciclos posteriores; o provider não inventa fatos
+  ausentes nem altera o Motor V2 ou o Dossiê Técnico.

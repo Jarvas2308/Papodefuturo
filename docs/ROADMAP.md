@@ -474,14 +474,17 @@ IA.
 - fetch e storage injetados; testes completamente sem rede;
 - User-Agent identificável e fair access obrigatórios em execução server-side;
 - migration não destrutiva versionada para adicionar `international-etf` e
-  `sec-nport` à tabela global, ainda não aplicada no Supabase real;
+  `sec-nport` à tabela global, integrada na PR #76 e aplicada como
+  `20260716203927_generalize_fundamental_snapshots_for_sec_nport`;
+- tipos Supabase sincronizados e adapter isolado de storage, repository e
+  mapper para ETFs, com validação integral da proveniência SEC;
 - providers CVM, Motor V2, Dossiê Técnico, UI e modo demo preservados;
-- sem adapter Supabase para ETFs, scheduler, ingestão real, runtime, UI,
-  derivados, ranking, score ou IA.
+- sem scheduler, ingestão real, runtime, UI, derivados, ranking, score ou IA.
 
-A tabela `fundamental_snapshots` permanece vazia no Supabase real e ainda não
-aceita registros SEC até a migration deste ciclo ser revisada e aplicada em
-etapa separada.
+A tabela `fundamental_snapshots` permanece vazia no Supabase real, com RLS,
+leitura para `authenticated`, escrita privilegiada para `service_role`, trigger
+e identidade lógica preservados. Nenhuma ingestão ou inserção real foi
+executada neste ciclo.
 
 ## Próximo
 

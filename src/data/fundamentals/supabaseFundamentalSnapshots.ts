@@ -112,6 +112,14 @@ function assertRecordProvenance(
   }
 }
 
+function assertPositiveFilingVersion(
+  value: number | null
+): asserts value is number {
+  if (value === null || !Number.isSafeInteger(value) || value <= 0) {
+    throw new RangeError('CVM filing version must be a positive safe integer')
+  }
+}
+
 function buildBrazilianStockAssetIdentity(
   asset: BrazilianStockAssetIdentity
 ): string {
@@ -125,6 +133,7 @@ function buildBrazilianStockAssetIdentity(
 function toInsertRow(
   record: CvmBrazilianStockFundamentalRecord
 ): FundamentalSnapshotInsert {
+  assertPositiveFilingVersion(record.filingVersion)
   if (record.facts.totalRevenue !== null) {
     throw new Error('CVM totalRevenue must remain null in provider V1')
   }
@@ -152,6 +161,8 @@ function toInsertRow(
     net_income_minor: record.facts.netIncome?.amountInMinorUnits ?? null,
     total_assets_minor: record.facts.totalAssets?.amountInMinorUnits ?? null,
     total_equity_minor: record.facts.totalEquity?.amountInMinorUnits ?? null,
+    total_liabilities_minor: null,
+    net_assets_minor: null,
     operating_cash_flow_minor:
       record.facts.operatingCashFlow?.amountInMinorUnits ?? null,
     provenance: toJson(record.provenance),
@@ -260,11 +271,14 @@ export function mapFundamentalSnapshotRow(
   )) {
     throw new Error(`Invalid CVM source and period: ${row.ticker}`)
   }
-  if (!Number.isSafeInteger(row.filing_version) || row.filing_version <= 0) {
-    throw new Error(`Invalid CVM filing version: ${row.filing_version}`)
-  }
+  assertPositiveFilingVersion(row.filing_version)
   if (row.total_revenue_minor !== null) {
     throw new Error('CVM totalRevenue must remain null in provider V1')
+  }
+  if (row.total_liabilities_minor !== null || row.net_assets_minor !== null) {
+    throw new Error(
+      'SEC columns must remain null for Brazilian stock snapshots'
+    )
   }
 
   const provenance = readProvenance(row.provenance)

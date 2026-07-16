@@ -134,12 +134,13 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   internacionais;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
+- provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
+  VEA, sem ingestão real, scheduler ou conexão com telas;
 - modo demo preservado com os mesmos fluxos, sem consumo de providers ou
   persistência.
 
 ### Planejado
 
-- provider oficial SEC para fundamentos internacionais;
 - derivados fundamentalistas auditáveis;
 - notícias e eventos;
 - camada futura de IA explicativa;
@@ -244,15 +245,13 @@ as classes publicadas e serve somente para associar a série ao ticker monitorad
 
 A tabela global foi aplicada no Supabase real, permanece vazia, usa RLS e não
 possui `user_id` nem relação com `assets.id`. A migration multi-kind integrada
-na PR #74 foi aplicada como
-`20260716172033_generalize_fundamental_snapshots_for_fii`, preservando leitura
-para `authenticated` e escrita privilegiada para `service_role`. Os tipos
-Supabase e os adapters isolados de ações e FIIs estão sincronizados; o fluxo de
-FIIs foi integrado na PR #75. Ainda não existem ingestão real, scheduler,
-adapter Supabase para ETFs, integração runtime ou UI, derivados, ranking, score
-ou IA, e fundamentos não modificam o Motor V2 nem `TechnicalDossierV1`. A
-migration que generaliza a tabela para `sec-nport` está versionada neste ciclo,
-mas ainda não foi aplicada no Supabase real.
+na PR #76 foi aplicada como
+`20260716203927_generalize_fundamental_snapshots_for_sec_nport`, preservando
+leitura para `authenticated` e escrita privilegiada para `service_role`. Os
+tipos Supabase e os adapters isolados de ações, FIIs e ETFs estão sincronizados;
+os fluxos de FII e SEC foram integrados nas PRs #75 e #76. Ainda não existem
+ingestão real, scheduler, integração runtime ou UI, derivados, ranking, score
+ou IA, e fundamentos não modificam o Motor V2 nem `TechnicalDossierV1`.
 
 ## Papel futuro da IA
 

@@ -177,12 +177,13 @@ export type Database = {
           created_at: string
           currency: string
           exercise_order: string | null
-          filing_version: number
+          filing_version: number | null
           id: number
           issued_shares_scale: number | null
           issued_shares_unscaled: number | null
           kind: string
           market: string
+          net_assets_minor: number | null
           net_income_minor: number | null
           net_asset_value_minor: number | null
           operating_cash_flow_minor: number | null
@@ -196,6 +197,7 @@ export type Database = {
           ticker: string
           total_assets_minor: number | null
           total_equity_minor: number | null
+          total_liabilities_minor: number | null
           total_revenue_minor: number | null
           updated_at: string
         }
@@ -204,12 +206,13 @@ export type Database = {
           created_at?: string
           currency: string
           exercise_order?: string | null
-          filing_version: number
+          filing_version?: number | null
           id?: number
           issued_shares_scale?: number | null
           issued_shares_unscaled?: number | null
           kind: string
           market: string
+          net_assets_minor?: number | null
           net_income_minor?: number | null
           net_asset_value_minor?: number | null
           operating_cash_flow_minor?: number | null
@@ -223,6 +226,7 @@ export type Database = {
           ticker: string
           total_assets_minor?: number | null
           total_equity_minor?: number | null
+          total_liabilities_minor?: number | null
           total_revenue_minor?: number | null
           updated_at?: string
         }
@@ -231,12 +235,13 @@ export type Database = {
           created_at?: string
           currency?: string
           exercise_order?: string | null
-          filing_version?: number
+          filing_version?: number | null
           id?: number
           issued_shares_scale?: number | null
           issued_shares_unscaled?: number | null
           kind?: string
           market?: string
+          net_assets_minor?: number | null
           net_income_minor?: number | null
           net_asset_value_minor?: number | null
           operating_cash_flow_minor?: number | null
@@ -250,6 +255,7 @@ export type Database = {
           ticker?: string
           total_assets_minor?: number | null
           total_equity_minor?: number | null
+          total_liabilities_minor?: number | null
           total_revenue_minor?: number | null
           updated_at?: string
         }

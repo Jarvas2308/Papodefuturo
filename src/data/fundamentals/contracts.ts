@@ -1,6 +1,7 @@
 import type { Asset } from '../../domain/models'
 import type {
   BrazilianStockFundamentalSnapshotInput,
+  InternationalEtfFundamentalSnapshotInput,
   RealEstateFundFundamentalSnapshotInput,
 } from '../../domain/fundamentals'
 import type { CvmBrazilianStockFundamentalRecord } from './cvm/types'
@@ -35,4 +36,10 @@ export type RealEstateFundFundamentalSnapshotRepository = {
   listRealEstateFundSnapshots(
     assets: readonly Asset[]
   ): Promise<RealEstateFundFundamentalSnapshotInput[]>
+}
+
+export type InternationalEtfFundamentalSnapshotRepository = {
+  listInternationalEtfSnapshots(
+    assets: readonly Asset[]
+  ): Promise<InternationalEtfFundamentalSnapshotInput[]>
 }
