@@ -5,6 +5,7 @@ import type {
 } from '../../domain/fundamentals'
 import type { CvmBrazilianStockFundamentalRecord } from './cvm/types'
 import type { CvmRealEstateFundFundamentalRecord } from './cvm/fii/types'
+import type { SecInternationalEtfFundamentalRecord } from './sec/nport/types'
 
 export type FundamentalSnapshotStorage = {
   upsertMany(
@@ -15,6 +16,12 @@ export type FundamentalSnapshotStorage = {
 export type RealEstateFundFundamentalSnapshotStorage = {
   upsertMany(
     records: readonly CvmRealEstateFundFundamentalRecord[]
+  ): Promise<void>
+}
+
+export type InternationalEtfFundamentalSnapshotStorage = {
+  upsertMany(
+    records: readonly SecInternationalEtfFundamentalRecord[]
   ): Promise<void>
 }
 

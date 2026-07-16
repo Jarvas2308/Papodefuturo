@@ -448,12 +448,40 @@ A tabela permanece vazia e sem integração com o runtime ou com as telas.
 - tipos Supabase sincronizados e adapters isolados de storage e repository para
   ações e FIIs;
 - provider de ações, Motor V2, Dossiê Técnico, UI e modo demo preservados;
-- sem scheduler, provider SEC, ratios, score, ranking, IA ou integração runtime.
+- sem scheduler, ratios, score, ranking, IA ou integração runtime.
 
 A tabela `fundamental_snapshots` permanece vazia, com RLS, leitura para
 `authenticated` e escrita privilegiada para `service_role` preservadas. Ainda
-não existem ingestão real, scheduler, integração runtime ou UI, provider SEC,
-derivados ou IA.
+não existem ingestão real, scheduler, integração runtime ou UI, derivados ou
+IA.
+
+### Provider SEC N-PORT V1 para ETFs internacionais
+
+- universo fechado: VOO, VNQ e VEA;
+- fontes oficiais SEC Submissions API e documentos Form N-PORT;
+- descoberta determinística em filings recentes e históricos;
+- suporte a `NPORT-P` e `NPORT-P/A`, com precedência determinística de
+  amendments para o mesmo período;
+- identidade fechada e validada por CIK, registrant, series ID, nome da série,
+  class ID e nome da classe;
+- fatos financeiros tratados no escopo da série, com todos os class IDs do XML
+  preservados e a classe ETF usada apenas no mapping para o ticker;
+- seleção do documento primário e parsing XML com namespace oficial;
+- ativos totais, passivos totais e patrimônio líquido preservados em centavos
+  de USD por parsing decimal exato com `BigInt`;
+- proveniência factual com accession number, documento, datas, formulário e
+  identidades oficiais;
+- fetch e storage injetados; testes completamente sem rede;
+- User-Agent identificável e fair access obrigatórios em execução server-side;
+- migration não destrutiva versionada para adicionar `international-etf` e
+  `sec-nport` à tabela global, ainda não aplicada no Supabase real;
+- providers CVM, Motor V2, Dossiê Técnico, UI e modo demo preservados;
+- sem adapter Supabase para ETFs, scheduler, ingestão real, runtime, UI,
+  derivados, ranking, score ou IA.
+
+A tabela `fundamental_snapshots` permanece vazia no Supabase real e ainda não
+aceita registros SEC até a migration deste ciclo ser revisada e aplicada em
+etapa separada.
 
 ## Próximo
 
@@ -465,8 +493,7 @@ derivados ou IA.
 
 Sequência restante da etapa Fundamentos:
 
-1. provider SEC para ETFs internacionais;
-2. derivados fundamentalistas auditáveis.
+1. derivados fundamentalistas auditáveis.
 
 Fundamentos ainda não está concluído. Não avançar para Notícias antes dos
 ciclos restantes da etapa. As futuras camadas qualitativas deverão consumir os

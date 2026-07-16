@@ -85,7 +85,11 @@ Estado já integrado:
   memória;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
-  ainda sem scheduler ou integração com telas;
+  ainda sem scheduler ou integração com telas; os adapters de FIIs foram
+  integrados na PR #75;
+- provider SEC N-PORT V1 isolado para VOO, VNQ e VEA, com descoberta
+  determinística de filings, parsing XML factual e ingestão com fetch e storage
+  injetados, ainda sem scheduler, adapter Supabase ou integração runtime;
 - tabela global `fundamental_snapshots` aplicada e vazia no Supabase real, com
   tipos sincronizados para ações e FIIs; a migration multi-kind foi integrada
   na PR #74 e aplicada como
@@ -292,8 +296,17 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   economicamente comparável no universo auditado;
 - fatos fundamentalistas persistidos são globais, sem `user_id` e sem FK para
   `assets`, e se associam ao universo por ticker, categoria e mercado;
-- provider SEC, integração runtime e derivados exigem ciclos posteriores
-  explícitos;
+- o provider SEC N-PORT de ETFs internacionais usa somente fontes oficiais da
+  SEC, identidade fechada por CIK, series ID e class ID, seleciona filings
+  `NPORT-P`/`NPORT-P/A` e preserva valores USD por parsing decimal exato;
+- fatos financeiros N-PORT pertencem à série; todos os class IDs publicados
+  devem ser preservados, e a classe ETF esperada apenas associa a série ao
+  ticker do universo fechado;
+- o acesso a `data.sec.gov` e aos documentos EDGAR deve ocorrer em contexto
+  server-side com User-Agent identificável e fair access; não chamar a SEC do
+  navegador, pois `data.sec.gov` não oferece CORS para esse consumo;
+- integração runtime, adapter Supabase, scheduler e derivados exigem ciclos
+  posteriores explícitos;
 - o provider CVM de FIIs usa o Informe Mensal oficial, identidade fechada por
   CNPJ, nome e ISIN, e não arredonda quantidades de cotas fracionárias para
   satisfazer um contrato inteiro; cotas oficiais decimais usam coeficiente

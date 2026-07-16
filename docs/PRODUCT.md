@@ -233,15 +233,26 @@ centavos, número de cotistas precisa ser inteiro seguro e cotas emitidas usam
 coeficiente inteiro seguro mais escala. Assim, quantidades decimais publicadas
 pela CVM são preservadas sem arredondamento, truncamento ou ponto flutuante.
 
+O provider SEC N-PORT V1 cobre VOO, VNQ e VEA no universo fechado. Ele descobre
+filings oficiais `NPORT-P` e `NPORT-P/A` pelo Submissions API, valida CIK,
+registrant, series ID, class ID e nomes oficiais, e normaliza ativos totais,
+passivos totais e patrimônio líquido em centavos de USD. Amendments têm
+precedência determinística quando representam o mesmo período, e todo acesso à
+SEC fica restrito a contexto server-side com User-Agent identificável e fair
+access. Os fatos pertencem à série; a classe ETF esperada é validada entre todas
+as classes publicadas e serve somente para associar a série ao ticker monitorado.
+
 A tabela global foi aplicada no Supabase real, permanece vazia, usa RLS e não
 possui `user_id` nem relação com `assets.id`. A migration multi-kind integrada
 na PR #74 foi aplicada como
 `20260716172033_generalize_fundamental_snapshots_for_fii`, preservando leitura
 para `authenticated` e escrita privilegiada para `service_role`. Os tipos
-Supabase e os adapters isolados de ações e FIIs estão sincronizados. Não existem
-ingestão real, scheduler, integração runtime ou UI, provider SEC, derivados,
-ranking, score ou IA, e fundamentos não modificam o Motor V2 nem
-`TechnicalDossierV1`.
+Supabase e os adapters isolados de ações e FIIs estão sincronizados; o fluxo de
+FIIs foi integrado na PR #75. Ainda não existem ingestão real, scheduler,
+adapter Supabase para ETFs, integração runtime ou UI, derivados, ranking, score
+ou IA, e fundamentos não modificam o Motor V2 nem `TechnicalDossierV1`. A
+migration que generaliza a tabela para `sec-nport` está versionada neste ciclo,
+mas ainda não foi aplicada no Supabase real.
 
 ## Papel futuro da IA
 
