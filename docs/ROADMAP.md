@@ -443,14 +443,17 @@ A tabela permanece vazia e sem integração com o runtime ou com as telas.
 - ausência oficial preservada como `null`, sem conversão para zero;
 - proveniência factual com arquivo, archiveId, colunas e valores oficiais;
 - `sourceDocumentId` determinístico e ingestão com fetch e storage injetados;
-- migration nova e não destrutiva para generalizar `fundamental_snapshots` com
-  colunas específicas e constraints discriminadas por `kind`;
+- migration não destrutiva integrada na PR #74 e aplicada no Supabase real como
+  `20260716172033_generalize_fundamental_snapshots_for_fii`;
+- tipos Supabase sincronizados e adapters isolados de storage e repository para
+  ações e FIIs;
 - provider de ações, Motor V2, Dossiê Técnico, UI e modo demo preservados;
 - sem scheduler, provider SEC, ratios, score, ranking, IA ou integração runtime.
 
-A migration multi-kind de FIIs permanece somente versionada e não foi aplicada
-ao Supabase real. `database.types.ts` permanece inalterado até aplicação e
-regeneração futura dos tipos.
+A tabela `fundamental_snapshots` permanece vazia, com RLS, leitura para
+`authenticated` e escrita privilegiada para `service_role` preservadas. Ainda
+não existem ingestão real, scheduler, integração runtime ou UI, provider SEC,
+derivados ou IA.
 
 ## Próximo
 

@@ -231,10 +231,12 @@ Os providers CVM DFP/ITR para ações brasileiras e Informe Mensal para FIIs já
 produzem o contrato, mas ainda não possuem scheduler ou integração com telas. A
 tabela global `fundamental_snapshots`, sem `user_id` ou FK para `assets.id`, já
 está aplicada e vazia no Supabase real, com leitura autenticada, escrita
-reservada a contexto server-side privilegiado e tipos sincronizados na PR #73.
-A migration multi-kind deste ciclo adiciona colunas factuais específicas de FII
-e constraints discriminadas por `kind`, mas ainda não foi aplicada. O provider
-SEC N-PORT permanece para ciclo posterior.
+reservada a contexto server-side privilegiado e adapters separados para ações e
+FIIs. A migration multi-kind integrada na PR #74 foi aplicada como
+`20260716172033_generalize_fundamental_snapshots_for_fii`; os tipos Supabase
+foram sincronizados com as colunas factuais e constraints discriminadas por
+`kind`. Ainda não existem ingestão real, scheduler, integração runtime ou UI.
+O provider SEC N-PORT permanece para ciclo posterior.
 
 Quantidades oficiais de cotas podem conter casas decimais. O domínio usa
 `ExactDecimalQuantity`, formado por coeficiente inteiro seguro e escala inteira

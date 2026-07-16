@@ -1,6 +1,7 @@
 export type {
   FundamentalSnapshotRepository,
   FundamentalSnapshotStorage,
+  RealEstateFundFundamentalSnapshotRepository,
   RealEstateFundFundamentalSnapshotStorage,
 } from './contracts'
 export {
@@ -39,3 +40,15 @@ export {
   createSupabaseFundamentalSnapshotStorage,
   mapFundamentalSnapshotRow,
 } from './supabaseFundamentalSnapshots'
+export {
+  createSupabaseRealEstateFundSnapshotRepository,
+  createSupabaseRealEstateFundSnapshotStorage,
+  mapRealEstateFundSnapshotRow,
+} from './supabaseRealEstateFundSnapshots'
+export type {
+  RealEstateFundSnapshotInsert,
+  RealEstateFundSnapshotJson,
+  RealEstateFundSnapshotRow,
+  RealEstateFundSnapshotSupabaseClient,
+  RealEstateFundSnapshotUpdate,
+} from './supabaseRealEstateFundSnapshots'
