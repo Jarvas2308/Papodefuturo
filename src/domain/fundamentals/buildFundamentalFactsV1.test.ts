@@ -125,7 +125,7 @@ function createFiiSnapshot(): RealEstateFundFundamentalSnapshotInput {
     sourceDocumentId: 'cvm-fii-knri11-2026-06',
     facts: {
       netAssetValue: brl(1_500_000_000),
-      issuedShares: 10_000_000,
+      issuedShares: { unscaledValue: 10_000_000, scale: 0 },
       shareholderCount: 250_000,
     },
   }
@@ -415,18 +415,75 @@ describe('buildFundamentalFactsV1', () => {
       (item) => item.kind === 'real-estate-fund'
     )
     if (!snapshot) throw new Error('Invalid fixture')
-    snapshot.facts.issuedShares = -1
+    snapshot.facts.issuedShares = { unscaledValue: -1, scale: 0 }
     expect(() => buildFundamentalFactsV1(input)).toThrow(/Issued shares/)
   })
 
-  it('rejects fractional issuedShares', () => {
+  it('rejects an invalid issuedShares scale', () => {
     const input = createInput()
     const snapshot = input.snapshots.find(
       (item) => item.kind === 'real-estate-fund'
     )
     if (!snapshot) throw new Error('Invalid fixture')
-    snapshot.facts.issuedShares = 1.5
+    snapshot.facts.issuedShares = { unscaledValue: 15, scale: -1 }
     expect(() => buildFundamentalFactsV1(input)).toThrow(/Issued shares/)
+  })
+
+  it.each([
+    { unscaledValue: Number.MAX_SAFE_INTEGER + 1, scale: 0 },
+    { unscaledValue: 1, scale: 1.5 },
+    { unscaledValue: 1, scale: 32_768 },
+  ])('rejects issuedShares outside the exact decimal contract', (value) => {
+    const input = createInput()
+    const snapshot = input.snapshots.find(
+      (item) => item.kind === 'real-estate-fund'
+    )
+    if (!snapshot) throw new Error('Invalid fixture')
+    snapshot.facts.issuedShares = value
+
+    expect(() => buildFundamentalFactsV1(input)).toThrow(/Issued shares/)
+  })
+
+  it('normalizes issuedShares and copies the exact decimal quantity', () => {
+    const input = createInput()
+    const snapshot = input.snapshots.find(
+      (item) => item.kind === 'real-estate-fund'
+    )
+    if (!snapshot) throw new Error('Invalid fixture')
+    snapshot.facts.issuedShares = { unscaledValue: 12_340, scale: 3 }
+
+    const output = buildFundamentalFactsV1(input)
+    const outputSnapshot = getOutputAsset(output, KNRI11_ID).snapshots[0]
+    if (outputSnapshot?.kind !== 'real-estate-fund') {
+      throw new Error('Invalid output fixture')
+    }
+
+    expect(outputSnapshot.facts.issuedShares).toEqual({
+      unscaledValue: 1_234,
+      scale: 2,
+    })
+    expect(outputSnapshot.facts.issuedShares).not.toBe(
+      snapshot.facts.issuedShares
+    )
+  })
+
+  it('canonicalizes zero issuedShares with scale zero', () => {
+    const input = createInput()
+    const snapshot = input.snapshots.find(
+      (item) => item.kind === 'real-estate-fund'
+    )
+    if (!snapshot) throw new Error('Invalid fixture')
+    snapshot.facts.issuedShares = { unscaledValue: 0, scale: 7 }
+
+    const outputSnapshot = getOutputAsset(
+      buildFundamentalFactsV1(input),
+      KNRI11_ID
+    ).snapshots[0]
+    expect(
+      outputSnapshot?.kind === 'real-estate-fund'
+        ? outputSnapshot.facts.issuedShares
+        : undefined
+    ).toEqual({ unscaledValue: 0, scale: 0 })
   })
 
   it('rejects negative shareholderCount', () => {

@@ -132,11 +132,14 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - fundação de `FundamentalFactsV1` como contrato normalizado, determinístico e
   em memória para fatos contábeis de ações brasileiras, FIIs e ETFs
   internacionais;
-- modo demo preservado com os mesmos fluxos, sem provider ou persistência.
+- providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
+  XPLG11 e HGRU11, sem conexão com telas ou scheduler;
+- modo demo preservado com os mesmos fluxos, sem consumo de providers ou
+  persistência.
 
 ### Planejado
 
-- providers oficiais CVM e SEC para fundamentos;
+- provider oficial SEC para fundamentos internacionais;
 - derivados fundamentalistas auditáveis;
 - notícias e eventos;
 - camada futura de IA explicativa;
@@ -222,11 +225,20 @@ e fluxo de caixa operacional e preserva proveniência do filing. `totalRevenue`
 permanece `null`: a linha DRE 3.01 de BBAS3 não possui comparabilidade econômica
 com a linha DRE 3.01 das demais companhias auditadas.
 
-A persistência global foi preparada por migration versionada, sem `user_id` e
-sem relação com `assets.id`, mas ainda não foi aplicada ao Supabase real nem
-conectada ao runtime. Não existem scheduler, provider de FIIs ou SEC, índices,
-crescimento, margens, valuation, ranking ou score, e fundamentos não modificam
-o Motor V2 nem `TechnicalDossierV1`.
+O provider CVM V1 para FIIs lê os CSVs `geral` e `complemento` do Informe Mensal
+oficial, valida CNPJ, denominação e ISIN do universo fechado e normaliza
+patrimônio líquido, cotas emitidas e número de cotistas. Ausência oficial
+permanece `null`; valores monetários precisam ser exatamente representáveis em
+centavos, número de cotistas precisa ser inteiro seguro e cotas emitidas usam
+coeficiente inteiro seguro mais escala. Assim, quantidades decimais publicadas
+pela CVM são preservadas sem arredondamento, truncamento ou ponto flutuante.
+
+A tabela global foi aplicada no Supabase real, permanece vazia, usa RLS e não
+possui `user_id` nem relação com `assets.id`; os tipos foram sincronizados na PR
+#73. A migration multi-kind de FIIs está apenas versionada neste ciclo e ainda
+não foi aplicada. Não existem scheduler, provider SEC, índices, crescimento,
+margens, valuation, ranking ou score, e fundamentos não modificam o Motor V2
+nem `TechnicalDossierV1`.
 
 ## Papel futuro da IA
 

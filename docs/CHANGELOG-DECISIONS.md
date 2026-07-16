@@ -242,3 +242,27 @@ Este documento registra decisões de produto e arquitetura.
   falha silenciosa. Métricas setoriais ou uma abstração futura de top line
   exigem decisão própria. A seleção atual usa allowlists exatas de descrições,
   sem fuzzy matching, `contains` ou exceções por ticker.
+
+## DEC-020 — Snapshots fundamentalistas globais usam contrato multi-kind
+
+- Data: 16 de julho de 2026
+- Status: Aceita
+- Contexto: O provider CVM de FIIs introduz fatos e metadados diferentes dos
+  demonstrativos de ações. O Informe Mensal identifica o fundo por CNPJ e nome,
+  mas não fornece o ticker necessário para associação ao universo fechado.
+- Decisão: Manter uma única tabela global `fundamental_snapshots`, com colunas
+  factuais específicas por classe e constraints discriminadas por `kind`.
+  FIIs são identificados na fonte por CNPJ, denominação oficial e ISIN; o ticker
+  é resolvido por mapping fechado e auditado. Não há `user_id` nem FK para
+  `assets`, e ausência factual continua representada por `null`. Como o campo
+  oficial de cotas emitidas pode conter quantidade decimal, o domínio usa
+  coeficiente inteiro seguro e escala, removendo zeros decimais finais sem
+  arredondar ou recorrer a ponto flutuante.
+- Consequências: Ações existentes permanecem compatíveis e as colunas de FII
+  ficam nulas para `brazilian-stock`. Registros de FII exigem fonte e período
+  oficiais, `filing_version` positivo e `exercise_order` nulo, enquanto campos
+  de ações ficam nulos. O contrato inteiro anterior não representava todos os
+  dados oficiais; `issued_shares_unscaled` e `issued_shares_scale` preservam a
+  informação sem perda. Novos kinds deverão adicionar regras explícitas sem
+  enfraquecer as classes existentes. A migration desta decisão deve ser
+  aplicada e os tipos Supabase regenerados em ciclo separado.

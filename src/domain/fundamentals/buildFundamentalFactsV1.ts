@@ -1,4 +1,5 @@
 import type { Asset } from '../models'
+import { normalizeExactDecimalQuantity } from './exactDecimalQuantity'
 import {
   FUNDAMENTAL_FACTS_V1_SCHEMA_VERSION,
   type BrazilianStockFundamentalFacts,
@@ -204,10 +205,10 @@ function copyRealEstateFundFacts(
       'BRL',
       'Net asset value'
     ),
-    issuedShares: copyNullableNonNegativeInteger(
-      facts.issuedShares,
-      'Issued shares'
-    ),
+    issuedShares:
+      facts.issuedShares === null
+        ? null
+        : normalizeExactDecimalQuantity(facts.issuedShares, 'Issued shares'),
     shareholderCount: copyNullableNonNegativeInteger(
       facts.shareholderCount,
       'Shareholder count'

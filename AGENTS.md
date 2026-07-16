@@ -83,10 +83,12 @@ Estado já integrado:
   entre o Motor V2 e futuras camadas qualitativas;
 - Fundamental Facts V1 puro e determinístico como contrato normalizado em
   memória;
-- provider CVM V1 isolado para as cinco ações brasileiras do universo fechado,
-  com ingestão e storage injetados, ainda sem scheduler ou integração com telas;
-- migration global de `fundamental_snapshots` versionada, ainda não aplicada no
-  Supabase real;
+- provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
+  universo fechado, com ingestão e storage injetados, ainda sem scheduler ou
+  integração com telas;
+- tabela global `fundamental_snapshots` aplicada e vazia no Supabase real, com
+  tipos sincronizados; a migration multi-kind para fatos de FII permanece
+  versionada e ainda não aplicada;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -289,8 +291,12 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   economicamente comparável no universo auditado;
 - fatos fundamentalistas persistidos são globais, sem `user_id` e sem FK para
   `assets`, e se associam ao universo por ticker, categoria e mercado;
-- providers CVM para FIIs, SEC, integração runtime e derivados exigem ciclos
-  posteriores explícitos.
+- provider SEC, integração runtime e derivados exigem ciclos posteriores
+  explícitos;
+- o provider CVM de FIIs usa o Informe Mensal oficial, identidade fechada por
+  CNPJ, nome e ISIN, e não arredonda quantidades de cotas fracionárias para
+  satisfazer um contrato inteiro; cotas oficiais decimais usam coeficiente
+  inteiro seguro e escala, com texto bruto preservado na proveniência.
 
 ## 7. Modelos e valores atuais do domínio
 

@@ -13,6 +13,11 @@ export type SignedMonetaryFact = {
   currency: 'BRL' | 'USD'
 }
 
+export type ExactDecimalQuantity = {
+  unscaledValue: number
+  scale: number
+}
+
 export type BrazilianStockFundamentalFacts = {
   totalRevenue: SignedMonetaryFact | null
   netIncome: SignedMonetaryFact | null
@@ -33,7 +38,7 @@ export type BrazilianStockFundamentalSnapshotInput = {
 
 export type RealEstateFundFundamentalFacts = {
   netAssetValue: SignedMonetaryFact | null
-  issuedShares: number | null
+  issuedShares: ExactDecimalQuantity | null
   shareholderCount: number | null
 }
 

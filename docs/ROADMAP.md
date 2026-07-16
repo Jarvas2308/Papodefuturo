@@ -421,13 +421,36 @@ substituição dos mocks por dados reais.
   exercício;
 - `sourceDocumentId` determinístico;
 - ingestão testável com fetch e storage injetados;
-- migration global `fundamental_snapshots` versionada, com upsert idempotente,
-  RLS e leitura autenticada;
+- migration global `fundamental_snapshots` versionada e aplicada, com upsert
+  idempotente, RLS, leitura autenticada e tipos sincronizados na PR #73;
 - sem scheduler, integração com UI, ratios, score, ranking, IA ou alteração do
   Motor V2 e do Dossiê Técnico.
 
-A migration permanece apenas versionada neste ciclo e ainda não foi aplicada ao
-Supabase real.
+A tabela permanece vazia e sem integração com o runtime ou com as telas.
+
+### Provider CVM V1 para fundos imobiliários
+
+- universo fechado: KNRI11, VISC11, XPLG11 e HGRU11;
+- pacote META e arquivo anual do Informe Mensal de FII auditados;
+- CSVs oficiais `geral` e `complemento`, em Windows-1252 e separados por ponto
+  e vírgula;
+- vínculo ticker/fundo fechado e auditável por CNPJ, denominação oficial e ISIN;
+- seleção determinística da competência mais recente e maior `Versao` numérica;
+- patrimônio líquido em centavos por parsing decimal exato com `BigInt`;
+- cotas emitidas decimais preservadas por coeficiente inteiro seguro e escala,
+  sem arredondamento, truncamento ou ponto flutuante;
+- número de cotistas aceito somente como inteiro seguro;
+- ausência oficial preservada como `null`, sem conversão para zero;
+- proveniência factual com arquivo, archiveId, colunas e valores oficiais;
+- `sourceDocumentId` determinístico e ingestão com fetch e storage injetados;
+- migration nova e não destrutiva para generalizar `fundamental_snapshots` com
+  colunas específicas e constraints discriminadas por `kind`;
+- provider de ações, Motor V2, Dossiê Técnico, UI e modo demo preservados;
+- sem scheduler, provider SEC, ratios, score, ranking, IA ou integração runtime.
+
+A migration multi-kind de FIIs permanece somente versionada e não foi aplicada
+ao Supabase real. `database.types.ts` permanece inalterado até aplicação e
+regeneração futura dos tipos.
 
 ## Próximo
 
@@ -439,9 +462,8 @@ Supabase real.
 
 Sequência restante da etapa Fundamentos:
 
-1. provider CVM para FIIs;
-2. provider SEC para ETFs internacionais;
-3. derivados fundamentalistas auditáveis.
+1. provider SEC para ETFs internacionais;
+2. derivados fundamentalistas auditáveis.
 
 Fundamentos ainda não está concluído. Não avançar para Notícias antes dos
 ciclos restantes da etapa. As futuras camadas qualitativas deverão consumir os
