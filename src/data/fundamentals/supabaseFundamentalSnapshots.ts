@@ -1,8 +1,16 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   BrazilianStockFundamentalSnapshotInput,
   SignedMonetaryFact,
 } from '../../domain/fundamentals'
 import type { Asset } from '../../domain/models'
+import type {
+  Database,
+  Json,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+} from '../../lib/database.types'
 import { normalizeAssetTicker } from '../assetUniverse'
 import type {
   FundamentalSnapshotRepository,
@@ -13,12 +21,12 @@ import type {
   CvmFactProvenance,
   CvmStatement,
 } from './cvm/types'
-import type {
-  FundamentalSnapshotInsert,
-  FundamentalSnapshotJson,
-  FundamentalSnapshotRow,
-  FundamentalSnapshotSupabaseClient,
-} from './fundamentalSnapshotSchema'
+
+export type FundamentalSnapshotJson = Json
+export type FundamentalSnapshotRow = Tables<'fundamental_snapshots'>
+export type FundamentalSnapshotInsert = TablesInsert<'fundamental_snapshots'>
+export type FundamentalSnapshotUpdate = TablesUpdate<'fundamental_snapshots'>
+export type FundamentalSnapshotSupabaseClient = SupabaseClient<Database>
 
 const UPSERT_CONFLICT_COLUMNS = [
   'ticker',
