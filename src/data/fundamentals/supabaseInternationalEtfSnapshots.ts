@@ -130,12 +130,20 @@ function isValidCivilDate(value: string): boolean {
 }
 
 function isValidUtcTimestamp(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?Z$/.exec(
+      value
+    )
+  if (!match) {
     return false
   }
-  const parsed = new Date(value)
-  const canonical = value.includes('.') ? value : value.replace('Z', '.000Z')
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === canonical
+  const [, year, month, day, hour, minute, second] = match
+  return (
+    isValidCivilDate(`${year}-${month}-${day}`) &&
+    Number(hour) <= 23 &&
+    Number(minute) <= 59 &&
+    Number(second) <= 59
+  )
 }
 
 function isValidAccession(value: string): boolean {

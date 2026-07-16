@@ -562,6 +562,69 @@ describe('International ETF snapshot row mapping and repository', () => {
 
 describe('International ETF persisted provenance', () => {
   it.each([
+    '2026-05-28T16:39:55Z',
+    '2026-05-28T16:39:55.1Z',
+    '2026-05-28T16:39:55.123Z',
+    '2026-05-28T16:39:55.123456Z',
+    '2026-05-28T16:39:55.123456789Z',
+  ])('accepts valid SEC UTC timestamp %s', (acceptedAt) => {
+    const record = createRecord()
+    record.provenance.acceptedAt = acceptedAt
+
+    expect(() =>
+      mapInternationalEtfSnapshotRow(createRow(record), 'asset-voo')
+    ).not.toThrow()
+  })
+
+  it.each([
+    '2026-05-28T16:39:55.1234567890Z',
+    '2026-05-28T16:39:55.Z',
+    '2026-05-28T16:39:55-03:00',
+    '2026-02-30T16:39:55Z',
+    '2026-05-28T24:00:00Z',
+    '2026-05-28T16:60:00Z',
+    '2026-05-28T16:39:60Z',
+    '2026-05-28 16:39:55Z',
+  ])('rejects invalid SEC UTC timestamp %s', (acceptedAt) => {
+    const record = createRecord()
+    record.provenance.acceptedAt = acceptedAt
+
+    expect(() =>
+      mapInternationalEtfSnapshotRow(createRow(record), 'asset-voo')
+    ).toThrow('does not match filing identity')
+  })
+
+  it('stores a six-digit timestamp without changing its provenance text', async () => {
+    const acceptedAt = '2026-05-28T16:39:55.123456Z'
+    const record = createRecord()
+    record.provenance.acceptedAt = acceptedAt
+    const upsert = vi.fn(async () => ({ error: null }))
+    const storage = createSupabaseInternationalEtfSnapshotStorage(
+      asClient({ from: vi.fn(() => ({ upsert })) })
+    )
+
+    await storage.upsertMany([record])
+
+    expect(upsert).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          provenance: expect.objectContaining({ acceptedAt }),
+        }),
+      ],
+      expect.any(Object)
+    )
+  })
+
+  it('maps a persisted row with a nine-digit timestamp', () => {
+    const record = createRecord()
+    record.provenance.acceptedAt = '2026-05-28T16:39:55.123456789Z'
+
+    expect(
+      mapInternationalEtfSnapshotRow(createRow(record), 'asset-voo')
+    ).toMatchObject({ assetId: 'asset-voo', kind: 'international-etf' })
+  })
+
+  it.each([
     [
       'dataset',
       (record: SecInternationalEtfFundamentalRecord) =>
