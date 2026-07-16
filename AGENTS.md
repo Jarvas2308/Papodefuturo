@@ -84,11 +84,12 @@ Estado já integrado:
 - Fundamental Facts V1 puro e determinístico como contrato normalizado em
   memória;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
-  universo fechado, com ingestão e storage injetados, ainda sem scheduler ou
-  integração com telas;
+  universo fechado, com ingestão, storages e repositories Supabase injetados,
+  ainda sem scheduler ou integração com telas;
 - tabela global `fundamental_snapshots` aplicada e vazia no Supabase real, com
-  tipos sincronizados; a migration multi-kind para fatos de FII permanece
-  versionada e ainda não aplicada;
+  tipos sincronizados para ações e FIIs; a migration multi-kind foi integrada
+  na PR #74 e aplicada como
+  `20260716172033_generalize_fundamental_snapshots_for_fii`;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.

@@ -264,5 +264,7 @@ Este documento registra decisões de produto e arquitetura.
   de ações ficam nulos. O contrato inteiro anterior não representava todos os
   dados oficiais; `issued_shares_unscaled` e `issued_shares_scale` preservam a
   informação sem perda. Novos kinds deverão adicionar regras explícitas sem
-  enfraquecer as classes existentes. A migration desta decisão deve ser
-  aplicada e os tipos Supabase regenerados em ciclo separado.
+  enfraquecer as classes existentes. A migration foi integrada na PR #74 e
+  aplicada como `20260716172033_generalize_fundamental_snapshots_for_fii`; os
+  tipos Supabase e adapters de ações e FIIs foram sincronizados, mantendo a
+  tabela vazia e sem integração runtime.

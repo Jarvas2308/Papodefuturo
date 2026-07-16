@@ -234,11 +234,14 @@ coeficiente inteiro seguro mais escala. Assim, quantidades decimais publicadas
 pela CVM são preservadas sem arredondamento, truncamento ou ponto flutuante.
 
 A tabela global foi aplicada no Supabase real, permanece vazia, usa RLS e não
-possui `user_id` nem relação com `assets.id`; os tipos foram sincronizados na PR
-#73. A migration multi-kind de FIIs está apenas versionada neste ciclo e ainda
-não foi aplicada. Não existem scheduler, provider SEC, índices, crescimento,
-margens, valuation, ranking ou score, e fundamentos não modificam o Motor V2
-nem `TechnicalDossierV1`.
+possui `user_id` nem relação com `assets.id`. A migration multi-kind integrada
+na PR #74 foi aplicada como
+`20260716172033_generalize_fundamental_snapshots_for_fii`, preservando leitura
+para `authenticated` e escrita privilegiada para `service_role`. Os tipos
+Supabase e os adapters isolados de ações e FIIs estão sincronizados. Não existem
+ingestão real, scheduler, integração runtime ou UI, provider SEC, derivados,
+ranking, score ou IA, e fundamentos não modificam o Motor V2 nem
+`TechnicalDossierV1`.
 
 ## Papel futuro da IA
 
