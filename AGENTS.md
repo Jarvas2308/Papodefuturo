@@ -83,6 +83,8 @@ Estado já integrado:
   entre o Motor V2 e futuras camadas qualitativas;
 - Fundamental Facts V1 puro e determinístico como contrato normalizado em
   memória;
+- Fundamental Derived Facts V1 puro, determinístico e auditável como camada
+  separada em memória, sem persistência ou integração runtime;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -95,7 +97,8 @@ Estado já integrado:
   tipos e adapters sincronizados para ações, FIIs e ETFs; a generalização SEC
   foi integrada na PR #76 e aplicada como
   `20260716203927_generalize_fundamental_snapshots_for_sec_nport`, preservando
-  RLS, leitura autenticada e escrita privilegiada;
+  RLS, leitura autenticada e escrita privilegiada; o adapter SEC foi integrado
+  na PR #77;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -307,12 +310,30 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - o acesso a `data.sec.gov` e aos documentos EDGAR deve ocorrer em contexto
   server-side com User-Agent identificável e fair access; não chamar a SEC do
   navegador, pois `data.sec.gov` não oferece CORS para esse consumo;
-- ingestão real, integração runtime, scheduler e derivados exigem ciclos
-  posteriores explícitos;
+- ingestão real, integração runtime e scheduler exigem ciclos posteriores
+  explícitos;
 - o provider CVM de FIIs usa o Informe Mensal oficial, identidade fechada por
   CNPJ, nome e ISIN, e não arredonda quantidades de cotas fracionárias para
   satisfazer um contrato inteiro; cotas oficiais decimais usam coeficiente
   inteiro seguro e escala, com texto bruto preservado na proveniência.
+
+### Fundamental Derived Facts V1
+
+- derivados fundamentalistas são uma camada separada de `FundamentalFactsV1` e
+  nunca modificam os snapshots factuais recebidos;
+- cada métrica aponta para o mesmo asset, data, período, fonte e documento do
+  snapshot factual que a originou;
+- razões usam `BigInt`, escala fixa de 1.000.000 e arredondamento
+  half-away-from-zero, sem aritmética financeira intermediária em ponto
+  flutuante;
+- entradas ausentes, denominadores não positivos, moedas divergentes e
+  resultados fora do intervalo seguro permanecem explicitamente indisponíveis;
+- não calcular derivados de preço de mercado, crescimento, score, ranking ou
+  recomendação, nem modificar o plano técnico do Motor V2;
+- manter o builder puro, determinístico, em memória e independente de React,
+  Supabase, providers, APIs e fontes ambientais;
+- não persistir nem integrar os derivados ao runtime ou à UI sem nova decisão
+  arquitetural explícita.
 
 ## 7. Modelos e valores atuais do domínio
 

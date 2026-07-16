@@ -1,4 +1,5 @@
 export { buildFundamentalFactsV1 } from './buildFundamentalFactsV1'
+export * from './derived'
 export {
   formatExactDecimalQuantity,
   MAX_EXACT_DECIMAL_SCALE,

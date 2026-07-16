@@ -486,19 +486,33 @@ leitura para `authenticated`, escrita privilegiada para `service_role`, trigger
 e identidade lógica preservados. Nenhuma ingestão ou inserção real foi
 executada neste ciclo.
 
+### Fundamental Derived Facts V1
+
+- contrato `fundamental-derived-facts.v1` puro, determinístico e em memória;
+- camada separada de `FundamentalFactsV1`, sem mutar ou substituir fatos;
+- um snapshot derivado para cada snapshot factual, com asset, período, fonte,
+  data e documento preservados;
+- razão patrimônio líquido/ativos para ações brasileiras;
+- valor patrimonial por cota para FIIs, preservando a quantidade decimal exata;
+- razões passivos/ativos e patrimônio líquido/ativos e delta de reconciliação
+  para ETFs internacionais;
+- escala fixa de 1.000.000, `BigInt` intermediário e arredondamento
+  half-away-from-zero;
+- indisponibilidades explícitas para input ausente, denominador não positivo,
+  moeda divergente e aritmética insegura;
+- cobertura por classe e limitações contratuais em ordem estável;
+- sem preço de mercado, crescimento, score, ranking, recomendação ou alteração
+  do Motor V2;
+- sem tabela, migration, persistência, runtime, UI, APIs ou chamadas externas;
+- PR #77 integrada para o adapter SEC factual; providers e adapters das três
+  classes estão disponíveis e `fundamental_snapshots` permanece vazia.
+
 ## Próximo
 
-1. Fundamentos — providers restantes e derivados auditáveis;
-2. Notícias e eventos;
-3. Comitê de IA;
-4. Auditoria;
-5. Polimento.
+1. Notícias e eventos;
+2. Comitê de IA;
+3. Auditoria;
+4. Polimento.
 
-Sequência restante da etapa Fundamentos:
-
-1. derivados fundamentalistas auditáveis.
-
-Fundamentos ainda não está concluído. Não avançar para Notícias antes dos
-ciclos restantes da etapa. As futuras camadas qualitativas deverão consumir os
-contratos factuais sem recalcular ou alterar o plano técnico do motor
-determinístico.
+As futuras camadas qualitativas deverão consumir os contratos factuais e
+derivados sem recalcular ou alterar o plano técnico do motor determinístico.

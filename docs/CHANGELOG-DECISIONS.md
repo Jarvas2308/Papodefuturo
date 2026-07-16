@@ -299,3 +299,25 @@ Este documento registra decisões de produto e arquitetura.
   a tabela vazia e as barreiras de segurança existentes. Scheduler, execução
   real, derivados e UI exigem ciclos posteriores; o provider não inventa fatos
   ausentes nem altera o Motor V2 ou o Dossiê Técnico.
+
+## DEC-022 — Derivados fundamentalistas são uma camada separada e auditável
+
+- Data: 16 de julho de 2026
+- Status: Aceita
+- Contexto: Os providers e adapters das três classes produzem fatos oficiais
+  normalizados, mas razões financeiras e reconciliações são interpretações
+  matemáticas derivadas. Misturar esses resultados ao contrato factual apagaria
+  a fronteira entre fonte oficial e cálculo do produto.
+- Decisão: Criar `FundamentalDerivedFactsV1` como objeto puro, determinístico e
+  somente em memória. Cada métrica referencia o snapshot factual de origem sem
+  modificá-lo. Razões usam `BigInt`, escala fixa de 1.000.000 e arredondamento
+  half-away-from-zero. Input ausente, denominador não positivo, moeda divergente
+  e aritmética insegura são indisponibilidades explícitas. A camada não usa
+  preço de mercado, não calcula crescimento, score, ranking ou recomendação e
+  não altera o Motor V2.
+- Consequências: Derivados podem ser auditados contra o documento factual e
+  evoluídos por versão sem contaminar `FundamentalFactsV1`. Eles não são
+  persistidos nem integrados ao runtime ou à UI neste ciclo. A tabela global
+  `fundamental_snapshots` continua vazia e exclusiva para fatos normalizados.
+  O adapter SEC factual foi integrado na PR #77, deixando providers e adapters
+  das três classes disponíveis antes desta nova fronteira derivada.

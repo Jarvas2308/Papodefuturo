@@ -38,7 +38,8 @@ No estado atual:
 - `src/domain/technicalDossier` contém o contrato derivado e o builder puro do
   Dossiê Técnico V1;
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
-  Fundamental Facts V1;
+  Fundamental Facts V1, além da camada separada e pura de Fundamental Derived
+  Facts V1;
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
@@ -204,10 +205,11 @@ seleção contábil por regras auditadas                  ↓
                   └───────────────────────┬─────────────┘
                                           ↓
                        FundamentalFactsV1 + proveniência
-                                          ↓
-                              storage global injetado
-                                          ↓
-                           futuros derivados auditáveis
+                              ┌───────────┴───────────┐
+                              ↓                       ↓
+                    storage global injetado  FundamentalDerivedFactsV1
+                                                      ↓
+                                          futuras camadas qualitativas
 ```
 
 `FundamentalFactsV1` é independente de `TechnicalDossierV1`. O contrato
@@ -250,7 +252,8 @@ uma vez, sem atribuir os fatos financeiros exclusivamente a essa classe.
 A migration de suporte a `international-etf` e `sec-nport` está versionada e
 aplicada. O adapter valida integralmente identidade, filing, documento oficial,
 caminhos XML e coerência dos fatos antes da escrita ou leitura. Ainda não
-existem ingestão real, scheduler, integração runtime ou UI, derivados ou IA.
+existem ingestão real, scheduler, integração runtime ou UI. O adapter SEC foi
+integrado na PR #77; a tabela permanece vazia e nenhuma IA foi adicionada.
 
 Quantidades oficiais de cotas podem conter casas decimais. O domínio usa
 `ExactDecimalQuantity`, formado por coeficiente inteiro seguro e escala inteira
@@ -258,6 +261,38 @@ não negativa, e a persistência separa `issued_shares_unscaled` de
 `issued_shares_scale`. Essa fronteira preserva o valor publicado sem
 arredondamento, truncamento ou aritmética de ponto flutuante; o texto bruto
 continua disponível na proveniência.
+
+### Fronteira de Fundamental Derived Facts V1
+
+```text
+FundamentalFactsV1 + proveniência factual
+                    ↓
+      buildFundamentalDerivedFactsV1
+                    ↓
+       FundamentalDerivedFactsV1
+                    ↓
+       futuras camadas qualitativas
+```
+
+`FundamentalDerivedFactsV1` é uma camada separada e auditável. Ela não altera o
+contrato factual e cada snapshot derivado preserva asset, data de referência,
+período, fonte e documento oficial de origem. Ações brasileiras expõem a razão
+entre patrimônio líquido e ativos; FIIs expõem valor patrimonial por cota; ETFs
+internacionais expõem duas razões de balanço e o delta assinado de
+reconciliação.
+
+As razões usam escala fixa de 1.000.000, intermediários em `BigInt` e
+arredondamento half-away-from-zero. Quantidades decimais exatas são calculadas
+por coeficiente e escala sem ponto flutuante. Falta de input, denominador não
+positivo, moeda divergente e resultado fora do intervalo de inteiro seguro são
+indisponibilidades contratuais explícitas. Inconsistências estruturais do
+snapshot factual são rejeitadas.
+
+A camada não usa preço de mercado, não calcula crescimento, score, ranking ou
+recomendação e não modifica o plano técnico. Também não possui persistência,
+tabela, integração runtime, UI ou chamada externa. A tabela global
+`fundamental_snapshots` continua vazia e armazena somente fatos normalizados,
+nunca os derivados.
 
 ### Infraestrutura
 
