@@ -95,10 +95,12 @@ function createRow(): FundamentalSnapshotRow {
     exercise_order: 'ÚLTIMO',
     currency: 'BRL',
     net_asset_value_minor: null,
+    net_assets_minor: null,
     total_revenue_minor: null,
     net_income_minor: 100,
     total_assets_minor: 200,
     total_equity_minor: 50,
+    total_liabilities_minor: null,
     operating_cash_flow_minor: -10,
     shareholder_count: null,
     provenance: createProvenance(),
@@ -212,6 +214,24 @@ describe('Supabase fundamental snapshot persistence', () => {
         'asset-bbas3'
       )
     ).toThrow('Fundamental provenance does not match filing identity')
+  })
+
+  it('rejects a null CVM filing version', () => {
+    expect(() =>
+      mapFundamentalSnapshotRow(
+        { ...createRow(), filing_version: null },
+        'asset-bbas3'
+      )
+    ).toThrow('positive safe integer')
+  })
+
+  it.each([
+    ['total_liabilities_minor', { total_liabilities_minor: 1 }],
+    ['net_assets_minor', { net_assets_minor: 1 }],
+  ])('rejects a populated SEC column %s for stocks', (_column, patch) => {
+    expect(() =>
+      mapFundamentalSnapshotRow({ ...createRow(), ...patch }, 'asset-bbas3')
+    ).toThrow('SEC columns must remain null')
   })
 
   it('queries and joins by normalized ticker, category and market', async () => {

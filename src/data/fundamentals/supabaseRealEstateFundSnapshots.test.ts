@@ -137,6 +137,7 @@ function createRow(
     currency: 'BRL',
     net_asset_value_minor:
       record.facts.netAssetValue?.amountInMinorUnits ?? null,
+    net_assets_minor: null,
     issued_shares_unscaled: record.facts.issuedShares?.unscaledValue ?? null,
     issued_shares_scale: record.facts.issuedShares?.scale ?? null,
     shareholder_count: record.facts.shareholderCount,
@@ -144,6 +145,7 @@ function createRow(
     net_income_minor: null,
     total_assets_minor: null,
     total_equity_minor: null,
+    total_liabilities_minor: null,
     operating_cash_flow_minor: null,
     provenance: {
       dataset: record.provenance.dataset,
@@ -454,6 +456,24 @@ describe('FII snapshot row mapping', () => {
     ).toThrow('positive safe integer')
   })
 
+  it('rejects a null FII filing version', () => {
+    expect(() =>
+      mapRealEstateFundSnapshotRow(
+        { ...createRow(), filing_version: null },
+        'asset-knri11'
+      )
+    ).toThrow('positive safe integer')
+  })
+
+  it.each([
+    ['total_liabilities_minor', { total_liabilities_minor: 1 }],
+    ['net_assets_minor', { net_assets_minor: 1 }],
+  ])('rejects a populated SEC column %s for FIIs', (_column, patch) => {
+    expect(() =>
+      mapRealEstateFundSnapshotRow({ ...createRow(), ...patch }, 'asset-knri11')
+    ).toThrow('SEC columns must remain null')
+  })
+
   it.each([
     ['total_revenue_minor', { total_revenue_minor: 1 }],
     ['net_income_minor', { net_income_minor: 1 }],
@@ -663,6 +683,8 @@ describe('Supabase FII fundamental snapshot repository', () => {
       net_income_minor: 100,
       total_assets_minor: 200,
       total_equity_minor: 50,
+      total_liabilities_minor: null,
+      net_assets_minor: null,
       operating_cash_flow_minor: -10,
       net_asset_value_minor: null,
       issued_shares_unscaled: null,

@@ -89,11 +89,13 @@ Estado já integrado:
   integrados na PR #75;
 - provider SEC N-PORT V1 isolado para VOO, VNQ e VEA, com descoberta
   determinística de filings, parsing XML factual e ingestão com fetch e storage
-  injetados, ainda sem scheduler, adapter Supabase ou integração runtime;
+  injetados e adapter Supabase global tipado, ainda sem ingestão real, scheduler
+  ou integração runtime;
 - tabela global `fundamental_snapshots` aplicada e vazia no Supabase real, com
-  tipos sincronizados para ações e FIIs; a migration multi-kind foi integrada
-  na PR #74 e aplicada como
-  `20260716172033_generalize_fundamental_snapshots_for_fii`;
+  tipos e adapters sincronizados para ações, FIIs e ETFs; a generalização SEC
+  foi integrada na PR #76 e aplicada como
+  `20260716203927_generalize_fundamental_snapshots_for_sec_nport`, preservando
+  RLS, leitura autenticada e escrita privilegiada;
 - modo demo preservado com mocks quando Supabase não está configurado.
 
 O resultado de Novo Aporte continua sendo simulação. O sistema não executa ordens financeiras.
@@ -305,7 +307,7 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - o acesso a `data.sec.gov` e aos documentos EDGAR deve ocorrer em contexto
   server-side com User-Agent identificável e fair access; não chamar a SEC do
   navegador, pois `data.sec.gov` não oferece CORS para esse consumo;
-- integração runtime, adapter Supabase, scheduler e derivados exigem ciclos
+- ingestão real, integração runtime, scheduler e derivados exigem ciclos
   posteriores explícitos;
 - o provider CVM de FIIs usa o Informe Mensal oficial, identidade fechada por
   CNPJ, nome e ISIN, e não arredonda quantidades de cotas fracionárias para

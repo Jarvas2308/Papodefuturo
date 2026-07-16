@@ -68,6 +68,11 @@ const STOCK_FACT_KEYS = [
   'operatingCashFlow',
 ] as const
 
+const SEC_FACT_COLUMNS = [
+  'total_liabilities_minor',
+  'net_assets_minor',
+] as const
+
 type QueryError = { message: string }
 
 type RealEstateFundAssetIdentity = {
@@ -418,8 +423,10 @@ function assertProvenanceCoherence(
   }
 }
 
-function assertPositiveFilingVersion(value: number): void {
-  if (!Number.isSafeInteger(value) || value <= 0) {
+function assertPositiveFilingVersion(
+  value: number | null
+): asserts value is number {
+  if (value === null || !Number.isSafeInteger(value) || value <= 0) {
     throw new RangeError('FII filing version must be a positive safe integer')
   }
 }
@@ -504,6 +511,12 @@ function assertStockColumnsNull(row: RealEstateFundSnapshotRow): void {
   }
 }
 
+function assertSecColumnsNull(row: RealEstateFundSnapshotRow): void {
+  if (SEC_FACT_COLUMNS.some((column) => row[column] !== null)) {
+    throw new Error('SEC columns must remain null for FII snapshots')
+  }
+}
+
 function assertRecordIdentity(
   record: CvmRealEstateFundFundamentalRecord
 ): ProvenanceContext {
@@ -576,6 +589,8 @@ function toInsertRow(
     net_income_minor: null,
     total_assets_minor: null,
     total_equity_minor: null,
+    total_liabilities_minor: null,
+    net_assets_minor: null,
     operating_cash_flow_minor: null,
     provenance: provenanceToJson(record.provenance),
   }
@@ -600,6 +615,7 @@ export function mapRealEstateFundSnapshotRow(
     throw new Error('FII exercise order must be null')
   }
   assertStockColumnsNull(row)
+  assertSecColumnsNull(row)
 
   const netAssetValue = readNullableMoney(row.net_asset_value_minor)
   const issuedShares = readIssuedShares(

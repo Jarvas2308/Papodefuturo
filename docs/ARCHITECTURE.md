@@ -227,15 +227,17 @@ Princípios da fronteira:
 - não há P/L, P/VP, margens, crescimento, valuation, ranking ou score;
 - o contrato não altera o Motor V2 nem o schema `technical-dossier.v1`.
 
-Os providers CVM DFP/ITR para ações brasileiras e Informe Mensal para FIIs já
-produzem o contrato, mas ainda não possuem scheduler ou integração com telas. A
+Os providers CVM DFP/ITR para ações brasileiras, Informe Mensal para FIIs e SEC
+N-PORT para ETFs internacionais já produzem o contrato, mas ainda não possuem
+execução real, scheduler ou integração com telas. A
 tabela global `fundamental_snapshots`, sem `user_id` ou FK para `assets.id`, já
 está aplicada e vazia no Supabase real, com leitura autenticada, escrita
-reservada a contexto server-side privilegiado e adapters separados para ações e
-FIIs. A migration multi-kind integrada na PR #74 foi aplicada como
-`20260716172033_generalize_fundamental_snapshots_for_fii`; os tipos Supabase
-foram sincronizados com as colunas factuais e constraints discriminadas por
-`kind`. O provider SEC N-PORT V1 cobre VOO, VNQ e VEA, seleciona filings
+reservada a contexto server-side privilegiado e adapters separados para ações,
+FIIs e ETFs. A generalização SEC integrada na PR #76 foi aplicada como
+`20260716203927_generalize_fundamental_snapshots_for_sec_nport`; os tipos
+Supabase foram sincronizados com as colunas factuais e constraints
+discriminadas por `kind`. O provider SEC N-PORT V1 cobre VOO, VNQ e VEA,
+seleciona filings
 `NPORT-P`/`NPORT-P/A` pelo Submissions API, valida identidade oficial por CIK,
 registrant, série e classe e extrai ativos, passivos e patrimônio líquido em
 USD com parsing decimal exato. O fetch é injetado, deve executar somente em
@@ -245,9 +247,10 @@ chama diretamente. Os fatos são publicados no escopo da série. O parser
 preserva todos os class IDs do XML e exige a classe ETF do mapping exatamente
 uma vez, sem atribuir os fatos financeiros exclusivamente a essa classe.
 
-A migration de suporte a `international-etf` e `sec-nport` está versionada,
-mas não foi aplicada. Ainda não existem ingestão real, scheduler, adapter
-Supabase para ETFs, integração runtime ou UI.
+A migration de suporte a `international-etf` e `sec-nport` está versionada e
+aplicada. O adapter valida integralmente identidade, filing, documento oficial,
+caminhos XML e coerência dos fatos antes da escrita ou leitura. Ainda não
+existem ingestão real, scheduler, integração runtime ou UI, derivados ou IA.
 
 Quantidades oficiais de cotas podem conter casas decimais. O domínio usa
 `ExactDecimalQuantity`, formado por coeficiente inteiro seguro e escala inteira

@@ -1,6 +1,7 @@
 export type {
   FundamentalSnapshotRepository,
   FundamentalSnapshotStorage,
+  InternationalEtfFundamentalSnapshotRepository,
   InternationalEtfFundamentalSnapshotStorage,
   RealEstateFundFundamentalSnapshotRepository,
   RealEstateFundFundamentalSnapshotStorage,
@@ -43,6 +44,18 @@ export {
   createSupabaseFundamentalSnapshotStorage,
   mapFundamentalSnapshotRow,
 } from './supabaseFundamentalSnapshots'
+export {
+  createSupabaseInternationalEtfSnapshotRepository,
+  createSupabaseInternationalEtfSnapshotStorage,
+  mapInternationalEtfSnapshotRow,
+} from './supabaseInternationalEtfSnapshots'
+export type {
+  InternationalEtfSnapshotInsert,
+  InternationalEtfSnapshotJson,
+  InternationalEtfSnapshotRow,
+  InternationalEtfSnapshotSupabaseClient,
+  InternationalEtfSnapshotUpdate,
+} from './supabaseInternationalEtfSnapshots'
 export {
   createSupabaseRealEstateFundSnapshotRepository,
   createSupabaseRealEstateFundSnapshotStorage,
