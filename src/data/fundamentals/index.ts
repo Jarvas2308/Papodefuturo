@@ -1,6 +1,7 @@
 export type {
   FundamentalSnapshotRepository,
   FundamentalSnapshotStorage,
+  InternationalEtfFundamentalSnapshotStorage,
   RealEstateFundFundamentalSnapshotRepository,
   RealEstateFundFundamentalSnapshotStorage,
 } from './contracts'
@@ -35,6 +36,8 @@ export type {
 } from './cvm/types'
 export { ingestCvmBrazilianStockFundamentals } from './ingestCvmBrazilianStocks'
 export { ingestCvmRealEstateFundFundamentals } from './ingestCvmRealEstateFunds'
+export { ingestSecInternationalEtfFundamentals } from './ingestSecInternationalEtfs'
+export * from './sec/nport'
 export {
   createSupabaseFundamentalSnapshotRepository,
   createSupabaseFundamentalSnapshotStorage,

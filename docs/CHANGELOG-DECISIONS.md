@@ -268,3 +268,32 @@ Este documento registra decisões de produto e arquitetura.
   aplicada como `20260716172033_generalize_fundamental_snapshots_for_fii`; os
   tipos Supabase e adapters de ações e FIIs foram sincronizados, mantendo a
   tabela vazia e sem integração runtime.
+
+## DEC-021 — Provider SEC N-PORT V1 usa identidade fechada e execução server-side
+
+- Data: 16 de julho de 2026
+- Status: Aceita
+- Contexto: ETFs internacionais do universo fechado precisam de fatos oficiais
+  comparáveis sem depender de agregadores. O Form N-PORT identifica registrant,
+  série e classes e publica ativos, passivos e patrimônio líquido em USD no
+  escopo da série; o filing pode receber amendments para o mesmo período.
+- Decisão: O provider V1 cobre somente VOO, VNQ e VEA e usa exclusivamente o
+  Submissions API e os documentos N-PORT oficiais da SEC. A identidade é
+  validada por CIK, nome do registrant, series ID, nome da série, class ID e nome
+  da classe. Os fatos financeiros pertencem à série; todos os class IDs do XML
+  são preservados, e a classe ETF esperada apenas associa a série ao ticker do
+  produto. A seleção une filings recentes e históricos, elimina accessions
+  idênticos e rejeita metadados divergentes, priorizando `reportDate`,
+  `acceptedAt`, amendment em empate temporal e accession. Valores USD são
+  convertidos para centavos por parsing decimal exato com `BigInt`. Todo fetch é
+  injetado e deve executar server-side, com User-Agent identificável e respeito
+  ao fair access da SEC. O accession number com hífens identifica o filing e
+  compõe o `sourceDocumentId`; `filingVersion` permanece nulo para SEC. Ativos,
+  passivos e patrimônio líquido são preservados como publicados, sem derivar um
+  fato ausente a partir dos demais.
+- Consequências: O provider não depende de React, navegador, Supabase ou rede em
+  testes. A tabela global será estendida de forma não destrutiva para
+  `international-etf` e `sec-nport`, mas a migration deste ciclo ainda não foi
+  aplicada. Adapter Supabase, scheduler, execução real, derivados e UI exigem
+  ciclos posteriores; o provider não inventa fatos ausentes nem altera o Motor
+  V2 ou o Dossiê Técnico.

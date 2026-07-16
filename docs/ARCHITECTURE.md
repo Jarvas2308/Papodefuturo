@@ -39,9 +39,9 @@ No estado atual:
   Dossiê Técnico V1;
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
   Fundamental Facts V1;
-- `src/data/fundamentals` contém providers CVM isolados para ações e FIIs,
-  parsing factual, ingestão com storage injetado e adapters de persistência
-  global;
+- `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
+  provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
+  ingestão injetável e adapters globais apenas para os fluxos já conectados;
 - dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
   mais de uma área;
 - existe preparação inicial de Supabase com factory isolada de cliente e
@@ -195,19 +195,19 @@ alterar a verdade matemática do Motor V2.
 ### Fronteira de Fundamental Facts V1
 
 ```text
-arquivos oficiais CVM DFP / ITR / Informe Mensal de FII
-                  ↓
-leitura ZIP + parsing CSV consolidado
-                  ↓
-seleção de filing, versão e exercício
-                  ↓
-seleção contábil por regras auditadas
-                  ↓
-FundamentalFactsV1 + proveniência factual
-                  ↓
-storage global injetado
-                  ↓
-futuros derivados auditáveis
+arquivos oficiais CVM                       SEC Submissions + N-PORT XML
+DFP / ITR / Informe Mensal de FII                     ↓
+                  ↓                         seleção determinística do filing
+leitura ZIP + parsing CSV                              ↓
+                  ↓                         validação CIK / série / classe
+seleção contábil por regras auditadas                  ↓
+                  └───────────────────────┬─────────────┘
+                                          ↓
+                       FundamentalFactsV1 + proveniência
+                                          ↓
+                              storage global injetado
+                                          ↓
+                           futuros derivados auditáveis
 ```
 
 `FundamentalFactsV1` é independente de `TechnicalDossierV1`. O contrato
@@ -235,8 +235,19 @@ reservada a contexto server-side privilegiado e adapters separados para ações 
 FIIs. A migration multi-kind integrada na PR #74 foi aplicada como
 `20260716172033_generalize_fundamental_snapshots_for_fii`; os tipos Supabase
 foram sincronizados com as colunas factuais e constraints discriminadas por
-`kind`. Ainda não existem ingestão real, scheduler, integração runtime ou UI.
-O provider SEC N-PORT permanece para ciclo posterior.
+`kind`. O provider SEC N-PORT V1 cobre VOO, VNQ e VEA, seleciona filings
+`NPORT-P`/`NPORT-P/A` pelo Submissions API, valida identidade oficial por CIK,
+registrant, série e classe e extrai ativos, passivos e patrimônio líquido em
+USD com parsing decimal exato. O fetch é injetado, deve executar somente em
+contexto server-side e exige User-Agent identificável e respeito ao fair access
+da SEC; `data.sec.gov` não oferece CORS para esse consumo e o navegador não o
+chama diretamente. Os fatos são publicados no escopo da série. O parser
+preserva todos os class IDs do XML e exige a classe ETF do mapping exatamente
+uma vez, sem atribuir os fatos financeiros exclusivamente a essa classe.
+
+A migration de suporte a `international-etf` e `sec-nport` está versionada,
+mas não foi aplicada. Ainda não existem ingestão real, scheduler, adapter
+Supabase para ETFs, integração runtime ou UI.
 
 Quantidades oficiais de cotas podem conter casas decimais. O domínio usa
 `ExactDecimalQuantity`, formado por coeficiente inteiro seguro e escala inteira
