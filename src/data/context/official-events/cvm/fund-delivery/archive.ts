@@ -16,22 +16,30 @@ const CVM_FUND_DELIVERY_DATA_BASE_URL =
 
 class CvmFundDeliveryArchiveStructureError extends Error {}
 
-export function assertCvmFundDeliveryYearMonth(yearMonth: string): void {
-  const match = /^(\d{4})(\d{2})$/.exec(yearMonth)
-  if (!match) throw new RangeError('Invalid CVM Fund Delivery year-month')
-  const year = Number(match[1])
-  const month = Number(match[2])
-  if (year < 2021 || year > 9999 || month < 1 || month > 12) {
-    throw new RangeError('Invalid CVM Fund Delivery year-month')
+function buildReferenceMonth(input: { year: number; month: number }): string {
+  if (
+    !Number.isSafeInteger(input.year) ||
+    input.year < 2021 ||
+    input.year > 9999
+  ) {
+    throw new RangeError('Invalid CVM Fund Delivery year')
   }
+  if (
+    !Number.isSafeInteger(input.month) ||
+    input.month < 1 ||
+    input.month > 12
+  ) {
+    throw new RangeError('Invalid CVM Fund Delivery month')
+  }
+  return `${input.year}${String(input.month).padStart(2, '0')}`
 }
 
-function archiveFileName(yearMonth: string): string {
-  return `fi_entrega_documento_${yearMonth}.zip`
+function archiveFileName(referenceMonth: string): string {
+  return `fi_entrega_documento_${referenceMonth}.zip`
 }
 
-function monthlyCsvFileName(yearMonth: string): string {
-  return `fi_entrega_documento_${yearMonth}.csv`
+function monthlyCsvFileName(referenceMonth: string): string {
+  return `fi_entrega_documento_${referenceMonth}.csv`
 }
 
 function assertSafeArchiveEntryName(name: string): void {
@@ -69,18 +77,21 @@ function readContentLength(
   return value
 }
 
-export function buildOfficialCvmFundDeliveryArchiveUrl(
-  yearMonth: string
-): string {
-  assertCvmFundDeliveryYearMonth(yearMonth)
-  return `${CVM_FUND_DELIVERY_DATA_BASE_URL}/${archiveFileName(yearMonth)}`
+export function buildOfficialCvmFundDeliveryArchiveUrl(input: {
+  year: number
+  month: number
+}): string {
+  const referenceMonth = buildReferenceMonth(input)
+  return `${CVM_FUND_DELIVERY_DATA_BASE_URL}/${archiveFileName(referenceMonth)}`
 }
 
 export async function downloadOfficialCvmFundDeliveryArchive(input: {
-  yearMonth: string
+  year: number
+  month: number
   fetcher: CvmFundDeliveryArchiveFetcher
 }): Promise<DownloadedCvmFundDeliveryArchive> {
-  const archiveUrl = buildOfficialCvmFundDeliveryArchiveUrl(input.yearMonth)
+  const referenceMonth = buildReferenceMonth(input)
+  const archiveUrl = buildOfficialCvmFundDeliveryArchiveUrl(input)
   const response = await input.fetcher(archiveUrl)
   if (!response.ok || response.status < 200 || response.status > 299) {
     throw new Error(
@@ -105,16 +116,17 @@ export async function downloadOfficialCvmFundDeliveryArchive(input: {
   }
   return {
     archiveUrl,
-    archiveFileName: archiveFileName(input.yearMonth),
+    archiveFileName: archiveFileName(referenceMonth),
     archiveBytes: bytes.slice(),
   }
 }
 
-export function readOfficialCvmFundDeliveryMonthlyCsvFromArchive(input: {
-  yearMonth: string
+export function readOfficialCvmFundDeliveryCsvFromArchive(input: {
+  year: number
+  month: number
   archiveBytes: Uint8Array
 }): OfficialCvmFundDeliveryCsvDocument {
-  assertCvmFundDeliveryYearMonth(input.yearMonth)
+  const referenceMonth = buildReferenceMonth(input)
   if (input.archiveBytes.byteLength === 0) {
     throw new Error('CVM Fund Delivery archive is empty')
   }
@@ -122,7 +134,7 @@ export function readOfficialCvmFundDeliveryMonthlyCsvFromArchive(input: {
     throw new Error('CVM Fund Delivery archive exceeds compressed size limit')
   }
 
-  const expectedName = monthlyCsvFileName(input.yearMonth)
+  const expectedName = monthlyCsvFileName(referenceMonth)
   let entryCount = 0
   let matchingCount = 0
   let totalOriginalSize = 0

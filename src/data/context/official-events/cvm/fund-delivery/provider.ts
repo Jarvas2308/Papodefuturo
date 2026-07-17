@@ -11,11 +11,10 @@ import type {
 import {
   buildOfficialCvmFundDeliveryArchiveUrl,
   downloadOfficialCvmFundDeliveryArchive,
-  readOfficialCvmFundDeliveryMonthlyCsvFromArchive,
+  readOfficialCvmFundDeliveryCsvFromArchive,
 } from './archive'
 import {
   CVM_FUND_DELIVERY_DATASET_LICENSE,
-  CVM_FUND_DELIVERY_FII_DOCUMENT_TYPES_V1_VERSION,
   CVM_FUND_DELIVERY_FII_EVENTS_PARSER_V1_VERSION,
   CVM_FUND_DELIVERY_FII_EVENTS_PROVIDER_V1_VERSION,
   CVM_FUND_DELIVERY_TERMS_AUDITED_AT,
@@ -113,10 +112,16 @@ function getFundIdentitiesByCnpj(): Map<
   return new Map(entries)
 }
 
+function normalizeCnpj(value: string): string | null {
+  if (/^\d{14}$/.test(value)) return value
+  if (!/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(value)) return null
+  return value.replace(/[./-]/g, '')
+}
+
 function normalizeDocumentId(value: string): string | null {
   if (!/^\d{1,10}$/.test(value)) return null
   const parsed = Number(value)
-  return Number.isSafeInteger(parsed) && parsed > 0 ? value : null
+  return Number.isSafeInteger(parsed) && parsed > 0 ? String(parsed) : null
 }
 
 function hasControlCharacter(value: string): boolean {
@@ -127,15 +132,15 @@ function hasControlCharacter(value: string): boolean {
 }
 
 function normalizeSourceSystem(value: string): string | null {
+  const normalized = value.trim()
   if (
-    value.length === 0 ||
-    value.trim() !== value ||
-    [...value].length > 6 ||
-    hasControlCharacter(value)
+    normalized.length === 0 ||
+    [...normalized].length > 6 ||
+    hasControlCharacter(normalized)
   ) {
     return null
   }
-  return value
+  return normalized
 }
 
 function encodeDocumentIdentityComponent(value: string): string {
@@ -195,13 +200,14 @@ export function extractCvmFundDeliveryFiiEvents(
   input: ExtractCvmFundDeliveryFiiEventsInput
 ): CvmFundDeliveryFiiEventsExtractionResultV1 {
   assertExecutionTimestamps(input.ingestedAt, input.updatedAt)
-  const archiveUrl = buildOfficialCvmFundDeliveryArchiveUrl(input.yearMonth)
-  if (input.archiveFileName !== `fi_entrega_documento_${input.yearMonth}.zip`) {
+  const archiveUrl = buildOfficialCvmFundDeliveryArchiveUrl(input)
+  const referenceMonth = `${input.year}${String(input.month).padStart(2, '0')}`
+  if (input.archiveFileName !== `fi_entrega_documento_${referenceMonth}.zip`) {
     throw new Error(
       'CVM Fund Delivery archive filename does not match the requested month'
     )
   }
-  if (input.csvFileName !== `fi_entrega_documento_${input.yearMonth}.csv`) {
+  if (input.csvFileName !== `fi_entrega_documento_${referenceMonth}.csv`) {
     throw new Error(
       'CVM Fund Delivery CSV filename does not match the requested month'
     )
@@ -215,7 +221,12 @@ export function extractCvmFundDeliveryFiiEvents(
   let targetRows = 0
 
   for (const row of rows) {
-    const identity = identitiesByCnpj.get(row.fundClassCnpj)
+    const normalizedCnpj = normalizeCnpj(row.fundClassCnpj)
+    if (!normalizedCnpj) {
+      ignoredNonUniverseRows += 1
+      continue
+    }
+    const identity = identitiesByCnpj.get(normalizedCnpj)
     if (!identity) {
       ignoredNonUniverseRows += 1
       continue
@@ -239,7 +250,7 @@ export function extractCvmFundDeliveryFiiEvents(
         rejection(
           row,
           identity.ticker,
-          'missing-delivery-date',
+          'missing-delivery-datetime',
           'CVM Fund Delivery delivery date is required'
         )
       )
@@ -251,8 +262,22 @@ export function extractCvmFundDeliveryFiiEvents(
         rejection(
           row,
           identity.ticker,
-          'invalid-delivery-date',
+          'invalid-delivery-datetime',
           'CVM Fund Delivery delivery date must use YYYY-MM-DD HH:mm:ss.SSS'
+        )
+      )
+      continue
+    }
+    if (
+      row.competenceStartDate.length === 0 ||
+      row.competenceEndDate.length === 0
+    ) {
+      rejectedRows.push(
+        rejection(
+          row,
+          identity.ticker,
+          'missing-competence-period',
+          'CVM Fund Delivery competence period is required'
         )
       )
       continue
@@ -286,6 +311,18 @@ export function extractCvmFundDeliveryFiiEvents(
       continue
     }
     const sourceDocumentId = `cvm-fund-delivery:${encodeDocumentIdentityComponent(sourceSystem)}:${documentId}`
+    const title = `${row.documentType} — ${row.competenceStartDate} a ${row.competenceEndDate}`
+    if ([...title].length > 500) {
+      rejectedRows.push(
+        rejection(
+          row,
+          identity.ticker,
+          'invalid-title',
+          'CVM Fund Delivery event title exceeds the domain limit'
+        )
+      )
+      continue
+    }
 
     try {
       acceptedEvents.push(
@@ -298,7 +335,7 @@ export function extractCvmFundDeliveryFiiEvents(
               observedTicker: identity.ticker,
               mappingVersion: OFFICIAL_EVENT_ASSET_IDENTITIES_V1_VERSION,
             },
-            { reason: 'exact-cnpj', observedCnpj: row.fundClassCnpj },
+            { reason: 'exact-cnpj', observedCnpj: normalizedCnpj },
           ],
           occurredAt: {
             precision: 'date',
@@ -308,14 +345,14 @@ export function extractCvmFundDeliveryFiiEvents(
           source: 'cvm-fund-delivery',
           documentIdentifiers: {
             sourceDocumentId,
-            regulatoryDocumentId: null,
+            regulatoryDocumentId: documentId,
             accessionNumber: null,
             protocolNumber: null,
             canonicalUrl: null,
             fingerprint: null,
           },
           originalUrl: null,
-          title: row.documentType,
+          title,
           summary: null,
           status: 'original',
           supersedesEventId: null,
@@ -326,7 +363,7 @@ export function extractCvmFundDeliveryFiiEvents(
             sourceSystem: 'cvm-fund-delivery',
             sourceType: 'regulator',
             rawDocumentType: row.documentType,
-            rawDocumentCategory: row.fundClassType || null,
+            rawDocumentCategory: null,
             parserVersion: CVM_FUND_DELIVERY_FII_EVENTS_PARSER_V1_VERSION,
             mappingVersion: OFFICIAL_EVENT_ASSET_IDENTITIES_V1_VERSION,
             termsAuditedAt: CVM_FUND_DELIVERY_TERMS_AUDITED_AT,
@@ -344,8 +381,6 @@ export function extractCvmFundDeliveryFiiEvents(
               tipoApresentacaoRaw: row.presentationType,
               ativoRaw: row.activeIndicator,
               sistemaOrigemRaw: row.sourceSystem,
-              documentTypeMappingVersion:
-                CVM_FUND_DELIVERY_FII_DOCUMENT_TYPES_V1_VERSION,
             },
           },
         })
@@ -384,7 +419,9 @@ export function extractCvmFundDeliveryFiiEvents(
   return {
     providerVersion: CVM_FUND_DELIVERY_FII_EVENTS_PROVIDER_V1_VERSION,
     source: 'cvm-fund-delivery',
-    yearMonth: input.yearMonth,
+    year: input.year,
+    month: input.month,
+    referenceMonth,
     archiveUrl,
     archiveFileName: input.archiveFileName,
     csvFileName: input.csvFileName,
@@ -404,15 +441,17 @@ export function extractCvmFundDeliveryFiiEvents(
 export async function fetchCvmFundDeliveryFiiEvents(
   input: FetchCvmFundDeliveryFiiEventsInput
 ): Promise<CvmFundDeliveryFiiEventsExtractionResultV1> {
-  buildOfficialCvmFundDeliveryArchiveUrl(input.yearMonth)
+  buildOfficialCvmFundDeliveryArchiveUrl(input)
   assertExecutionTimestamps(input.ingestedAt, input.updatedAt)
   const archive = await downloadOfficialCvmFundDeliveryArchive(input)
-  const csv = readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-    yearMonth: input.yearMonth,
+  const csv = readOfficialCvmFundDeliveryCsvFromArchive({
+    year: input.year,
+    month: input.month,
     archiveBytes: archive.archiveBytes,
   })
   return extractCvmFundDeliveryFiiEvents({
-    yearMonth: input.yearMonth,
+    year: input.year,
+    month: input.month,
     archiveFileName: archive.archiveFileName,
     csvFileName: csv.csvFileName,
     csvContent: csv.content,

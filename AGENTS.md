@@ -354,7 +354,9 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   CVM e CNPJ exatos e allowlist fechada de denominações oficiais da fonte;
 - o provider CVM Fund Delivery V1 de FIIs usa somente o CSV mensal oficial,
   associa por CNPJ exato e aceita apenas `INFORM MENSAL` e `INFO TRIM FII` como
-  `periodic-report`; apresentação e indicador de ativo são apenas proveniência;
+  `periodic-report`; a API recebe ano e mês numéricos, normaliza somente os dois
+  formatos oficiais de CNPJ e preserva apresentação e indicador de ativo apenas
+  como proveniência;
 - domínio e provider permanecem determinísticos e sem banco, migration,
   Supabase, runtime ou UI;
 - somente CVM para ações/FIIs e SEC EDGAR para ETFs estão aprovadas como fontes

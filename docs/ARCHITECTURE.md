@@ -340,8 +340,11 @@ mapping fechado de ticker; `INFORM MENSAL` e `INFO TRIM FII` são os únicos tip
 suportados e ambos produzem `periodic-report`. O provider não materializa o CSV
 diário, não inventa timezone, URL, protocolo ou revisão e preserva
 `Tipo_Apresentacao` e `Ativo` apenas como proveniência bruta. Assim como o IPE,
-ele não possui storage, Supabase ou integração runtime. O próximo ciclo é o
-provider SEC de eventos de ETFs.
+ele não possui storage, Supabase ou integração runtime. A API pública recebe ano
+e mês como inteiros validados; o CNPJ aceita somente 14 dígitos ou a pontuação
+oficial, `Sistema_Origem` é normalizado por trim e `ID_Documento` vira decimal
+canônico usado também como identificador regulatório. O título combina tipo e
+competência. O próximo ciclo é o provider SEC de eventos de ETFs.
 
 ### Infraestrutura
 

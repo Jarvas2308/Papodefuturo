@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildOfficialCvmFundDeliveryArchiveUrl,
   downloadOfficialCvmFundDeliveryArchive,
-  readOfficialCvmFundDeliveryMonthlyCsvFromArchive,
+  readOfficialCvmFundDeliveryCsvFromArchive,
 } from './archive'
 import {
   MAX_CVM_FUND_DELIVERY_ARCHIVE_BYTES,
@@ -30,18 +30,47 @@ function response(
 
 describe('CVM Fund Delivery archive', () => {
   it('builds only the audited monthly official URL', () => {
-    expect(buildOfficialCvmFundDeliveryArchiveUrl('202607')).toBe(
-      'https://dados.cvm.gov.br/dados/FI/DOC/ENTREGA/DADOS/fi_entrega_documento_202607.zip'
+    expect(
+      buildOfficialCvmFundDeliveryArchiveUrl({ year: 2026, month: 3 })
+    ).toBe(
+      'https://dados.cvm.gov.br/dados/FI/DOC/ENTREGA/DADOS/fi_entrega_documento_202603.zip'
     )
-    for (const invalid of ['2026', '202600', '202613', '20260701', '2020AA']) {
-      expect(() => buildOfficialCvmFundDeliveryArchiveUrl(invalid)).toThrow()
-    }
+  })
+
+  it.each([
+    { year: 2020, month: 1 },
+    { year: 10_000, month: 1 },
+    { year: 2026.5, month: 1 },
+    { year: Number.MAX_SAFE_INTEGER + 1, month: 1 },
+    { year: 2026, month: 0 },
+    { year: 2026, month: 13 },
+    { year: 2026, month: 1.5 },
+    { year: 2026, month: Number.MAX_SAFE_INTEGER + 1 },
+  ])('rejects invalid numeric period %#', (period) => {
+    expect(() => buildOfficialCvmFundDeliveryArchiveUrl(period)).toThrow()
+  })
+
+  it('rejects string year or month at the runtime boundary', () => {
+    expect(() =>
+      Reflect.apply(buildOfficialCvmFundDeliveryArchiveUrl, undefined, [
+        { year: '2026', month: 3 },
+      ])
+    ).toThrow(/year/)
+    expect(() =>
+      Reflect.apply(buildOfficialCvmFundDeliveryArchiveUrl, undefined, [
+        { year: 2026, month: '3' },
+      ])
+    ).toThrow(/month/)
   })
 
   it('downloads once through the injected fetcher and enforces response limits', async () => {
     const fetcher = vi.fn(async () => response(Uint8Array.of(1, 2, 3)))
     await expect(
-      downloadOfficialCvmFundDeliveryArchive({ yearMonth: '202607', fetcher })
+      downloadOfficialCvmFundDeliveryArchive({
+        year: 2026,
+        month: 7,
+        fetcher,
+      })
     ).resolves.toMatchObject({
       archiveFileName: 'fi_entrega_documento_202607.zip',
       archiveBytes: Uint8Array.of(1, 2, 3),
@@ -49,19 +78,22 @@ describe('CVM Fund Delivery archive', () => {
     expect(fetcher).toHaveBeenCalledTimes(1)
     await expect(
       downloadOfficialCvmFundDeliveryArchive({
-        yearMonth: '202607',
+        year: 2026,
+        month: 7,
         fetcher: async () => response(Uint8Array.of(1), 503),
       })
     ).rejects.toThrow(/HTTP 503/)
     await expect(
       downloadOfficialCvmFundDeliveryArchive({
-        yearMonth: '202607',
+        year: 2026,
+        month: 7,
         fetcher: async () => response(new Uint8Array()),
       })
     ).rejects.toThrow(/empty/)
     await expect(
       downloadOfficialCvmFundDeliveryArchive({
-        yearMonth: '202607',
+        year: 2026,
+        month: 7,
         fetcher: async () =>
           response(
             Uint8Array.of(1),
@@ -78,8 +110,9 @@ describe('CVM Fund Delivery archive', () => {
       'fi_entrega_documento_diario_202607.csv': Uint8Array.of(0xff, 0xff),
     })
     expect(
-      readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-        yearMonth: '202607',
+      readOfficialCvmFundDeliveryCsvFromArchive({
+        year: 2026,
+        month: 7,
         archiveBytes: archive,
       })
     ).toEqual({
@@ -90,22 +123,25 @@ describe('CVM Fund Delivery archive', () => {
 
   it('rejects missing, ambiguous, unsafe, excessive and corrupt archives', () => {
     expect(() =>
-      readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-        yearMonth: '202607',
+      readOfficialCvmFundDeliveryCsvFromArchive({
+        year: 2026,
+        month: 7,
         archiveBytes: zipSync({ other: Uint8Array.of(1) }),
       })
     ).toThrow(/missing/)
     expect(() =>
-      readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-        yearMonth: '202607',
+      readOfficialCvmFundDeliveryCsvFromArchive({
+        year: 2026,
+        month: 7,
         archiveBytes: zipSync({
           'FI_ENTREGA_DOCUMENTO_202607.CSV': Uint8Array.of(1),
         }),
       })
     ).toThrow(/Ambiguous/)
     expect(() =>
-      readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-        yearMonth: '202607',
+      readOfficialCvmFundDeliveryCsvFromArchive({
+        year: 2026,
+        month: 7,
         archiveBytes: zipSync({
           '../escape': Uint8Array.of(1),
           'fi_entrega_documento_202607.csv': Uint8Array.of(65),
@@ -119,8 +155,9 @@ describe('CVM Fund Delivery archive', () => {
       )
     )
     expect(() =>
-      readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-        yearMonth: '202607',
+      readOfficialCvmFundDeliveryCsvFromArchive({
+        year: 2026,
+        month: 7,
         archiveBytes: zipSync({
           ...entries,
           'fi_entrega_documento_202607.csv': Uint8Array.of(65),
@@ -128,8 +165,9 @@ describe('CVM Fund Delivery archive', () => {
       })
     ).toThrow(/entry count/)
     expect(() =>
-      readOfficialCvmFundDeliveryMonthlyCsvFromArchive({
-        yearMonth: '202607',
+      readOfficialCvmFundDeliveryCsvFromArchive({
+        year: 2026,
+        month: 7,
         archiveBytes: Uint8Array.of(1, 2, 3),
       })
     ).toThrow(/Invalid/)

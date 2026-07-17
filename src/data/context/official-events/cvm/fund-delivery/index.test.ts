@@ -15,7 +15,7 @@ describe('CVM Fund Delivery FII public API', () => {
         'extractCvmFundDeliveryFiiEvents',
         'fetchCvmFundDeliveryFiiEvents',
         'parseOfficialCvmFundDeliveryCsv',
-        'readOfficialCvmFundDeliveryMonthlyCsvFromArchive',
+        'readOfficialCvmFundDeliveryCsvFromArchive',
       ].sort()
     )
   })

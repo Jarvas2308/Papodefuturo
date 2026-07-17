@@ -403,7 +403,10 @@ Este documento registra decisões de produto e arquitetura.
   fechado de ticker. Apenas `INFORM MENSAL` e `INFO TRIM FII` produzem
   `periodic-report`; os demais tipos são rejeitados. A entrega fornece somente
   a data civil de publicação, o fim da competência fornece a ocorrência e não
-  se inventa timezone. Sistema de origem e ID formam a identidade documental.
+  se inventa timezone. A API recebe ano e mês numéricos. CNPJ aceita somente a
+  forma canônica ou a pontuação oficial; sistema de origem normalizado e ID em
+  decimal canônico formam a identidade documental, e o ID também é preservado
+  como identificador regulatório.
 - Consequências: Todos os eventos são `original`, sem URL, protocolo,
   fingerprint ou revisão inventados; apresentação e indicador de ativo ficam
   apenas na proveniência. Limites defensivos evitam materializar o CSV diário.

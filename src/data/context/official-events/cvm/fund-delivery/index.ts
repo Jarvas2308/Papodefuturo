@@ -8,7 +8,7 @@ export {
 export {
   buildOfficialCvmFundDeliveryArchiveUrl,
   downloadOfficialCvmFundDeliveryArchive,
-  readOfficialCvmFundDeliveryMonthlyCsvFromArchive,
+  readOfficialCvmFundDeliveryCsvFromArchive,
 } from './archive'
 export { parseOfficialCvmFundDeliveryCsv } from './csv'
 export {

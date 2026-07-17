@@ -44,10 +44,12 @@ export type CvmFundDeliveryRowV1 = {
 
 export type CvmFundDeliveryFiiEventRejectionReasonV1 =
   | 'unsupported-document-type'
-  | 'missing-delivery-date'
-  | 'invalid-delivery-date'
+  | 'missing-delivery-datetime'
+  | 'invalid-delivery-datetime'
+  | 'missing-competence-period'
   | 'invalid-competence-period'
   | 'invalid-document-identifiers'
+  | 'invalid-title'
   | 'invalid-event'
 
 export type CvmFundDeliveryFiiEventRejectedRowV1 = {
@@ -63,7 +65,9 @@ export type CvmFundDeliveryFiiEventRejectedRowV1 = {
 export type CvmFundDeliveryFiiEventsExtractionResultV1 = {
   providerVersion: 'cvm-fund-delivery-fii-events-provider.v1'
   source: 'cvm-fund-delivery'
-  yearMonth: string
+  year: number
+  month: number
+  referenceMonth: string
   archiveUrl: string
   archiveFileName: string
   csvFileName: string
@@ -80,7 +84,8 @@ export type CvmFundDeliveryFiiEventsExtractionResultV1 = {
 }
 
 export type ExtractCvmFundDeliveryFiiEventsInput = {
-  yearMonth: string
+  year: number
+  month: number
   archiveFileName: string
   csvFileName: string
   csvContent: string
@@ -89,7 +94,8 @@ export type ExtractCvmFundDeliveryFiiEventsInput = {
 }
 
 export type FetchCvmFundDeliveryFiiEventsInput = {
-  yearMonth: string
+  year: number
+  month: number
   fetcher: CvmFundDeliveryArchiveFetcher
   ingestedAt: string
   updatedAt: string

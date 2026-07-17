@@ -555,11 +555,15 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - fonte mensal oficial `fi_entrega_documento_<YYYYMM>.csv`, extraída do ZIP sem
   materializar ou interpretar o CSV diário;
 - associação exclusiva por CNPJ exato ao registry e mapping fechado de ticker;
+- API pública por ano e mês numéricos, com mês de referência derivado
+  internamente;
 - `INFORM MENSAL` e `INFO TRIM FII` classificados como `periodic-report`; todos
   os demais tipos rejeitados de forma estruturada;
 - data de entrega estrita reduzida somente à data civil e competência validada
   sem timezone inventado;
-- identidade documental por sistema de origem codificado e ID oficial;
+- identidade documental por sistema de origem normalizado e codificado mais ID
+  oficial em decimal canônico, também preservado como identificador regulatório;
+- título determinístico com tipo documental e início/fim da competência;
 - eventos sempre `original`, sem URL, protocolo, fingerprint ou relação de
   revisão inventados;
 - limites defensivos de ZIP, entradas, tamanho descomprimido, CSV, linhas e 11
