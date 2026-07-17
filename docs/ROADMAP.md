@@ -538,8 +538,9 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   sem fuzzy matching e sem alterar a identidade canônica do ativo;
 - mapping fechado das categorias oficiais, sem classificação por assunto ou
   texto livre;
-- datas civis preservadas sem timezone inventado, documentos não baixados e
-  reapresentações mantidas como eventos originais sem revisão inferida;
+- datas civis preservadas sem timezone inventado e documentos não baixados;
+- `Tipo_Apresentacao` preservado apenas como metadado bruto, com todos os eventos
+  mantidos como `original` e sem revisão ou status inferido;
 - eventos construídos pelo domínio, validados em runtime e deduplicados em
   memória, com rejeições e conflitos estruturados;
 - contadores distinguem registros aceitos, duplicatas exatas e payloads

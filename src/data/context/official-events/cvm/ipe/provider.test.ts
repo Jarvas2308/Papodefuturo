@@ -559,21 +559,53 @@ describe('CVM IPE dates, documents and status', () => {
     expect(event.provenance.rawFields.versaoRaw).toBe('4')
   })
 
-  it('rejects an unsupported presentation status', () => {
-    const result = extract([
-      createFixtureRow({ Tipo_Apresentacao: 'CA - Cancelado' }),
-    ])
-    expect(result.rejectedRows[0]).toMatchObject({
-      reason: 'unsupported-document-status',
+  it.each([
+    'AP - Apresentação',
+    'RE - Reapresentação Espontânea',
+    'XX - Estado futuro',
+    'Cancelado',
+    '',
+  ])('preserves presentation metadata %j without inferring status', (value) => {
+    const result = extract([createFixtureRow({ Tipo_Apresentacao: value })])
+    expect(result.rejectedRows).toEqual([])
+    expect(result.events).toHaveLength(1)
+    expect(result.events[0]).toMatchObject({
+      status: 'original',
+      supersedesEventId: null,
+      relatedDocuments: [],
     })
+    expect(result.events[0].provenance.rawFields.tipoApresentacaoRaw).toBe(
+      value
+    )
   })
 
-  it('rejects an unknown neutral presentation without calling it cancellation', () => {
-    const rejected = extract([
-      createFixtureRow({ Tipo_Apresentacao: 'XX - Estado futuro' }),
-    ]).rejectedRows[0]
-    expect(rejected.reason).toBe('unsupported-document-status')
-    expect(rejected.message).not.toMatch(/cancel/i)
+  it('never derives status or revision relations from presentation metadata', () => {
+    const result = extract(
+      [
+        'AP - Apresentação',
+        'RE - Reapresentação Espontânea',
+        'Estado futuro',
+        'Cancelado',
+        '',
+      ].map((Tipo_Apresentacao, index) =>
+        createFixtureRow({
+          Tipo_Apresentacao,
+          Protocolo_Entrega: `presentation-${index}`,
+        })
+      )
+    )
+    expect(result.events).toHaveLength(5)
+    expect(result.events.every(({ status }) => status === 'original')).toBe(
+      true
+    )
+    expect(
+      result.events.every(({ supersedesEventId }) => supersedesEventId === null)
+    ).toBe(true)
+    expect(
+      result.rejectedRows.some(
+        ({ reason }) => reason === 'unsupported-document-status'
+      )
+    ).toBe(false)
   })
 
   it('builds a deterministic title by subject, species and type', () => {

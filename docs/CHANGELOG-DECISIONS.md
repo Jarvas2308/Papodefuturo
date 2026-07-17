@@ -382,6 +382,9 @@ Este documento registra decisões de produto e arquitetura.
   usa somente a categoria oficial em mapping fechado, sem assunto ou texto
   livre. O provider não baixa os documentos, reduz horários sem timezone à data
   civil, não infere revisão pela versão e deduplica em memória.
+  `Tipo_Apresentacao` é preservado somente como metadado bruto: todos os eventos
+  desta V1 são `original`, sem relação de revisão. Um valor futuro só poderá
+  alterar status após auditoria oficial, mapping fechado e testes específicos.
 - Consequências: O provider produz contexto regulatório opcional com
   proveniência e rejeições estruturadas, sem persistência, migration, Supabase,
   scheduler ou integração runtime. Falhas nunca afetam Motor V2, Dossiê Técnico

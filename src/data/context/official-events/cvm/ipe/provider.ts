@@ -38,12 +38,6 @@ const SOURCE_DATETIME_WITHOUT_TIMEZONE =
 const STRICT_UTC_TIMESTAMP =
   /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?Z$/
 
-function isApprovedPresentationType(value: string): boolean {
-  return (
-    value === 'AP - Apresentação' || value === 'RE - Reapresentação Espontânea'
-  )
-}
-
 function normalizeCvmCode(value: string): string | null {
   const normalized = value.trim()
   return /^\d{1,6}$/.test(normalized) ? normalized.padStart(6, '0') : null
@@ -310,17 +304,6 @@ export function extractCvmIpeStockEvents(
           identity.ticker,
           'unsupported-category',
           'CVM IPE category is not supported by the closed V1 mapping'
-        )
-      )
-      continue
-    }
-    if (!isApprovedPresentationType(row.presentationType)) {
-      rejectedRows.push(
-        rejection(
-          row,
-          identity.ticker,
-          'unsupported-document-status',
-          'CVM IPE presentation status is not supported in V1'
         )
       )
       continue
