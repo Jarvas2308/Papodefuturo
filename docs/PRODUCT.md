@@ -139,6 +139,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - `OfficialAssetEventV1` implementado como contexto regulatório puro e não
   bloqueante, com 12 identidades fortes, 15 tipos fechados, tempo explícito,
   deduplicação documental e revisões históricas;
+- provider CVM IPE V1 isolado para eventos oficiais das cinco ações, com
+  identidade regulatória forte, categorias oficiais fechadas e deduplicação em
+  memória, sem storage, runtime ou leitura dos documentos;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -148,8 +151,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- providers oficiais, banco e runtime somente em ciclos posteriores, começando
-  pelo provider CVM de eventos de ações;
+- providers oficiais restantes em ciclos independentes, começando pelo provider
+  CVM de eventos de FIIs e depois pelo provider SEC de eventos de ETFs;
+- storage, banco e runtime de eventos somente após os três providers;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;
