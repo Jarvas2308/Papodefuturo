@@ -40,9 +40,9 @@ No estado atual:
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
   Fundamental Facts V1, além da camada separada e pura de Fundamental Derived
   Facts V1;
-- News & Events V1 possui política aprovada de Eventos Oficiais Primeiro, com
-  contratos conceituais separados e próxima entrega restrita ao domínio puro de
-  eventos oficiais;
+- `src/domain/context/official-events` contém o domínio puro e determinístico de
+  `OfficialAssetEventV1`, com identidades, taxonomia, tempo, documentos,
+  deduplicação e revisões, ainda sem provider, persistência ou runtime;
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
@@ -318,9 +318,10 @@ deduplicação e persistência conceitual separadas. A associação usa apenas
 identidade forte do universo fechado. Nenhuma das fronteiras é engine, IA ou
 fonte de recomendação, e nenhuma altera fatos fundamentalistas, Dossiê Técnico,
 Motor V2 ou plano de aporte. `EditorialAssetNewsV1` permanece adiado e apenas
-conceitual. O próximo ciclo implementa somente contratos, mapping, taxonomia,
-normalização temporal, deduplicação e revisões de `OfficialAssetEventV1`, sem
-provider, banco ou runtime.
+conceitual. `OfficialAssetEventV1` já implementa contratos puros, mapping,
+taxonomia, precisão temporal, identidade documental, deduplicação e revisões.
+O próximo ciclo é o provider CVM de eventos de ações; banco e runtime continuam
+fora do domínio.
 
 ### Infraestrutura
 

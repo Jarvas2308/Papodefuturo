@@ -344,3 +344,22 @@ Este documento registra decisões de produto e arquitetura.
   gestores e Vanguard permanecem verificação humana; GDELT permanece pesquisa
   exploratória. Notícias editoriais exigem nova auditoria de provider, cobertura,
   identidade e licença antes de qualquer implementação.
+
+## DEC-024 — OfficialAssetEventV1 é um domínio puro, determinístico e não bloqueante
+
+- Data: 16 de julho de 2026
+- Status: Aceita
+- Contexto: A política Eventos Oficiais Primeiro exige uma fronteira auditável
+  antes de providers e infraestrutura, sem confundir documentos regulatórios
+  com notícias editoriais nem permitir que contexto altere decisões financeiras.
+- Decisão: `OfficialAssetEventV1` é um domínio puro, determinístico e somente em
+  memória. O contrato usa registry fechado dos 12 ativos e identidade
+  regulatória forte, taxonomia fechada de 15 eventos, tempo com precisão
+  explícita e data civil sem conversão para meia-noite. A deduplicação segue a
+  identidade documental, e amendments, correções, substituições e cancelamentos
+  preservam documentos anteriores como histórico. Não existem provider, banco,
+  Supabase ou runtime nesta entrega.
+- Consequências: O contexto oficial nunca altera nem bloqueia o Motor V2 ou o
+  plano. Providers CVM e SEC serão ciclos independentes, começando por eventos
+  de ações. Notícias editoriais continuam adiadas e exigem nova auditoria antes
+  de qualquer contrato implementado.

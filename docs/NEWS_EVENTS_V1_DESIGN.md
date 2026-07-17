@@ -567,11 +567,11 @@ planejamento V1.
 
 ## 26. Sequência de implementação
 
-1. Contratos puros de domínio de `OfficialAssetEventV1`.
-2. Mapping fechado de identidade dos 12 ativos.
-3. Taxonomia e validações estruturais.
-4. Normalização temporal.
-5. Deduplicação e relações entre revisões.
+1. Contratos puros de domínio de `OfficialAssetEventV1` — concluído.
+2. Mapping fechado de identidade dos 12 ativos — concluído.
+3. Taxonomia e validações estruturais — concluído.
+4. Normalização temporal — concluído.
+5. Deduplicação e relações entre revisões — concluído.
 6. Provider CVM para eventos de ações.
 7. Provider CVM para eventos de FIIs.
 8. Provider SEC para eventos de ETFs.
@@ -586,13 +586,14 @@ planejamento V1.
 17. Nova auditoria antes de qualquer notícia editorial.
 
 Cada item é um ciclo independente; não há autorização implícita para os itens
-seguintes. O próximo ciclo técnico está autorizado somente para os itens 1 a 5:
-domínio puro, sem provider, banco, Supabase ou runtime.
+seguintes. Os itens 1 a 5 foram implementados como domínio puro, sem provider,
+banco, Supabase ou runtime. O próximo ciclo é somente o item 6, provider CVM
+para eventos de ações.
 
 ## 27. Gate para iniciar código
 
-O próximo ciclo de domínio puro pode começar porque a política de fontes foi
-aprovada. Antes de qualquer provider ou infraestrutura, ainda devem ser
+O domínio puro foi concluído após a aprovação da política de fontes. Antes de
+qualquer provider ou infraestrutura, ainda devem ser
 confirmados os gates aplicáveis:
 
 - decisão formal por Eventos Oficiais Primeiro registrada neste documento;

@@ -87,6 +87,9 @@ Estado já integrado:
   separada em memória, sem persistência ou integração runtime;
 - política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
   SEC como únicas fontes automatizadas V1 e notícias editoriais adiadas;
+- domínio puro `OfficialAssetEventV1` implementado com registry fechado dos 12
+  ativos, taxonomia, precisão temporal explícita, identidade documental,
+  deduplicação e histórico de revisões, sem provider, banco ou runtime;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -339,11 +342,10 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 
 ### News & Events V1
 
-- a próxima implementação cobre apenas o domínio puro de
-  `OfficialAssetEventV1`: contratos, mapping fechado, taxonomia, normalização
-  temporal, deduplicação e relações entre revisões;
-- não criar provider, banco, migration, Supabase, runtime ou UI nesse próximo
-  ciclo de domínio;
+- o domínio puro `OfficialAssetEventV1` já cobre contratos, mapping fechado,
+  taxonomia, normalização temporal, deduplicação e relações entre revisões;
+- o domínio permanece determinístico e em memória, sem provider, banco,
+  migration, Supabase, runtime ou UI;
 - somente CVM para ações/FIIs e SEC EDGAR para ETFs estão aprovadas como fontes
   automatizadas V1;
 - B3, RI, gestores e Vanguard são apenas verificação humana; GDELT é apenas
@@ -360,7 +362,8 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
 - implementar providers somente nos ciclos próprios posteriores e na sequência
-  aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`.
+  aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo é o provider CVM para
+  eventos de ações.
 
 ## 7. Modelos e valores atuais do domínio
 
