@@ -510,17 +510,32 @@ executada neste ciclo.
 O ciclo de Fundamentos está concluído. A PR #78 integrou a camada de derivados
 fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 
+### Domínio puro de eventos oficiais V1
+
+- política News & Events V1 concluída e integrada pela PR #79;
+- contrato `official-asset-event.v1` puro, determinístico e em memória;
+- registry fechado e auditável dos 12 ativos com identidade regulatória forte;
+- taxonomia fechada de 15 tipos, sem sentimento, score, ranking ou IA;
+- precisão temporal explícita, sem converter data civil em meia-noite;
+- identidade documental, URL canônica e fingerprint determinístico de fallback;
+- deduplicação que distingue duplicatas de conflitos de payload;
+- amendments, correções, substituições e cancelamentos preservados como
+  histórico, com relações resolvidas e não resolvidas explícitas;
+- sem provider, banco, migration, Supabase, runtime, UI ou chamada externa;
+- contexto opcional que nunca altera nem bloqueia Motor V2 ou plano de aporte.
+
 ## Próximo
 
-1. Domínio puro de eventos oficiais — contratos `OfficialAssetEventV1`, mapping,
-   taxonomia, normalização temporal, deduplicação e revisões;
-2. Comitê de IA;
-3. Auditoria;
-4. Polimento.
+1. Provider CVM para eventos de ações;
+2. Provider CVM para eventos de FIIs;
+3. Provider SEC para eventos de ETFs;
+4. Comitê de IA;
+5. Auditoria;
+6. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
 A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM e
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
-permanecem posteriores. O próximo ciclo não inclui provider, banco, Supabase,
-runtime ou UI.
+permanecem posteriores. O domínio puro está concluído e o próximo ciclo começa
+somente pelo provider CVM de eventos de ações.

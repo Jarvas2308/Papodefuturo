@@ -136,6 +136,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   memória para razões e reconciliações derivadas dos snapshots factuais;
 - política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
   SEC como únicas fontes automatizadas V1, sem integração ao runtime;
+- `OfficialAssetEventV1` implementado como contexto regulatório puro e não
+  bloqueante, com 12 identidades fortes, 15 tipos fechados, tempo explícito,
+  deduplicação documental e revisões históricas;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -145,9 +148,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- domínio puro de `OfficialAssetEventV1`, limitado a contratos, identidade,
-  taxonomia, tempo, deduplicação e revisões;
-- providers oficiais, banco e runtime somente em ciclos posteriores;
+- providers oficiais, banco e runtime somente em ciclos posteriores, começando
+  pelo provider CVM de eventos de ações;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;
