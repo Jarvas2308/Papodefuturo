@@ -29,9 +29,9 @@ storage, scheduler, ingestão real, UI e IA continuam ausentes.
   foi executada.
 - O Motor V2 e o Dossiê Técnico V1 continuam sendo as fronteiras determinísticas
   do plano técnico.
-- `OfficialAssetEventV1` e o provider CVM IPE V1 das cinco ações estão
-  implementados sem persistência ou UI. `EditorialAssetNewsV1` continua apenas
-  conceitual.
+- `OfficialAssetEventV1`, o provider CVM IPE V1 das cinco ações e o provider
+  CVM Fund Delivery V1 dos quatro FIIs estão implementados sem persistência ou
+  UI. `EditorialAssetNewsV1` continua apenas conceitual.
 
 ## 3. Objetivos
 
@@ -141,7 +141,7 @@ jurídica ou contato comercial. Essas páginas estão fora da automação V1.
 
 ### Conclusão da auditoria de fontes
 
-- **Aprovadas para automação V1:** CVM IPE, CVM Eventuais/Entrega de fundos e SEC
+- **Aprovadas para automação V1:** CVM IPE, CVM Fund Delivery e SEC
   EDGAR, observadas licença, proveniência, fair access e execução server-side.
 - **Somente verificação humana:** B3, RI, administradores, gestores e Vanguard;
   automação, armazenamento e uso comercial exigem nova auditoria e eventual

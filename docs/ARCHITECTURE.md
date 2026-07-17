@@ -46,6 +46,10 @@ No estado atual:
 - `src/data/context/official-events/cvm/ipe` contém o provider CVM IPE V1
   isolado para as cinco ações, com download injetado, ZIP/CSV auditados,
   identidade forte, categorias fechadas e deduplicação em memória;
+- `src/data/context/official-events/cvm/fund-delivery` contém o provider CVM
+  Fund Delivery FII Events V1 isolado para os quatro FIIs, com download
+  injetado, materialização exclusiva do CSV mensal, associação por CNPJ exato,
+  tipos documentais fechados e deduplicação em memória;
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
@@ -328,8 +332,16 @@ por código CVM, CNPJ e registry, mantendo aliases oficiais em allowlist fechada
 específica da fonte. Ele não baixa documentos, não interpreta texto livre e não
 possui storage, Supabase ou runtime. ZIPs são limitados pelos metadados antes da
 extração, somente o CSV esperado é materializado e os contadores distinguem
-aceites, duplicatas exatas e conflitos de payload. O próximo ciclo é o provider
-CVM de eventos de FIIs.
+aceites, duplicatas exatas e conflitos de payload.
+
+O provider CVM Fund Delivery V1 de FIIs transforma somente o CSV mensal oficial
+em eventos para KNRI11, VISC11, XPLG11 e HGRU11. A associação usa CNPJ exato e
+mapping fechado de ticker; `INFORM MENSAL` e `INFO TRIM FII` são os únicos tipos
+suportados e ambos produzem `periodic-report`. O provider não materializa o CSV
+diário, não inventa timezone, URL, protocolo ou revisão e preserva
+`Tipo_Apresentacao` e `Ativo` apenas como proveniência bruta. Assim como o IPE,
+ele não possui storage, Supabase ou integração runtime. O próximo ciclo é o
+provider SEC de eventos de ETFs.
 
 ### Infraestrutura
 

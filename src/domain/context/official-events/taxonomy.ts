@@ -5,8 +5,8 @@ import type {
   OfficialEventTypeV1,
 } from './types'
 
-const ALL_SOURCES = ['cvm-ipe', 'cvm-fund-eventual', 'sec-edgar'] as const
-const CVM_SOURCES = ['cvm-ipe', 'cvm-fund-eventual'] as const
+const ALL_SOURCES = ['cvm-ipe', 'cvm-fund-delivery', 'sec-edgar'] as const
+const CVM_SOURCES = ['cvm-ipe', 'cvm-fund-delivery'] as const
 const ALL_CATEGORIES = [
   'brazilian-stock',
   'real-estate-fund',
@@ -157,7 +157,7 @@ function expectedSource(
   identity: OfficialEventAssetIdentityV1
 ): OfficialEventSourceV1 {
   if (identity.category === 'brazilian-stock') return 'cvm-ipe'
-  if (identity.category === 'real-estate-fund') return 'cvm-fund-eventual'
+  if (identity.category === 'real-estate-fund') return 'cvm-fund-delivery'
   return 'sec-edgar'
 }
 

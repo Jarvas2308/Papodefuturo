@@ -221,7 +221,7 @@ describe('assertOfficialAssetEventV1', () => {
         identity.category === 'brazilian-stock'
           ? 'cvm-ipe'
           : identity.category === 'real-estate-fund'
-            ? 'cvm-fund-eventual'
+            ? 'cvm-fund-delivery'
             : 'sec-edgar'
       const event = createOfficialEvent({
         ticker: identity.ticker,

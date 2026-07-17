@@ -39,7 +39,7 @@ describe('official event taxonomy', () => {
 
   it.each([
     ['BBAS3', 'cvm-ipe'],
-    ['KNRI11', 'cvm-fund-eventual'],
+    ['KNRI11', 'cvm-fund-delivery'],
     ['VOO', 'sec-edgar'],
   ] as const)(
     'accepts regulatory filing for %s through %s',
@@ -86,7 +86,7 @@ describe('official event taxonomy', () => {
       assertOfficialEventTypeCompatibility(
         'fund-manager-or-administrator-change',
         getOfficialEventAssetIdentityByTicker('KNRI11'),
-        'cvm-fund-eventual'
+        'cvm-fund-delivery'
       )
     ).not.toThrow()
   })

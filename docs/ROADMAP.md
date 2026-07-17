@@ -549,18 +549,37 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   sentimento, score, ranking ou IA;
 - contexto opcional que nunca altera nem bloqueia Motor V2 ou plano de aporte.
 
+### Provider CVM Fund Delivery FII Events V1
+
+- universo fechado: KNRI11, VISC11, XPLG11 e HGRU11;
+- fonte mensal oficial `fi_entrega_documento_<YYYYMM>.csv`, extraída do ZIP sem
+  materializar ou interpretar o CSV diário;
+- associação exclusiva por CNPJ exato ao registry e mapping fechado de ticker;
+- `INFORM MENSAL` e `INFO TRIM FII` classificados como `periodic-report`; todos
+  os demais tipos rejeitados de forma estruturada;
+- data de entrega estrita reduzida somente à data civil e competência validada
+  sem timezone inventado;
+- identidade documental por sistema de origem codificado e ID oficial;
+- eventos sempre `original`, sem URL, protocolo, fingerprint ou relação de
+  revisão inventados;
+- limites defensivos de ZIP, entradas, tamanho descomprimido, CSV, linhas e 11
+  colunas oficiais;
+- deduplicação em memória com duplicatas e conflitos explícitos;
+- sem storage, migration, Supabase, scheduler, ingestão real, runtime, UI,
+  sentimento, score, ranking ou IA.
+
 ## Próximo
 
-1. Provider CVM para eventos de FIIs;
-2. Provider SEC para eventos de ETFs;
-3. Storage global de eventos oficiais;
-4. Comitê de IA;
-5. Auditoria;
-6. Polimento.
+1. Provider SEC para eventos de ETFs;
+2. Storage global de eventos oficiais;
+3. Comitê de IA;
+4. Auditoria;
+5. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
 A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM e
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
-permanecem posteriores. O domínio puro e o provider CVM IPE de ações estão
-concluídos; o próximo ciclo começa somente pelo provider CVM de eventos de FIIs.
+permanecem posteriores. O domínio puro e os providers CVM IPE de ações e Fund
+Delivery de FIIs estão concluídos; o próximo ciclo começa somente pelo provider
+SEC de eventos de ETFs.

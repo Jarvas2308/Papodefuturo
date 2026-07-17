@@ -23,14 +23,14 @@ describe('buildOfficialAssetEventV1', () => {
   it('builds a valid CVM FII event', () => {
     const event = createOfficialEvent({
       ticker: 'KNRI11',
-      source: 'cvm-fund-eventual',
+      source: 'cvm-fund-delivery',
       eventType: 'fund-policy-change',
       associationEvidence: [
         { reason: 'exact-isin', observedIsin: 'BRKNRICTF007' },
       ],
       provenance: {
         ...createOfficialEventInput().provenance,
-        sourceSystem: 'cvm-fund-eventual',
+        sourceSystem: 'cvm-fund-delivery',
       },
     })
     expect(event.assetIdentity).toMatchObject({
@@ -202,17 +202,46 @@ describe('buildOfficialAssetEventV1', () => {
     expect(() =>
       createOfficialEvent({
         ticker: 'KNRI11',
-        source: 'cvm-fund-eventual',
+        source: 'cvm-fund-delivery',
         eventType: 'periodic-report',
         associationEvidence: [
           { reason: 'exact-isin', observedIsin: 'BRKNRICTF007' },
         ],
         provenance: {
           ...createOfficialEventInput().provenance,
-          sourceSystem: 'cvm-fund-eventual',
+          sourceSystem: 'cvm-fund-delivery',
         },
       })
     ).not.toThrow()
+  })
+
+  it('accepts FII association by exact ticker mapping and exact CNPJ only', () => {
+    const event = createOfficialEvent({
+      ticker: 'KNRI11',
+      source: 'cvm-fund-delivery',
+      eventType: 'periodic-report',
+      associationEvidence: [
+        {
+          reason: 'exact-ticker-provider-mapping',
+          observedTicker: 'KNRI11',
+          mappingVersion: OFFICIAL_EVENT_ASSET_IDENTITIES_V1_VERSION,
+        },
+        { reason: 'exact-cnpj', observedCnpj: '12005956000165' },
+      ],
+      provenance: {
+        ...createOfficialEventInput().provenance,
+        sourceSystem: 'cvm-fund-delivery',
+      },
+    })
+
+    expect(event.associationEvidence).toEqual([
+      {
+        reason: 'exact-ticker-provider-mapping',
+        observedTicker: 'KNRI11',
+        mappingVersion: OFFICIAL_EVENT_ASSET_IDENTITIES_V1_VERSION,
+      },
+      { reason: 'exact-cnpj', observedCnpj: '12005956000165' },
+    ])
   })
 
   it.each([
@@ -260,14 +289,14 @@ describe('buildOfficialAssetEventV1', () => {
     expect(() =>
       createOfficialEvent({
         ticker: 'KNRI11',
-        source: 'cvm-fund-eventual',
+        source: 'cvm-fund-delivery',
         eventType: 'periodic-report',
         associationEvidence: [
           { reason: 'exact-isin', observedIsin: 'BRKNRICTF008' },
         ],
         provenance: {
           ...createOfficialEventInput().provenance,
-          sourceSystem: 'cvm-fund-eventual',
+          sourceSystem: 'cvm-fund-delivery',
         },
       })
     ).toThrow(/ISIN/)
