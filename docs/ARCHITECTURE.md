@@ -42,7 +42,10 @@ No estado atual:
   Facts V1;
 - `src/domain/context/official-events` contém o domínio puro e determinístico de
   `OfficialAssetEventV1`, com identidades, taxonomia, tempo, documentos,
-  deduplicação e revisões, ainda sem provider, persistência ou runtime;
+  deduplicação e revisões, ainda sem persistência ou runtime;
+- `src/data/context/official-events/cvm/ipe` contém o provider CVM IPE V1
+  isolado para as cinco ações, com download injetado, ZIP/CSV auditados,
+  identidade forte, categorias fechadas e deduplicação em memória;
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
@@ -320,8 +323,13 @@ fonte de recomendação, e nenhuma altera fatos fundamentalistas, Dossiê Técni
 Motor V2 ou plano de aporte. `EditorialAssetNewsV1` permanece adiado e apenas
 conceitual. `OfficialAssetEventV1` já implementa contratos puros, mapping,
 taxonomia, precisão temporal, identidade documental, deduplicação e revisões.
-O próximo ciclo é o provider CVM de eventos de ações; banco e runtime continuam
-fora do domínio.
+O provider CVM IPE V1 de ações transforma somente metadados oficiais em eventos
+por código CVM, CNPJ e registry, mantendo aliases oficiais em allowlist fechada
+específica da fonte. Ele não baixa documentos, não interpreta texto livre e não
+possui storage, Supabase ou runtime. ZIPs são limitados pelos metadados antes da
+extração, somente o CSV esperado é materializado e os contadores distinguem
+aceites, duplicatas exatas e conflitos de payload. O próximo ciclo é o provider
+CVM de eventos de FIIs.
 
 ### Infraestrutura
 

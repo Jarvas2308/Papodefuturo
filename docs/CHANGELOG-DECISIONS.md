@@ -363,3 +363,26 @@ Este documento registra decisões de produto e arquitetura.
   plano. Providers CVM e SEC serão ciclos independentes, começando por eventos
   de ações. Notícias editoriais continuam adiadas e exigem nova auditoria antes
   de qualquer contrato implementado.
+
+## DEC-025 — Provider CVM IPE V1 classifica apenas categorias oficiais fechadas
+
+- Data: 17 de julho de 2026
+- Status: Aceita
+- Contexto: O domínio `OfficialAssetEventV1` precisa receber eventos das cinco
+  ações do universo fechado sem interpretar texto livre. A auditoria do arquivo
+  anual IPE confirmou schema, identidade, categorias, datas e links oficiais,
+  além de denominações oficiais da fonte que diferem pontualmente dos nomes
+  canônicos internos.
+- Decisão: O provider V1 cobre somente BBAS3, ITSA4, TAEE11, WEGE3 e PSSA3 e
+  usa a URL anual oficial do IPE. Código CVM e CNPJ são identificadores fortes;
+  o registry mantém a identidade canônica. Denominações alternativas são
+  aliases fechados, auditados e específicos do provider, nunca fuzzy matching,
+  e a denominação observada não altera `assetIdentity`. Nome desconhecido
+  bloqueia o lote e qualquer novo alias exige decisão posterior. A classificação
+  usa somente a categoria oficial em mapping fechado, sem assunto ou texto
+  livre. O provider não baixa os documentos, reduz horários sem timezone à data
+  civil, não infere revisão pela versão e deduplica em memória.
+- Consequências: O provider produz contexto regulatório opcional com
+  proveniência e rejeições estruturadas, sem persistência, migration, Supabase,
+  scheduler ou integração runtime. Falhas nunca afetam Motor V2, Dossiê Técnico
+  ou plano de aporte. Providers de FIIs e ETFs permanecem ciclos posteriores.

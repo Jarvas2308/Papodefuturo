@@ -513,6 +513,7 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 ### Domínio puro de eventos oficiais V1
 
 - política News & Events V1 concluída e integrada pela PR #79;
+- domínio puro integrado pela PR #80;
 - contrato `official-asset-event.v1` puro, determinístico e em memória;
 - registry fechado e auditável dos 12 ativos com identidade regulatória forte;
 - taxonomia fechada de 15 tipos, sem sentimento, score, ranking ou IA;
@@ -521,14 +522,37 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - deduplicação que distingue duplicatas de conflitos de payload;
 - amendments, correções, substituições e cancelamentos preservados como
   histórico, com relações resolvidas e não resolvidas explícitas;
-- sem provider, banco, migration, Supabase, runtime, UI ou chamada externa;
+- domínio sem dependência de provider, banco, migration, Supabase, runtime, UI
+  ou chamada externa;
+- contexto opcional que nunca altera nem bloqueia Motor V2 ou plano de aporte.
+
+### Provider CVM IPE V1 para eventos de ações
+
+- universo fechado: BBAS3, ITSA4, TAEE11, WEGE3 e PSSA3;
+- arquivo anual oficial IPE em ZIP, com CSV Windows-1252 e schema de 13 colunas
+  auditado;
+- fetcher obrigatoriamente injetado e limites defensivos de arquivo, entradas,
+  linhas e colunas;
+- identidade validada por código CVM, CNPJ e registry canônico;
+- denominações alternativas oficiais em allowlist fechada específica do IPE,
+  sem fuzzy matching e sem alterar a identidade canônica do ativo;
+- mapping fechado das categorias oficiais, sem classificação por assunto ou
+  texto livre;
+- datas civis preservadas sem timezone inventado, documentos não baixados e
+  reapresentações mantidas como eventos originais sem revisão inferida;
+- eventos construídos pelo domínio, validados em runtime e deduplicados em
+  memória, com rejeições e conflitos estruturados;
+- contadores distinguem registros aceitos, duplicatas exatas e payloads
+  conflitantes sem descarte silencioso;
+- sem storage, migration, Supabase, scheduler, ingestão real, runtime, UI,
+  sentimento, score, ranking ou IA;
 - contexto opcional que nunca altera nem bloqueia Motor V2 ou plano de aporte.
 
 ## Próximo
 
-1. Provider CVM para eventos de ações;
-2. Provider CVM para eventos de FIIs;
-3. Provider SEC para eventos de ETFs;
+1. Provider CVM para eventos de FIIs;
+2. Provider SEC para eventos de ETFs;
+3. Storage global de eventos oficiais;
 4. Comitê de IA;
 5. Auditoria;
 6. Polimento.
@@ -537,5 +561,5 @@ As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
 A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM e
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
-permanecem posteriores. O domínio puro está concluído e o próximo ciclo começa
-somente pelo provider CVM de eventos de ações.
+permanecem posteriores. O domínio puro e o provider CVM IPE de ações estão
+concluídos; o próximo ciclo começa somente pelo provider CVM de eventos de FIIs.

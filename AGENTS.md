@@ -89,7 +89,10 @@ Estado já integrado:
   SEC como únicas fontes automatizadas V1 e notícias editoriais adiadas;
 - domínio puro `OfficialAssetEventV1` implementado com registry fechado dos 12
   ativos, taxonomia, precisão temporal explícita, identidade documental,
-  deduplicação e histórico de revisões, sem provider, banco ou runtime;
+  deduplicação e histórico de revisões, sem banco ou runtime;
+- provider CVM IPE V1 isolado para eventos oficiais de BBAS3, ITSA4, TAEE11,
+  WEGE3 e PSSA3, com ZIP/CSV auditados, identidade forte, categorias fechadas e
+  deduplicação em memória, sem storage, Supabase ou runtime;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -344,8 +347,10 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 
 - o domínio puro `OfficialAssetEventV1` já cobre contratos, mapping fechado,
   taxonomia, normalização temporal, deduplicação e relações entre revisões;
-- o domínio permanece determinístico e em memória, sem provider, banco,
-  migration, Supabase, runtime ou UI;
+- o provider CVM IPE V1 de ações usa fetch injetado, registry canônico, código
+  CVM e CNPJ exatos e allowlist fechada de denominações oficiais da fonte;
+- domínio e provider permanecem determinísticos e sem banco, migration,
+  Supabase, runtime ou UI;
 - somente CVM para ações/FIIs e SEC EDGAR para ETFs estão aprovadas como fontes
   automatizadas V1;
 - B3, RI, gestores e Vanguard são apenas verificação humana; GDELT é apenas
@@ -363,7 +368,7 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
 - implementar providers somente nos ciclos próprios posteriores e na sequência
   aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo é o provider CVM para
-  eventos de ações.
+  eventos de FIIs.
 
 ## 7. Modelos e valores atuais do domínio
 

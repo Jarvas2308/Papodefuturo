@@ -15,9 +15,9 @@ separados. Nenhum deles altera carteira, metas, Motor Estratégico V2, plano de
 aporte, `FundamentalFactsV1`, `FundamentalDerivedFactsV1` ou
 `TechnicalDossierV1`. Contexto indisponível nunca bloqueia o produto.
 
-O resultado deste ciclo é apenas política e desenho. Não há código de produção,
-migration, tabela, provider, scheduler, ingestão, UI ou IA. Nenhuma integração
-frágil será adicionada apenas para ampliar cobertura.
+O desenho permanece a política de referência. O domínio puro e o provider CVM
+IPE V1 de ações já foram implementados em ciclos isolados; migration, tabela,
+storage, scheduler, ingestão real, UI e IA continuam ausentes.
 
 ## 2. Estado atual
 
@@ -29,8 +29,9 @@ frágil será adicionada apenas para ampliar cobertura.
   foi executada.
 - O Motor V2 e o Dossiê Técnico V1 continuam sendo as fronteiras determinísticas
   do plano técnico.
-- Notícias e eventos não possuem contrato implementado, provider, persistência
-  ou UI. Os contratos descritos neste documento são apenas conceituais.
+- `OfficialAssetEventV1` e o provider CVM IPE V1 das cinco ações estão
+  implementados sem persistência ou UI. `EditorialAssetNewsV1` continua apenas
+  conceitual.
 
 ## 3. Objetivos
 
@@ -572,7 +573,7 @@ planejamento V1.
 3. Taxonomia e validações estruturais — concluído.
 4. Normalização temporal — concluído.
 5. Deduplicação e relações entre revisões — concluído.
-6. Provider CVM para eventos de ações.
+6. Provider CVM para eventos de ações — concluído.
 7. Provider CVM para eventos de FIIs.
 8. Provider SEC para eventos de ETFs.
 9. Contrato de storage global.
@@ -586,9 +587,10 @@ planejamento V1.
 17. Nova auditoria antes de qualquer notícia editorial.
 
 Cada item é um ciclo independente; não há autorização implícita para os itens
-seguintes. Os itens 1 a 5 foram implementados como domínio puro, sem provider,
-banco, Supabase ou runtime. O próximo ciclo é somente o item 6, provider CVM
-para eventos de ações.
+seguintes. Os itens 1 a 5 foram implementados como domínio puro. O item 6 usa o
+arquivo anual oficial IPE, parsing Windows-1252, identidade forte, categorias
+fechadas e deduplicação em memória, sem banco, Supabase ou runtime. O próximo
+ciclo é somente o item 7, provider CVM para eventos de FIIs.
 
 ## 27. Gate para iniciar código
 
