@@ -85,6 +85,8 @@ Estado já integrado:
   memória;
 - Fundamental Derived Facts V1 puro, determinístico e auditável como camada
   separada em memória, sem persistência ou integração runtime;
+- política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
+  SEC como únicas fontes automatizadas V1 e notícias editoriais adiadas;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -334,6 +336,31 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   Supabase, providers, APIs e fontes ambientais;
 - não persistir nem integrar os derivados ao runtime ou à UI sem nova decisão
   arquitetural explícita.
+
+### News & Events V1
+
+- a próxima implementação cobre apenas o domínio puro de
+  `OfficialAssetEventV1`: contratos, mapping fechado, taxonomia, normalização
+  temporal, deduplicação e relações entre revisões;
+- não criar provider, banco, migration, Supabase, runtime ou UI nesse próximo
+  ciclo de domínio;
+- somente CVM para ações/FIIs e SEC EDGAR para ETFs estão aprovadas como fontes
+  automatizadas V1;
+- B3, RI, gestores e Vanguard são apenas verificação humana; GDELT é apenas
+  pesquisa exploratória; providers editoriais estão adiados;
+- eventos oficiais são fatos contextuais; notícias são documentos editoriais e
+  os contratos não podem apagar essa distinção;
+- nenhum contexto altera `FundamentalFactsV1`, `FundamentalDerivedFactsV1`,
+  `TechnicalDossierV1`, Motor V2, metas ou plano técnico;
+- associar itens somente por identidade forte e mapping fechado, nunca por fuzzy
+  matching ou nome parecido;
+- não criar sentimento, score, ranking, recomendação ou classificação por IA;
+- armazenar apenas metadados e textos permitidos pelos termos, com URL,
+  atribuição e proveniência;
+- falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
+- `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
+- implementar providers somente nos ciclos próprios posteriores e na sequência
+  aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`.
 
 ## 7. Modelos e valores atuais do domínio
 

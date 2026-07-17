@@ -40,6 +40,9 @@ No estado atual:
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
   Fundamental Facts V1, além da camada separada e pura de Fundamental Derived
   Facts V1;
+- News & Events V1 possui política aprovada de Eventos Oficiais Primeiro, com
+  contratos conceituais separados e próxima entrega restrita ao domínio puro de
+  eventos oficiais;
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
@@ -293,6 +296,31 @@ recomendação e não modifica o plano técnico. Também não possui persistênc
 tabela, integração runtime, UI ou chamada externa. A tabela global
 `fundamental_snapshots` continua vazia e armazena somente fatos normalizados,
 nunca os derivados.
+
+### Fronteira aprovada de News & Events V1
+
+```text
+CVM para ações e FIIs / SEC EDGAR para ETFs
+                  ↓
+          OfficialAssetEventV1
+                  ↓
+       contexto factual opcional
+
+provider editorial futuro após nova auditoria
+                  ↓
+         EditorialAssetNewsV1
+                  ↓
+       contexto editorial opcional
+```
+
+Eventos oficiais e notícias editoriais possuem identidade, proveniência,
+deduplicação e persistência conceitual separadas. A associação usa apenas
+identidade forte do universo fechado. Nenhuma das fronteiras é engine, IA ou
+fonte de recomendação, e nenhuma altera fatos fundamentalistas, Dossiê Técnico,
+Motor V2 ou plano de aporte. `EditorialAssetNewsV1` permanece adiado e apenas
+conceitual. O próximo ciclo implementa somente contratos, mapping, taxonomia,
+normalização temporal, deduplicação e revisões de `OfficialAssetEventV1`, sem
+provider, banco ou runtime.
 
 ### Infraestrutura
 

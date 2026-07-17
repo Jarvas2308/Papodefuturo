@@ -321,3 +321,26 @@ Este documento registra decisões de produto e arquitetura.
   `fundamental_snapshots` continua vazia e exclusiva para fatos normalizados.
   O adapter SEC factual foi integrado na PR #77, deixando providers e adapters
   das três classes disponíveis antes desta nova fronteira derivada.
+
+## DEC-023 — Notícias editoriais e eventos oficiais possuem contratos separados
+
+- Data: 16 de julho de 2026
+- Status: Aceita
+- Contexto: Após a conclusão dos fundamentos e integração da PR #78, o próximo
+  estágio precisa contextualizar os ativos sem confundir filing oficial com
+  documento jornalístico, sem duplicar fatos e sem interferir na verdade
+  matemática do plano.
+- Decisão: Fica aprovada a política Eventos Oficiais Primeiro. Eventos oficiais
+  são fatos contextuais e notícias são documentos editoriais, com contratos,
+  deduplicação e persistência conceitual próprios. Somente CVM, para ações e
+  FIIs, e SEC EDGAR, para ETFs, são fontes automatizadas V1. Notícias editoriais
+  ficam adiadas. A associação exige identidade forte e mapping fechado; não
+  haverá sentimento, score, ranking ou IA. O armazenamento será mínimo,
+  compatível com os termos e sempre preservará atribuição e proveniência.
+  Nenhuma categoria altera o Motor V2 ou o plano.
+- Consequências: Contexto indisponível nunca bloqueia carteira, Motor V2, plano,
+  Novo Aporte ou confirmação de compra. A próxima implementação cobre somente o
+  domínio puro de `OfficialAssetEventV1`, sem provider, banco ou runtime. B3, RI,
+  gestores e Vanguard permanecem verificação humana; GDELT permanece pesquisa
+  exploratória. Notícias editoriais exigem nova auditoria de provider, cobertura,
+  identidade e licença antes de qualquer implementação.
