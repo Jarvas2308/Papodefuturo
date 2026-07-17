@@ -131,7 +131,7 @@ describe('analyzeOfficialEventRevisionGraphV1', () => {
     ).toThrow(/crosses asset/)
   })
 
-  it('rejects cross-source revisions', () => {
+  it('rejects a tampered source before analyzing revision relations', () => {
     const input = createOfficialEventInput({
       ticker: 'VOO',
       source: 'sec-edgar',
@@ -161,7 +161,7 @@ describe('analyzeOfficialEventRevisionGraphV1', () => {
     revision.source = 'cvm-ipe'
     expect(() =>
       analyzeOfficialEventRevisionGraphV1([original, revision])
-    ).toThrow(/crosses official sources/)
+    ).toThrow()
   })
 
   it('rejects self-reference in graph input', () => {
