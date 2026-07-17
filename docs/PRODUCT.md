@@ -134,6 +134,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   internacionais;
 - `FundamentalDerivedFactsV1` como camada auditável, determinística e em
   memória para razões e reconciliações derivadas dos snapshots factuais;
+- política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
+  SEC como únicas fontes automatizadas V1, sem integração ao runtime;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -143,14 +145,18 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- notícias e eventos;
+- domínio puro de `OfficialAssetEventV1`, limitado a contratos, identidade,
+  taxonomia, tempo, deduplicação e revisões;
+- providers oficiais, banco e runtime somente em ciclos posteriores;
+- notícias editoriais adiadas até nova auditoria de provider, cobertura,
+  identidade e licença comercial;
 - camada futura de IA explicativa;
 - auditoria e polimento.
 
 ### Em aberto
 
-- critérios de fundamentos, notícias e eventos que poderão contextualizar fatos
-  sem alterar o plano determinístico.
+- desenho operacional dos providers CVM/SEC em ciclos próprios, sem alterar o
+  plano determinístico.
 
 ## Funcionamento futuro do planejamento de aporte
 

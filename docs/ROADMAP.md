@@ -507,12 +507,20 @@ executada neste ciclo.
 - PR #77 integrada para o adapter SEC factual; providers e adapters das três
   classes estão disponíveis e `fundamental_snapshots` permanece vazia.
 
+O ciclo de Fundamentos está concluído. A PR #78 integrou a camada de derivados
+fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
+
 ## Próximo
 
-1. Notícias e eventos;
+1. Domínio puro de eventos oficiais — contratos `OfficialAssetEventV1`, mapping,
+   taxonomia, normalização temporal, deduplicação e revisões;
 2. Comitê de IA;
 3. Auditoria;
 4. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
+A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM e
+SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
+permanecem posteriores. O próximo ciclo não inclui provider, banco, Supabase,
+runtime ou UI.
