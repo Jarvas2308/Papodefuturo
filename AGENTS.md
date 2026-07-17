@@ -93,6 +93,9 @@ Estado já integrado:
 - provider CVM IPE V1 isolado para eventos oficiais de BBAS3, ITSA4, TAEE11,
   WEGE3 e PSSA3, com ZIP/CSV auditados, identidade forte, categorias fechadas e
   deduplicação em memória, sem storage, Supabase ou runtime;
+- provider CVM Fund Delivery FII Events V1 isolado para KNRI11, VISC11, XPLG11
+  e HGRU11, associado somente por CNPJ exato, com tipos documentais fechados,
+  competência civil e deduplicação em memória, sem storage, Supabase ou runtime;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -349,6 +352,11 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   taxonomia, normalização temporal, deduplicação e relações entre revisões;
 - o provider CVM IPE V1 de ações usa fetch injetado, registry canônico, código
   CVM e CNPJ exatos e allowlist fechada de denominações oficiais da fonte;
+- o provider CVM Fund Delivery V1 de FIIs usa somente o CSV mensal oficial,
+  associa por CNPJ exato e aceita apenas `INFORM MENSAL` e `INFO TRIM FII` como
+  `periodic-report`; a API recebe ano e mês numéricos, normaliza somente os dois
+  formatos oficiais de CNPJ e preserva apresentação e indicador de ativo apenas
+  como proveniência;
 - domínio e provider permanecem determinísticos e sem banco, migration,
   Supabase, runtime ou UI;
 - somente CVM para ações/FIIs e SEC EDGAR para ETFs estão aprovadas como fontes
@@ -367,8 +375,8 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
 - implementar providers somente nos ciclos próprios posteriores e na sequência
-  aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo é o provider CVM para
-  eventos de FIIs.
+  aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo é o provider SEC para
+  eventos de ETFs.
 
 ## 7. Modelos e valores atuais do domínio
 

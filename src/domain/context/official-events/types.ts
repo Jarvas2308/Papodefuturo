@@ -57,7 +57,7 @@ export type OfficialEventAssetIdentityV1 =
   | InternationalEtfOfficialEventIdentityV1
 
 export type OfficialEventSourceV1 =
-  'cvm-ipe' | 'cvm-fund-eventual' | 'sec-edgar'
+  'cvm-ipe' | 'cvm-fund-delivery' | 'sec-edgar'
 
 export type OfficialEventTypeV1 =
   | 'regulatory-filing'

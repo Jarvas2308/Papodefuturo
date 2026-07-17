@@ -389,3 +389,27 @@ Este documento registra decisões de produto e arquitetura.
   proveniência e rejeições estruturadas, sem persistência, migration, Supabase,
   scheduler ou integração runtime. Falhas nunca afetam Motor V2, Dossiê Técnico
   ou plano de aporte. Providers de FIIs e ETFs permanecem ciclos posteriores.
+
+## DEC-026 — Provider CVM Fund Delivery V1 usa entrega mensal e identidade exata de FII
+
+- Data: 17 de julho de 2026
+- Status: Aceita
+- Contexto: Os quatro FIIs do universo fechado precisam de eventos oficiais sem
+  misturar o arquivo mensal controlado com o arquivo diário muito maior, sem
+  inferir ticker por nome e sem converter datas civis em instantes artificiais.
+- Decisão: O provider V1 cobre somente KNRI11, VISC11, XPLG11 e HGRU11 e usa o
+  ZIP mensal oficial de Fund Delivery, materializando exclusivamente
+  `fi_entrega_documento_<YYYYMM>.csv`. A associação usa CNPJ exato e mapping
+  fechado de ticker. Apenas `INFORM MENSAL` e `INFO TRIM FII` produzem
+  `periodic-report`; os demais tipos são rejeitados. A entrega fornece somente
+  a data civil de publicação, o fim da competência fornece a ocorrência e não
+  se inventa timezone. A API recebe ano e mês numéricos. CNPJ aceita somente a
+  forma canônica ou a pontuação oficial; sistema de origem normalizado e ID em
+  decimal canônico formam a identidade documental, e o ID também é preservado
+  como identificador regulatório.
+- Consequências: Todos os eventos são `original`, sem URL, protocolo,
+  fingerprint ou revisão inventados; apresentação e indicador de ativo ficam
+  apenas na proveniência. Limites defensivos evitam materializar o CSV diário.
+  O provider permanece isolado, determinístico, com fetch injetado e
+  deduplicação em memória, sem storage, migration, Supabase, scheduler, runtime
+  ou UI. O source canônico passa a ser `cvm-fund-delivery`, sem alias legado.
