@@ -572,18 +572,40 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - sem storage, migration, Supabase, scheduler, ingestão real, runtime, UI,
   sentimento, score, ranking ou IA.
 
+### Provider SEC EDGAR ETF Events V1
+
+- universo fechado: VOO, VNQ e VEA, com identidades provenientes do registry;
+- Submissions API usada somente como índice e Filing Detail canônica obrigatória
+  para confirmar CIK, série e class/contract ID;
+- quatro forms de relatório periódico (`NPORT-P`, `N-CEN`, `N-CSR`, `N-CSRS`) e
+  dois forms de assembleia (`DEF 14A`, `DEFA14A`) em mapping fechado;
+- forms ambíguos e todas as variantes `/A` ignorados sem baixar detalhes;
+- accession como identidade documental e prefixo usado somente na URL Archives,
+  nunca como identidade do ETF;
+- `acceptanceDateTime` UTC como publicação e `reportDate`, com fallback para
+  `filingDate`, como ocorrência civil;
+- todos os eventos `original`, sem supersedes, resumo, sentimento, score ou IA;
+- User-Agent obrigatório, chamadas sequenciais, intervalo mínimo de 500 ms,
+  cache por URL e limites defensivos de bytes e requisições;
+- somente `filings.recent`; histórico necessário em `filings.files` interrompe o
+  lote, e SGML e `index.json` permanecem fora desta versão;
+- primary document nunca baixado e mudanças estruturais da Filing Detail
+  interrompem o lote sem omissão silenciosa;
+- construção e deduplicação oficiais do domínio, com duplicatas, conflitos,
+  rejeições e contadores explícitos;
+- sem storage, migration, Supabase, scheduler, ingestão real, runtime ou UI.
+
 ## Próximo
 
-1. Provider SEC para eventos de ETFs;
-2. Storage global de eventos oficiais;
-3. Comitê de IA;
-4. Auditoria;
-5. Polimento.
+1. Storage global de eventos oficiais;
+2. Comitê de IA;
+3. Auditoria;
+4. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
 A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM e
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
-permanecem posteriores. O domínio puro e os providers CVM IPE de ações e Fund
-Delivery de FIIs estão concluídos; o próximo ciclo começa somente pelo provider
-SEC de eventos de ETFs.
+permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
+para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
+concluídos; o próximo ciclo começa somente pelo storage global de eventos.

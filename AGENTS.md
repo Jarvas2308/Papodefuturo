@@ -96,6 +96,10 @@ Estado já integrado:
 - provider CVM Fund Delivery FII Events V1 isolado para KNRI11, VISC11, XPLG11
   e HGRU11, associado somente por CNPJ exato, com tipos documentais fechados,
   competência civil e deduplicação em memória, sem storage, Supabase ou runtime;
+- provider SEC EDGAR ETF Events V1 isolado para VOO, VNQ e VEA, com Submissions
+  como índice, Filing Detail obrigatória, associação exata por CIK, série e
+  classe, seis forms fechados, fair access e deduplicação em memória, sem
+  storage, Supabase ou runtime;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -357,6 +361,13 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   `periodic-report`; a API recebe ano e mês numéricos, normaliza somente os dois
   formatos oficiais de CNPJ e preserva apresentação e indicador de ativo apenas
   como proveniência;
+- o provider SEC EDGAR V1 de ETFs usa Submissions somente como índice e exige a
+  Filing Detail para confirmar CIK, série e classe; cobre VOO, VNQ e VEA, aceita
+  somente `NPORT-P`, `N-CEN`, `N-CSR`, `N-CSRS`, `DEF 14A` e `DEFA14A`, usa
+  User-Agent identificável, chamadas sequenciais com 500 ms e cache por URL;
+- o provider SEC EDGAR V1 usa apenas `filings.recent`; se `filings.files`
+  indicar histórico necessário, o lote é interrompido sem resultado parcial;
+  SGML e `index.json` não são usados nesta versão;
 - domínio e provider permanecem determinísticos e sem banco, migration,
   Supabase, runtime ou UI;
 - somente CVM para ações/FIIs e SEC EDGAR para ETFs estão aprovadas como fontes
@@ -374,9 +385,9 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   atribuição e proveniência;
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
-- implementar providers somente nos ciclos próprios posteriores e na sequência
-  aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo é o provider SEC para
-  eventos de ETFs.
+- implementar infraestrutura somente nos ciclos próprios posteriores e na
+  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é o
+  storage global de eventos oficiais.
 
 ## 7. Modelos e valores atuais do domínio
 

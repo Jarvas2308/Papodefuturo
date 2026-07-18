@@ -50,6 +50,10 @@ No estado atual:
   Fund Delivery FII Events V1 isolado para os quatro FIIs, com download
   injetado, materialização exclusiva do CSV mensal, associação por CNPJ exato,
   tipos documentais fechados e deduplicação em memória;
+- `src/data/context/official-events/sec/edgar` contém o provider SEC EDGAR ETF
+  Events V1 isolado para VOO, VNQ e VEA, com Submissions como índice, Filing
+  Detail obrigatória, identidade exata por CIK, série e classe, forms fechados,
+  fair access e deduplicação em memória;
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
@@ -344,7 +348,23 @@ ele não possui storage, Supabase ou integração runtime. A API pública recebe
 e mês como inteiros validados; o CNPJ aceita somente 14 dígitos ou a pontuação
 oficial, `Sistema_Origem` é normalizado por trim e `ID_Documento` vira decimal
 canônico usado também como identificador regulatório. O título combina tipo e
-competência. O próximo ciclo é o provider SEC de eventos de ETFs.
+competência.
+
+O provider SEC EDGAR ETF Events V1 usa a Submissions API como índice e a Filing
+Detail canônica como confirmação obrigatória de CIK, série e classe para VOO,
+VNQ e VEA. O prefixo do accession serve apenas para construir a URL do Archives
+e não identifica o ETF. O mapping fechado cobre quatro relatórios periódicos
+(`NPORT-P`, `N-CEN`, `N-CSR`, `N-CSRS`) e duas formas de assembleia (`DEF 14A`,
+`DEFA14A`); forms ambíguos e `/A` ficam fora da V1. Todos os eventos são
+`original`, o accession é a identidade documental, `acceptanceDateTime` fornece
+`publishedAt` e `reportDate` ou `filingDate` fornece `occurredAt`. O provider
+nunca baixa o primary document, usa User-Agent obrigatório, chamadas
+sequenciais com intervalo mínimo de 500 ms e cache por URL. Somente
+`filings.recent` é suportado; sobreposição com `filings.files` aborta o lote.
+SGML fica como fallback futuro e `index.json` não é usado porque não confirma a
+identidade de série e classe. Mudança estrutural ou indisponibilidade da Filing
+Detail aborta sem omissão silenciosa. Não há storage, Supabase ou runtime; o
+próximo ciclo é o storage global de eventos oficiais.
 
 ### Infraestrutura
 
