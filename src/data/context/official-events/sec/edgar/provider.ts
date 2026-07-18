@@ -154,6 +154,23 @@ function selectCandidateFilings(
   return { candidates, totalFilings, ignoredUnsupportedFormFilings }
 }
 
+function assertRecentSubmissionsCoverRequestedRange(
+  submissionsList: readonly SecEdgarSubmissionsV1[],
+  fromDate: string,
+  toDate: string
+): void {
+  const requiresHistory = submissionsList.some((submissions) =>
+    submissions.historicalFiles.some(
+      (file) => file.filingFrom <= toDate && file.filingTo >= fromDate
+    )
+  )
+  if (requiresHistory) {
+    throw new Error(
+      'SEC EDGAR historical submissions are required but are not supported by this provider version'
+    )
+  }
+}
+
 function assertRequestMetadata(
   input: ExtractSecEdgarEtfEventsInputV1,
   candidates: readonly CandidateFiling[],
@@ -293,22 +310,33 @@ function filingMatchesIdentity(
 
 function assertNormalizedFilingDetail(detail: SecEdgarFilingDetailV1): void {
   if (
+    detail.scope !== 'registrant-only' &&
+    detail.scope !== 'series-and-classes'
+  ) {
+    throw new Error('SEC EDGAR normalized filing detail scope is invalid')
+  }
+  if (
     !Number.isSafeInteger(detail.documentCount) ||
     Object.is(detail.documentCount, -0) ||
     detail.documentCount < 0 ||
     detail.documentCount > SEC_EDGAR_MAX_DOCUMENTS ||
     detail.series.length !== detail.seriesCount ||
     !Number.isSafeInteger(detail.seriesCount) ||
+    Object.is(detail.seriesCount, -0) ||
     detail.seriesCount < 0 ||
     detail.seriesCount > SEC_EDGAR_MAX_SERIES ||
     !Number.isSafeInteger(detail.classCount) ||
+    Object.is(detail.classCount, -0) ||
     detail.classCount < 0 ||
     detail.classCount > SEC_EDGAR_MAX_CLASSES
   ) {
     throw new Error('SEC EDGAR normalized filing detail counters are invalid')
   }
   if (
-    (detail.scope === 'registrant-only' && detail.seriesCount !== 0) ||
+    (detail.scope === 'registrant-only' &&
+      (detail.series.length !== 0 ||
+        detail.seriesCount !== 0 ||
+        detail.classCount !== 0)) ||
     (detail.scope === 'series-and-classes' && detail.seriesCount === 0)
   ) {
     throw new Error('SEC EDGAR normalized filing detail scope is inconsistent')
@@ -449,6 +477,11 @@ export function extractSecEdgarEtfEvents(
   assertRequestedDateRange(input.fromDate, input.toDate)
   assertExecutionTimestamps(input.ingestedAt, input.updatedAt)
   const identities = getSupportedIdentities()
+  assertRecentSubmissionsCoverRequestedRange(
+    input.submissions,
+    input.fromDate,
+    input.toDate
+  )
   const selection = selectCandidateFilings(
     input.submissions,
     identities,
@@ -718,17 +751,11 @@ export async function fetchSecEdgarEtfEvents(
       })
     )
   }
-  const requiresHistory = submissions.some((item) =>
-    item.historicalFiles.some(
-      (file) =>
-        file.filingFrom <= input.toDate && file.filingTo >= input.fromDate
-    )
+  assertRecentSubmissionsCoverRequestedRange(
+    submissions,
+    input.fromDate,
+    input.toDate
   )
-  if (requiresHistory) {
-    throw new Error(
-      'SEC EDGAR historical submissions are required but are not supported by this provider version'
-    )
-  }
 
   const selection = selectCandidateFilings(
     submissions,

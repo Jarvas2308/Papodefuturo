@@ -119,16 +119,76 @@ export function assertSafeInteger(
   return value
 }
 
+function isAsciiLetterOrDigit(character: string): boolean {
+  const codePoint = character.codePointAt(0) ?? -1
+  return (
+    (codePoint >= 0x30 && codePoint <= 0x39) ||
+    (codePoint >= 0x41 && codePoint <= 0x5a) ||
+    (codePoint >= 0x61 && codePoint <= 0x7a)
+  )
+}
+
+function isValidEmailContactToken(token: string): boolean {
+  if (
+    token.length === 0 ||
+    token.includes('<') ||
+    token.includes('>') ||
+    token.includes('"') ||
+    hasC0OrC1ControlCharacter(token)
+  ) {
+    return false
+  }
+
+  const atIndex = token.indexOf('@')
+  if (atIndex <= 0 || atIndex !== token.lastIndexOf('@')) return false
+
+  const localPart = token.slice(0, atIndex)
+  const domain = token.slice(atIndex + 1)
+  if (
+    domain.length === 0 ||
+    localPart.startsWith('.') ||
+    localPart.endsWith('.') ||
+    domain.startsWith('.') ||
+    domain.endsWith('.') ||
+    !domain.includes('.')
+  ) {
+    return false
+  }
+
+  const localSpecialCharacters = "!#$%&'*+-/=?^_`{|}~."
+  if (
+    [...localPart].some(
+      (character) =>
+        !isAsciiLetterOrDigit(character) &&
+        !localSpecialCharacters.includes(character)
+    )
+  ) {
+    return false
+  }
+
+  const domainParts = domain.split('.')
+  return domainParts.every(
+    (part) =>
+      part.length > 0 &&
+      !part.startsWith('-') &&
+      !part.endsWith('-') &&
+      [...part].every(
+        (character) => isAsciiLetterOrDigit(character) || character === '-'
+      )
+  )
+}
+
 export function assertSecUserAgent(userAgent: string): void {
   const hasProjectIdentity =
     /(?:^|[ (])(?:PapoDeFuturo|Papo de Futuro)(?:$|[ /)])/.test(userAgent)
+  const hasContactEmail = userAgent.split(/\s+/u).some(isValidEmailContactToken)
   if (
     typeof userAgent !== 'string' ||
     userAgent.length === 0 ||
     userAgent.trim() !== userAgent ||
     [...userAgent].length > 300 ||
     hasC0OrC1ControlCharacter(userAgent) ||
-    !userAgent.includes('@') ||
+    !hasContactEmail ||
     !hasProjectIdentity
   ) {
     throw new Error(

@@ -99,6 +99,32 @@ function extractionInput(
   }
 }
 
+function withHistoricalFile(
+  input: ExtractSecEdgarEtfEventsInputV1,
+  filingFrom: string,
+  filingTo: string,
+  identityIndex = 1
+): ExtractSecEdgarEtfEventsInputV1 {
+  return {
+    ...input,
+    submissions: input.submissions.map((submissions, index) =>
+      index === identityIndex
+        ? {
+            ...submissions,
+            historicalFiles: [
+              {
+                name: `CIK${TEST_IDENTITIES[index].cik}-submissions-001.json`,
+                filingCount: 1,
+                filingFrom,
+                filingTo,
+              },
+            ],
+          }
+        : submissions
+    ),
+  }
+}
+
 function response(
   text: string,
   contentLength: string | null = null
@@ -339,6 +365,49 @@ describe('SEC EDGAR ETF event extraction', () => {
     expect(() =>
       extractSecEdgarEtfEvents({ ...input, filingDetailsByUrl: details })
     ).toThrow(/wrong series/)
+  })
+
+  it.each([
+    ['unknown scope', { scope: 'unknown' }],
+    ['empty scope', { scope: '' }],
+    ['negative-zero series count', { seriesCount: -0 }],
+    ['negative-zero class count', { classCount: -0 }],
+    ['negative-zero document count', { documentCount: -0 }],
+    [
+      'registrant-only with a class count',
+      { scope: 'registrant-only', series: [], seriesCount: 0, classCount: 1 },
+    ],
+    [
+      'registrant-only with a series',
+      { scope: 'registrant-only', seriesCount: 1 },
+    ],
+    [
+      'series-and-classes without a series',
+      {
+        scope: 'series-and-classes',
+        series: [],
+        seriesCount: 0,
+        classCount: 0,
+      },
+    ],
+  ])('rejects normalized Filing Detail with %s', (_label, overrides) => {
+    const input = extractionInput()
+    const filing = input.submissions[0].recentFilings[0]
+    const detailUrl = buildSecEdgarFilingDetailUrl({
+      accessionNumber: filing.accessionNumber,
+    })
+    const details = new Map(input.filingDetailsByUrl)
+    details.set(detailUrl, {
+      ...createFilingDetail(0, filing.accessionNumber),
+      ...overrides,
+    } as unknown as SecEdgarFilingDetailV1)
+    expect(() =>
+      extractSecEdgarEtfEvents({ ...input, filingDetailsByUrl: details })
+    ).toThrow(/normalized filing detail/)
+  })
+
+  it('accepts valid normalized Filing Detail counters', () => {
+    expect(() => extractSecEdgarEtfEvents(extractionInput())).not.toThrow()
   })
 
   it('uses reportDate and falls back to filingDate without timezone invention', () => {
@@ -720,6 +789,46 @@ describe('SEC EDGAR ETF event extraction', () => {
     expect(result.requestCount).toBe(0)
   })
 
+  it('aborts offline extraction before consulting details when history overlaps', () => {
+    const input = withHistoricalFile(
+      extractionInput(),
+      '2026-03-01',
+      '2026-06-30'
+    )
+    const detailGet = vi.spyOn(input.filingDetailsByUrl, 'get')
+    expect(() => extractSecEdgarEtfEvents(input)).toThrow(
+      'SEC EDGAR historical submissions are required but are not supported by this provider version'
+    )
+    expect(detailGet).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['2025-01-01', '2026-01-01'],
+    ['2026-12-31', '2027-12-31'],
+  ])(
+    'rejects offline historical overlap at inclusive boundary %s..%s',
+    (filingFrom, filingTo) => {
+      expect(() =>
+        extractSecEdgarEtfEvents(
+          withHistoricalFile(extractionInput(), filingFrom, filingTo)
+        )
+      ).toThrow(/historical submissions/)
+    }
+  )
+
+  it.each([
+    ['2020-01-01', '2025-12-31'],
+    ['2027-01-01', '2027-12-31'],
+  ])(
+    'allows offline historical file fully outside range %s..%s',
+    (filingFrom, filingTo) => {
+      const result = extractSecEdgarEtfEvents(
+        withHistoricalFile(extractionInput(), filingFrom, filingTo)
+      )
+      expect(result.events).toHaveLength(3)
+    }
+  )
+
   it('rejects structurally impossible detail and cache metadata', () => {
     expect(() =>
       extractSecEdgarEtfEvents({
@@ -769,7 +878,10 @@ describe('SEC EDGAR ETF fetch orchestration', () => {
     expect(fetcher).not.toHaveBeenCalled()
   })
 
-  it('accepts the exact compact PapoDeFuturo project identity', async () => {
+  it.each([
+    'PapoDeFuturo/1.0 contact@example.com',
+    'Papo de Futuro contato@empresa.com.br',
+  ])('accepts project identity with contact email %j', async (userAgent) => {
     const payloads = TEST_IDENTITIES.map((_, index) =>
       createSubmissionsJson(index, [])
     )
@@ -780,7 +892,7 @@ describe('SEC EDGAR ETF fetch orchestration', () => {
       fromDate: '2026-01-01',
       toDate: '2026-12-31',
       fetcher,
-      userAgent: 'PapoDeFuturo/1.0 contact@example.com',
+      userAgent,
       ingestedAt: INGESTED_AT,
       updatedAt: UPDATED_AT,
     })
@@ -829,6 +941,16 @@ describe('SEC EDGAR ETF fetch orchestration', () => {
     'papodefuturo contact@example.com',
     'Papo Futuro contact@example.com',
     'NotPapoDeFuturo contact@example.com',
+    'PapoDeFuturo @',
+    'PapoDeFuturo contato@',
+    'PapoDeFuturo @example.com',
+    'PapoDeFuturo contato@example',
+    'PapoDeFuturo contato@@example.com',
+    'PapoDeFuturo .contato@example.com',
+    'PapoDeFuturo contato.@example.com',
+    'PapoDeFuturo contato@.example.com',
+    'PapoDeFuturo contato@example.com.',
+    'PapoDeFuturo contato example.com',
   ])('rejects invalid User-Agent %j before fetching', async (userAgent) => {
     const fetcher = vi.fn()
     await expect(
@@ -891,6 +1013,7 @@ describe('SEC EDGAR ETF fetch orchestration', () => {
         buildSecEdgarSubmissionsUrl({ registrantCik: identity.cik })
       )
     )
+    expect(calls.filter((url) => !url.endsWith('.json'))).toHaveLength(0)
     vi.useRealTimers()
   })
 
