@@ -145,6 +145,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - provider CVM Fund Delivery FII Events V1 isolado para KNRI11, VISC11, XPLG11
   e HGRU11, com vínculo por CNPJ exato, relatórios periódicos em mapping fechado
   e competência civil preservada, sem storage, runtime ou leitura de documentos;
+- provider SEC EDGAR ETF Events V1 isolado para VOO, VNQ e VEA, com confirmação
+  obrigatória por CIK, série e classe na Filing Detail, seis forms fechados e
+  fair access, sem storage, runtime ou leitura do primary document;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -154,9 +157,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- providers oficiais restantes em ciclos independentes, começando pelo provider
-  SEC de eventos de ETFs;
-- storage, banco e runtime de eventos somente após os três providers;
+- storage global de eventos oficiais como próximo ciclo independente;
+- banco e runtime de eventos somente após o contrato de storage;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;

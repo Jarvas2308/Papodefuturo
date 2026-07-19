@@ -15,8 +15,9 @@ separados. Nenhum deles altera carteira, metas, Motor Estratégico V2, plano de
 aporte, `FundamentalFactsV1`, `FundamentalDerivedFactsV1` ou
 `TechnicalDossierV1`. Contexto indisponível nunca bloqueia o produto.
 
-O desenho permanece a política de referência. O domínio puro e o provider CVM
-IPE V1 de ações já foram implementados em ciclos isolados; migration, tabela,
+O desenho permanece a política de referência. O domínio puro e os três
+providers oficiais V1 — CVM IPE para ações, CVM Fund Delivery para FIIs e SEC
+EDGAR para ETFs — foram implementados em ciclos isolados; migration, tabela,
 storage, scheduler, ingestão real, UI e IA continuam ausentes.
 
 ## 2. Estado atual
@@ -31,7 +32,9 @@ storage, scheduler, ingestão real, UI e IA continuam ausentes.
   do plano técnico.
 - `OfficialAssetEventV1`, o provider CVM IPE V1 das cinco ações e o provider
   CVM Fund Delivery V1 dos quatro FIIs estão implementados sem persistência ou
-  UI. `EditorialAssetNewsV1` continua apenas conceitual.
+  UI. O provider SEC EDGAR ETF Events V1 cobre VOO, VNQ e VEA por CIK, série e
+  classe, também sem persistência ou runtime. `EditorialAssetNewsV1` continua
+  apenas conceitual.
 
 ## 3. Objetivos
 
@@ -574,8 +577,8 @@ planejamento V1.
 4. Normalização temporal — concluído.
 5. Deduplicação e relações entre revisões — concluído.
 6. Provider CVM para eventos de ações — concluído.
-7. Provider CVM para eventos de FIIs.
-8. Provider SEC para eventos de ETFs.
+7. Provider CVM para eventos de FIIs — concluído.
+8. Provider SEC para eventos de ETFs — concluído.
 9. Contrato de storage global.
 10. Migration de `official_asset_events`.
 11. Adapter Supabase.
@@ -588,9 +591,34 @@ planejamento V1.
 
 Cada item é um ciclo independente; não há autorização implícita para os itens
 seguintes. Os itens 1 a 5 foram implementados como domínio puro. O item 6 usa o
-arquivo anual oficial IPE, parsing Windows-1252, identidade forte, categorias
-fechadas e deduplicação em memória, sem banco, Supabase ou runtime. O próximo
-ciclo é somente o item 7, provider CVM para eventos de FIIs.
+arquivo anual oficial IPE; o item 7 usa somente o CSV mensal Fund Delivery; e o
+item 8 usa Submissions como índice e Filing Detail como confirmação obrigatória
+de CIK, série e classe. Os três providers usam mapping fechado e deduplicação em
+memória, sem banco, Supabase ou runtime. O próximo ciclo é somente o item 9,
+contrato de storage global.
+
+### Provider SEC EDGAR ETF Events V1
+
+O provider cobre exclusivamente VOO, VNQ e VEA. Submissions fornece o índice de
+filings recentes e a página Filing Detail confirma obrigatoriamente a combinação
+canônica de registrant CIK, series ID e class/contract ID. O prefixo do accession
+serve somente para construir a URL do Archives e não identifica o ETF.
+
+O mapping fechado aceita `NPORT-P`, `N-CEN`, `N-CSR` e `N-CSRS` como
+`periodic-report`, e `DEF 14A` e `DEFA14A` como `shareholder-meeting`. Forms
+ambíguos e todos os `/A` ficam fora desta V1. Todos os eventos são `original`,
+sem supersedes; `acceptanceDateTime` UTC fornece `publishedAt`, enquanto
+`reportDate` ou o fallback `filingDate` fornece `occurredAt`. O accession é a
+identidade documental e a Filing Detail é a URL original e canônica. O primary
+document nunca é baixado.
+
+A execução exige User-Agent identificável, usa chamadas sequenciais com
+intervalo mínimo de 500 ms e cache por URL. Somente `filings.recent` é suportado:
+qualquer sobreposição necessária em `filings.files` bloqueia o lote antes dos
+detalhes. SGML permanece fallback futuro e `index.json` não é usado, pois não
+fornece identidade de série e classe. Indisponibilidade ou mudança estrutural da
+Filing Detail aborta sem omissão silenciosa. Não há storage, Supabase, runtime ou
+ingestão real, e qualquer falha permanece isolada do Motor V2.
 
 ## 27. Gate para iniciar código
 

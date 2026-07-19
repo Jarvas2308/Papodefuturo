@@ -413,3 +413,30 @@ Este documento registra decisões de produto e arquitetura.
   O provider permanece isolado, determinístico, com fetch injetado e
   deduplicação em memória, sem storage, migration, Supabase, scheduler, runtime
   ou UI. O source canônico passa a ser `cvm-fund-delivery`, sem alias legado.
+
+## DEC-027 — Provider SEC EDGAR V1 associa ETFs por CIK, série e classe
+
+- Data: 17 de julho de 2026
+- Status: Aceita
+- Contexto: VOO, VNQ e VEA precisam de eventos regulatórios oficiais sem usar
+  ticker textual, nome do fundo ou o prefixo do accession como identidade do
+  ETF. A Submissions API fornece o índice de filings, mas somente a Filing
+  Detail confirma a hierarquia oficial de série e class/contract.
+- Decisão: O provider V1 cobre somente VOO, VNQ e VEA e associa cada filing pela
+  combinação exata do registrant CIK validado em Submissions com series ID e
+  class/contract ID confirmados na Filing Detail. O prefixo do accession é usado
+  apenas para construir a URL do Archives. O mapping fechado aceita `NPORT-P`,
+  `N-CEN`, `N-CSR` e `N-CSRS` como `periodic-report`, e `DEF 14A` e `DEFA14A`
+  como `shareholder-meeting`; forms ambíguos e `/A` ficam fora da V1. Todos os
+  eventos são `original`, o accession é a identidade documental,
+  `acceptanceDateTime` fornece a publicação e `reportDate` ou `filingDate`
+  fornece a ocorrência. A Filing Detail é a URL canônica e original; o primary
+  document não é baixado. A execução usa User-Agent obrigatório, chamadas
+  sequenciais com intervalo mínimo de 500 ms e cache por URL.
+- Consequências: A V1 usa apenas `filings.recent`. Se `filings.files` indicar
+  histórico necessário, o lote é interrompido antes dos detalhes. SGML fica
+  como fallback futuro e `index.json` não é usado porque não confirma série e
+  classe. Mudança estrutural ou indisponibilidade da Filing Detail aborta sem
+  omissão silenciosa. O provider permanece isolado, sem storage, migration,
+  Supabase, scheduler, runtime, UI ou ingestão real, e falhas não alteram nem
+  bloqueiam o Motor V2. O próximo ciclo é o storage global de eventos oficiais.
