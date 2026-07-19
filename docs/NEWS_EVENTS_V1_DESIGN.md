@@ -455,9 +455,11 @@ futuro; a segunda não está aprovada para implementação.
   precisão, source/type/document ID, URLs, textos permitidos, status/relação,
   idioma/jurisdição, proveniência JSON validada, parser/mapping version, hash e
   timestamps internos;
-- chaves/unicidade: PK interna; única por `source_type + source_document_id`;
-  índices por identidade global, `published_at desc`, `occurred_at desc`,
-  `event_type`, `source` e relação;
+- chaves/unicidade: `eventId` como identidade determinística e
+  `deduplicationKey` como chave natural global; `source` e a identidade
+  documental discriminada permanecem indexáveis para auditoria; índices por
+  identidade global, `published_at desc`, `occurred_at desc`, `event_type`,
+  `source` e relação;
 - constraints: discriminante de identidade completo por kind, enumerações
   fechadas, URL/host permitido e coerência entre status e relação;
 - atualizações: upsert idempotente de metadados; histórico de amendments não é
@@ -579,7 +581,7 @@ planejamento V1.
 6. Provider CVM para eventos de ações — concluído.
 7. Provider CVM para eventos de FIIs — concluído.
 8. Provider SEC para eventos de ETFs — concluído.
-9. Contrato de storage global.
+9. Contrato de storage global — concluído.
 10. Migration de `official_asset_events`.
 11. Adapter Supabase.
 12. Execução real server-side.
@@ -594,8 +596,11 @@ seguintes. Os itens 1 a 5 foram implementados como domínio puro. O item 6 usa o
 arquivo anual oficial IPE; o item 7 usa somente o CSV mensal Fund Delivery; e o
 item 8 usa Submissions como índice e Filing Detail como confirmação obrigatória
 de CIK, série e classe. Os três providers usam mapping fechado e deduplicação em
-memória, sem banco, Supabase ou runtime. O próximo ciclo é somente o item 9,
-contrato de storage global.
+memória, sem banco, Supabase ou runtime. O item 9 definiu record canônico
+lossless, `eventId` e `deduplicationKey` como identidades persistentes, batch
+determinístico e upsert idempotente por interface abstrata. Os itens 1 a 9 estão
+concluídos. O próximo ciclo é somente o item 10, migration de
+`official_asset_events`.
 
 ### Provider SEC EDGAR ETF Events V1
 

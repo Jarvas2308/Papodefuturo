@@ -100,6 +100,9 @@ Estado já integrado:
   como índice, Filing Detail obrigatória, associação exata por CIK, série e
   classe, seis forms fechados, fair access e deduplicação em memória, sem
   storage, Supabase ou runtime;
+- contrato global `official-asset-event-storage-record.v1` puro e provider-agnostic,
+  com mapeamento lossless, validação runtime, batch determinístico, upsert
+  idempotente e referência em memória, sem SQL, Supabase, runtime ou leitura;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -386,8 +389,8 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
 - implementar infraestrutura somente nos ciclos próprios posteriores e na
-  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é o
-  storage global de eventos oficiais.
+  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é a
+  migration de `official_asset_events`.
 
 ## 7. Modelos e valores atuais do domínio
 

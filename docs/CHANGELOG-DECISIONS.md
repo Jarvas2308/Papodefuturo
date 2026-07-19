@@ -440,3 +440,26 @@ Este documento registra decisões de produto e arquitetura.
   omissão silenciosa. O provider permanece isolado, sem storage, migration,
   Supabase, scheduler, runtime, UI ou ingestão real, e falhas não alteram nem
   bloqueiam o Motor V2. O próximo ciclo é o storage global de eventos oficiais.
+
+## DEC-028 — Contrato global de storage de eventos oficiais usa eventId e deduplicationKey como identidades persistentes
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: Os três providers oficiais já produzem `OfficialAssetEventV1`, mas a
+  futura persistência precisa de uma fronteira global, auditável e independente
+  de CVM, SEC, usuário ou carteira. A identidade não pode depender apenas de
+  `source_type + source_document_id`, pois o domínio possui uma hierarquia
+  canônica de identidades documentais.
+- Decisão: O contrato `official-asset-event-storage-record.v1` é global,
+  provider-agnostic e lossless. `eventId` é a identidade determinística
+  persistente, `deduplicationKey` é a chave natural global e
+  `documentIdentity` permanece preservada. O record não possui `user_id` nem FK
+  para `assets.id`. A escrita usa batch validado e upsert idempotente: preserva
+  o menor `ingestedAt`, aceita a versão de `updatedAt` mais recente, ignora stale
+  e trata payload divergente na mesma versão como conflito. Amendments,
+  correções, substituições e cancelamentos permanecem registros independentes.
+- Consequências: A implementação em memória serve somente como referência de
+  conformance e test double. Este ciclo não cria SQL, migration, Supabase,
+  runtime, scheduler, backfill, conexão com providers ou repository de leitura.
+  O próximo ciclo é a migration de `official_asset_events`; adapter e leitura
+  permanecem posteriores.

@@ -363,8 +363,31 @@ sequenciais com intervalo mínimo de 500 ms e cache por URL. Somente
 `filings.recent` é suportado; sobreposição com `filings.files` aborta o lote.
 SGML fica como fallback futuro e `index.json` não é usado porque não confirma a
 identidade de série e classe. Mudança estrutural ou indisponibilidade da Filing
-Detail aborta sem omissão silenciosa. Não há storage, Supabase ou runtime; o
-próximo ciclo é o storage global de eventos oficiais.
+Detail aborta sem omissão silenciosa. Não há conexão com Supabase ou runtime.
+
+### Contrato global de storage de eventos oficiais V1
+
+O contrato `official-asset-event-storage-record.v1` transforma
+`OfficialAssetEventV1` em um registro global, flat e lossless. `eventId` é a
+identidade determinística persistente e `deduplicationKey` é a chave natural
+global; `documentIdentity` permanece discriminada para auditoria. O contrato não
+possui `user_id`, FK para `assets.id`, provider específico ou método de leitura.
+
+O fluxo puro é:
+
+```text
+OfficialAssetEventV1
+  -> validação e record canônico
+  -> preparação determinística do batch
+  -> interface abstrata de upsert
+```
+
+O upsert preserva o menor `ingestedAt`, aceita somente `updatedAt` posterior para
+mudança de payload, ignora versões stale e trata divergência na mesma versão como
+conflito. Amendments e demais revisões permanecem documentos independentes. A
+implementação em memória existe apenas como referência de conformance; não há
+SQL, migration, Supabase, runtime, scheduler, backfill ou repository de leitura.
+O próximo ciclo é a migration de `official_asset_events`.
 
 ### Infraestrutura
 

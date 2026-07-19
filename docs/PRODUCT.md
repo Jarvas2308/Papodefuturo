@@ -148,6 +148,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - provider SEC EDGAR ETF Events V1 isolado para VOO, VNQ e VEA, com confirmação
   obrigatória por CIK, série e classe na Filing Detail, seis forms fechados e
   fair access, sem storage, runtime ou leitura do primary document;
+- contrato global de storage de eventos oficiais V1 concluído em memória, com
+  record canônico lossless, validação estrita, deduplicação de batch e semântica
+  de upsert idempotente, ainda sem migration, Supabase ou runtime;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -157,8 +160,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- storage global de eventos oficiais como próximo ciclo independente;
-- banco e runtime de eventos somente após o contrato de storage;
+- migration de `official_asset_events` como próximo ciclo independente;
+- adapter e runtime de eventos somente após a migration;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;

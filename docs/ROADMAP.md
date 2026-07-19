@@ -595,9 +595,22 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   rejeições e contadores explícitos;
 - sem storage, migration, Supabase, scheduler, ingestão real, runtime ou UI.
 
+### Contrato global de storage de eventos oficiais V1
+
+- record `official-asset-event-storage-record.v1` global e lossless;
+- `eventId` como identidade determinística e `deduplicationKey` como chave natural;
+- mapeamento de ida e volta com identidade regulatória, temporalidade e proveniência;
+- validação runtime estrita e preparação determinística de batches;
+- interface de escrita provider-agnostic com resultados e conflitos estruturados;
+- upsert idempotente, preservação do menor `ingestedAt` e rejeição de divergência
+  na mesma versão;
+- histórico de amendments preservado sem sobrescrita destrutiva;
+- implementação em memória somente como referência e suporte de testes;
+- sem SQL, migration, Supabase, runtime ou repository de leitura.
+
 ## Próximo
 
-1. Storage global de eventos oficiais;
+1. Migration de `official_asset_events`;
 2. Comitê de IA;
 3. Auditoria;
 4. Polimento.
@@ -608,4 +621,5 @@ A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM 
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
 permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
 para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
-concluídos; o próximo ciclo começa somente pelo storage global de eventos.
+concluídos; o contrato global de storage também está concluído. O próximo ciclo
+começa somente pela migration de `official_asset_events`.
