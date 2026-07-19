@@ -513,3 +513,26 @@ Este documento registra decisões de produto e arquitetura.
   ainda não está conectado ao runtime e os providers ainda não executam
   persistência real. Execução server-side, backfill, scheduler, repository e UI
   permanecem ciclos posteriores.
+
+## DEC-031 — Executor de eventos oficiais compõe providers e storage somente no servidor
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: Os três providers oficiais e o contrato global de persistência já
+  existem, mas precisam ser compostos sem levar credenciais, rede regulatória ou
+  escrita privilegiada ao browser e sem permitir que falhas contextuais afetem
+  o produto financeiro.
+- Decisão: O executor V1 recebe jobs explícitos de CVM IPE, CVM Fund Delivery e
+  SEC EDGAR, valida todo o lote e os executa sequencialmente na ordem recebida.
+  Cada provider produz `OfficialAssetEventV1`, que é persistido somente por
+  `persistOfficialAssetEventsV1` e pelo adapter Supabase injetado. Falhas são
+  isoladas por job e não bloqueiam login, carteira, compras, Motor V2 ou Novo
+  Aporte. O fetch server-side usa allowlist exata de hosts, HTTPS, redirect
+  manual rejeitado, timeout com abort e headers mínimos. User-Agent SEC,
+  relógio, fetch e RPC client são injetados; o módulo não lê segredo ou ambiente
+  e não é exportado ao browser.
+- Consequências: O resultado preserva ordem, contadores, rejeições, duplicatas,
+  conflitos e retorno da persistência com erros sanitizados. Este ciclo não
+  cria scheduler, retry, checkpoint, backfill, entrypoint de produção,
+  repository de leitura ou UI; não executa rede real, não acessa Supabase real e
+  não aplica migrations. O próximo ciclo é o backfill controlado e reiniciável.

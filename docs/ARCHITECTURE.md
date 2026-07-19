@@ -421,9 +421,28 @@ permite atualizar conteúdo mutável. A execução é exclusiva de `service_role
 escrita direta da tabela pelo role server-side é revogada em favor da RPC.
 
 `database.types.ts` continua gerado e não foi editado sem schema remoto
-aplicado. A migration complementar e o adapter ainda não foram aplicados nem
-conectados ao runtime; os providers não persistem eventos reais. O próximo ciclo
-é a execução real server-side de eventos oficiais.
+aplicado. A migration complementar e o adapter ainda não foram aplicados ao
+Supabase remoto.
+
+### Executor server-side de eventos oficiais V1
+
+O módulo `src/server/context/official-events` compõe os três providers em jobs
+explícitos e sequenciais. Cada provider entrega `OfficialAssetEventV1` à fachada
+`persistOfficialAssetEventsV1`, que então usa `OfficialAssetEventStorageV1` e o
+adapter Supabase injetado. O executor nunca chama a RPC nem transforma record de
+storage diretamente.
+
+O fetch server-side aceita somente HTTPS para `dados.cvm.gov.br`,
+`data.sec.gov` e `www.sec.gov`, rejeita redirects, credenciais na URL e headers
+não autorizados, usa timeout com `AbortController` e não expõe payloads em
+erros. User-Agent SEC, relógio, fetch e client RPC são injetados; não existe
+leitura de ambiente, segredo ou singleton no módulo.
+
+Jobs são validados integralmente antes dos efeitos e executados na ordem de
+entrada. Falhas de provider ou persistência ficam isoladas no job; conflitos
+contratuais são preservados e não bloqueiam os jobs seguintes. O executor não é
+exportado por barrels do browser e ainda não possui scheduler, checkpoint,
+backfill, entrypoint de produção, repository de leitura ou UI.
 
 ### Infraestrutura
 

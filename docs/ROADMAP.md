@@ -634,14 +634,30 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - `service_role` com execução exclusiva da RPC e sem escrita direta na tabela;
 - `authenticated` somente leitura e `anon` sem acesso preservados;
 - migration complementar e adapter versionados, ainda sem aplicação remota,
-  execução real, scheduler, backfill, repository ou UI.
+  scheduler, backfill, repository ou UI.
+
+### Executor server-side de eventos oficiais V1
+
+- jobs explícitos para CVM IPE, CVM Fund Delivery e SEC EDGAR;
+- execução sequencial, ordem preservada e falha isolada por job;
+- persistência exclusivamente por `persistOfficialAssetEventsV1` e pelo storage
+  injetado;
+- fetch HTTPS com allowlist exata, redirect bloqueado, timeout e abort;
+- User-Agent SEC, relógio, fetch e RPC client injetados;
+- resultados auditáveis com contadores, rejeições, conflitos e persistência;
+- fronteira exclusiva de servidor, sem segredo, env, singleton ou export para o
+  browser;
+- sem scheduler, checkpoint, backfill, execução remota, repository ou UI.
 
 ## Próximo
 
-1. Execução real server-side de eventos oficiais;
-2. Comitê de IA;
-3. Auditoria;
-4. Polimento.
+1. Backfill controlado e reiniciável de eventos oficiais;
+2. Repository de leitura;
+3. Integração runtime opcional;
+4. Apresentação na UI;
+5. Comitê de IA;
+6. Auditoria;
+7. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -650,6 +666,6 @@ SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de I
 permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
 para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
 concluídos; o contrato global de storage e sua migration versionada também estão
-concluídos. O adapter Supabase transacional também está concluído localmente,
-sem aplicação remota ou integração runtime. O próximo ciclo começa somente pela
-execução real server-side de eventos oficiais.
+concluídos. O adapter Supabase transacional e o executor server-side também
+estão concluídos localmente, sem aplicação remota ou integração runtime. O
+próximo ciclo começa somente pelo backfill controlado e reiniciável.

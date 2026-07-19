@@ -592,7 +592,7 @@ planejamento V1.
 9. Contrato de storage global — concluído.
 10. Migration de `official_asset_events` — concluído.
 11. Adapter Supabase — concluído.
-12. Execução real server-side.
+12. Executor server-side de eventos oficiais — concluído localmente.
 13. Backfill controlado.
 14. Repository de leitura.
 15. Integração runtime opcional.
@@ -609,9 +609,11 @@ lossless, `eventId` e `deduplicationKey` como identidades persistentes, batch
 determinístico e upsert idempotente por interface abstrata. O item 10 versionou
 a tabela global com constraints, índices, grants e RLS, sem aplicá-la ao
 Supabase remoto. O item 11 implementou mapping lossless e uma única RPC
-transacional server-side, sem conectar providers ou runtime. Os itens 1 a 11
-estão concluídos. O próximo ciclo é somente o item 12, execução real server-side
-de eventos oficiais.
+transacional server-side. O item 12 compõe os três providers, a fachada
+canônica de persistência e o adapter injetado em execução sequencial, com fetch
+seguro e falha isolada por job. Os itens 1 a 12 estão concluídos localmente. O
+próximo ciclo é somente o item 13, backfill controlado e reiniciável. Não há
+scheduler, checkpoint, execução remota, migration aplicada, repository ou UI.
 
 ### Provider SEC EDGAR ETF Events V1
 

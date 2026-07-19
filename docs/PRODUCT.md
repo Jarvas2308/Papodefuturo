@@ -156,8 +156,11 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   cliente autenticado somente para leitura, ainda sem aplicação remota ou
   runtime;
 - adapter Supabase de eventos oficiais implementado com mapping lossless dos 58
-  campos e RPC transacional exclusiva de contexto server-side, ainda sem
-  execução real ou conexão aos providers;
+  campos e RPC transacional exclusiva de contexto server-side;
+- executor server-side V1 de eventos oficiais implementado localmente para CVM
+  IPE, CVM Fund Delivery e SEC EDGAR, com jobs explícitos, ordem preservada,
+  falha isolada e persistência canônica; não há scheduler, backfill, execução em
+  produção ou integração com a interface;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -167,7 +170,7 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- execução real server-side, backfill, repository e runtime de eventos somente em ciclos
+- backfill controlado, repository e runtime de eventos somente em ciclos
   posteriores;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;

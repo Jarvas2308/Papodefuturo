@@ -108,7 +108,11 @@ Estado já integrado:
   reservada a `service_role`, ainda sem aplicação remota ou runtime;
 - adapter Supabase global de `official_asset_events` implementado sobre RPC
   transacional server-side, com mapping dos 58 campos, batch atômico, writers
-  serializados e retorno validado, ainda sem conexão aos providers ou runtime;
+  serializados e retorno validado;
+- executor V1 de eventos oficiais isolado em `src/server`, com jobs explícitos e
+  sequenciais para os três providers, fetch com allowlist, relógio injetado,
+  falha por job e persistência pela fachada canônica, ainda sem scheduler,
+  backfill, entrypoint de produção ou execução remota;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
