@@ -77,6 +77,7 @@ export type OfficialAssetEventStorageRecordV1 = {
 }
 
 export const OFFICIAL_ASSET_EVENT_STORAGE_V1_IMMUTABLE_FIELDS = [
+  'storageSchemaVersion',
   'eventId',
   'domainSchemaVersion',
   'deduplicationKey',

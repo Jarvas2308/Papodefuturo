@@ -620,11 +620,25 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - RLS habilitado, `anon` sem acesso, `authenticated` somente leitura e escrita
   reservada a `service_role`;
 - migration versionada e ainda não aplicada ao Supabase remoto;
-- sem adapter, ingestão, scheduler, backfill, repository ou integração runtime.
+- sem ingestão, scheduler, backfill, repository ou integração runtime.
+
+### Adapter Supabase de eventos oficiais V1
+
+- implementação de `OfficialAssetEventStorageV1` com client server-side injetado;
+- mapping explícito e defensivo dos 58 campos canônicos;
+- RPC transacional com `SECURITY DEFINER`, `search_path` fixo e lock de writers;
+- batch atômico de até 500 records, sem fracionamento silencioso;
+- conflitos classificados antes de qualquer escrita;
+- stale ignorado, divergência na mesma versão preservada como conflito e menor
+  `ingestedAt` mantido;
+- `service_role` com execução exclusiva da RPC e sem escrita direta na tabela;
+- `authenticated` somente leitura e `anon` sem acesso preservados;
+- migration complementar e adapter versionados, ainda sem aplicação remota,
+  execução real, scheduler, backfill, repository ou UI.
 
 ## Próximo
 
-1. Adapter Supabase de `official_asset_events`;
+1. Execução real server-side de eventos oficiais;
 2. Comitê de IA;
 3. Auditoria;
 4. Polimento.
@@ -636,5 +650,6 @@ SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de I
 permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
 para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
 concluídos; o contrato global de storage e sua migration versionada também estão
-concluídos. O próximo ciclo começa somente pelo adapter Supabase de
-`official_asset_events`.
+concluídos. O adapter Supabase transacional também está concluído localmente,
+sem aplicação remota ou integração runtime. O próximo ciclo começa somente pela
+execução real server-side de eventos oficiais.

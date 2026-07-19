@@ -27,3 +27,17 @@ export {
   assertOfficialAssetEventStorageWriteResultV1,
 } from './resultValidation'
 export { persistOfficialAssetEventsV1 } from './persist'
+export {
+  OFFICIAL_ASSET_EVENTS_UPSERT_BATCH_LIMIT_V1,
+  OFFICIAL_ASSET_EVENTS_UPSERT_RPC_V1,
+  OfficialAssetEventsSupabaseAdapterErrorV1,
+  createSupabaseOfficialAssetEventStorageV1,
+  fromOfficialAssetEventSupabaseRowV1,
+  toOfficialAssetEventSupabaseRowV1,
+} from './supabaseStorage'
+export type {
+  OfficialAssetEventSupabaseRowV1,
+  OfficialAssetEventsSupabaseAdapterErrorKindV1,
+  OfficialAssetEventsSupabaseRpcBatchItemV1,
+  OfficialAssetEventsSupabaseRpcClientV1,
+} from './supabaseStorage'

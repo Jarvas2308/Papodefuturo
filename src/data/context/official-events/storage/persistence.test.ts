@@ -118,6 +118,24 @@ describe('storage em memória de referência', () => {
     expect(storage.getSnapshot()[0].title).toBe('Metadado corrigido')
   })
 
+  it('atualiza conteúdo mutável posterior mesmo quando o hash permanece igual', async () => {
+    const initial = toOfficialAssetEventStorageRecordV1(
+      createStorageTestEvent()
+    )
+    const storage = createInMemoryOfficialAssetEventStorageV1([initial])
+    const incoming = toOfficialAssetEventStorageRecordV1(
+      createStorageTestEvent({
+        title: 'Metadado remapeado',
+        updatedAt: '2026-07-18T15:00:00Z',
+      })
+    )
+
+    const result = await storage.upsertMany([incoming])
+
+    expect(result.items[0].disposition).toBe('updated')
+    expect(storage.getSnapshot()[0].title).toBe('Metadado remapeado')
+  })
+
   it('ignora versão stale e conflita payload divergente no mesmo updatedAt', async () => {
     const initial = toOfficialAssetEventStorageRecordV1(
       createStorageTestEvent()

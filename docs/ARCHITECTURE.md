@@ -400,9 +400,30 @@ A tabela global habilita RLS, revoga todo acesso de `anon`, concede somente
 `select` a `authenticated` e reserva `select`, `insert`, `update` e `delete` a
 `service_role`. Revisões continuam registros independentes e
 `supersedes_event_id` não possui FK, permitindo backfill fora de ordem. A
-migration ainda não foi aplicada ao Supabase; não existem adapter, ingestão,
-scheduler, backfill ou repository de leitura. O próximo ciclo é o adapter
-Supabase de `official_asset_events`.
+migration ainda não foi aplicada ao Supabase; não existem ingestão, scheduler,
+backfill ou repository de leitura.
+
+### Adapter Supabase de eventos oficiais V1
+
+O adapter implementa `OfficialAssetEventStorageV1` por injeção de um client
+server-side mínimo e mapeia explicitamente os 58 campos entre camelCase e
+snake_case. Uma única chamada à RPC `upsert_official_asset_events_v1` processa
+até 500 records, preserva a ordem e rejeita entradas maiores sem fracionar a
+atomicidade.
+
+A RPC usa `SECURITY DEFINER`, `search_path` fixo e
+`pg_advisory_xact_lock` transacional para serializar apenas os writers deste
+contrato. Todo o batch é classificado antes das escritas; qualquer conflito
+impede gravações. Stale writes são ignorados, divergências na mesma versão são
+conflitos, o menor `ingested_at` é preservado e apenas `updated_at` posterior
+permite atualizar conteúdo mutável. A execução é exclusiva de `service_role`;
+`authenticated` continua somente leitura, `anon` permanece sem acesso e a
+escrita direta da tabela pelo role server-side é revogada em favor da RPC.
+
+`database.types.ts` continua gerado e não foi editado sem schema remoto
+aplicado. A migration complementar e o adapter ainda não foram aplicados nem
+conectados ao runtime; os providers não persistem eventos reais. O próximo ciclo
+é a execução real server-side de eventos oficiais.
 
 ### Infraestrutura
 

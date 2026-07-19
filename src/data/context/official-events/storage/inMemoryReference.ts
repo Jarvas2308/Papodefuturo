@@ -187,29 +187,16 @@ export function createInMemoryOfficialAssetEventStorageV1(
           }
           return
         }
-        if (byEventId.sourcePayloadHash === incoming.sourcePayloadHash) {
-          if (payloadMatchesIgnoringInternalTimes(byEventId, incoming)) {
-            results.push(
-              item(
-                inputIndex,
-                incoming,
-                'unchanged',
-                byEventId.updatedAt,
-                byEventId.updatedAt
-              )
+        if (payloadMatchesIgnoringInternalTimes(byEventId, incoming)) {
+          results.push(
+            item(
+              inputIndex,
+              incoming,
+              'unchanged',
+              byEventId.updatedAt,
+              byEventId.updatedAt
             )
-          } else {
-            results.push(
-              item(
-                inputIndex,
-                incoming,
-                'conflict',
-                byEventId.updatedAt,
-                byEventId.updatedAt,
-                'same-version-payload-divergence'
-              )
-            )
-          }
+          )
           return
         }
 

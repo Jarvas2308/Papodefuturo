@@ -485,3 +485,31 @@ Este documento registra decisões de produto e arquitetura.
   adapter. Esta decisão não cria adapter, runtime, scheduler, ingestão ou
   backfill e não aplica a migration ao Supabase remoto. A sincronização dos tipos
   gerados fica para o ciclo que aplicar o schema real e implementar o adapter.
+
+## DEC-030 — Adapter Supabase de eventos oficiais usa RPC transacional e escrita server-side
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: A tabela global versionada precisa implementar a semântica de
+  `OfficialAssetEventStorageV1` sem simular atomicidade por múltiplas chamadas
+  PostgREST nem expor escrita direta ao browser. A fronteira deve preservar os
+  58 campos, identidades, temporalidade lossless, proveniência e histórico de
+  revisões sob concorrência.
+- Decisão: O adapter mapeia explicitamente os 58 campos e chama uma única RPC
+  `upsert_official_asset_events_v1` por batch de até 500 records. A função usa
+  `SECURITY DEFINER`, `search_path` fixo e `pg_advisory_xact_lock` transacional
+  para serializar writers. Todo o lote é classificado antes de writes e qualquer
+  conflito impede gravações. `eventId` e `deduplicationKey` permanecem
+  identidades imutáveis; stale é ignorado, divergência na mesma versão é
+  conflito, conteúdo mutável posterior pode ser atualizado, o menor
+  `ingestedAt` é preservado e o `updatedAt` mais recente governa a versão.
+  Somente `service_role` executa a RPC, a escrita direta da tabela por esse role
+  é revogada, `authenticated` continua somente leitura e `anon` permanece sem
+  acesso.
+- Consequências: O client é estrutural, injetado e exclusivo da camada
+  server-side; não existe singleton, chave privilegiada ou operação direta no
+  frontend. `database.types.ts` permanece gerado e não foi falsificado. A
+  migration complementar ainda não foi aplicada ao Supabase remoto, o adapter
+  ainda não está conectado ao runtime e os providers ainda não executam
+  persistência real. Execução server-side, backfill, scheduler, repository e UI
+  permanecem ciclos posteriores.

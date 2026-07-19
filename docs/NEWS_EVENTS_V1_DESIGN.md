@@ -17,8 +17,9 @@ aporte, `FundamentalFactsV1`, `FundamentalDerivedFactsV1` ou
 
 O desenho permanece a política de referência. O domínio puro e os três
 providers oficiais V1 — CVM IPE para ações, CVM Fund Delivery para FIIs e SEC
-EDGAR para ETFs — foram implementados em ciclos isolados; migration, tabela,
-storage, scheduler, ingestão real, UI e IA continuam ausentes.
+EDGAR para ETFs — foram implementados em ciclos isolados. Contrato de storage,
+migration global e adapter Supabase transacional estão versionados; aplicação
+remota da migration, scheduler, ingestão real, UI e IA continuam ausentes.
 
 ## 2. Estado atual
 
@@ -466,8 +467,11 @@ continua não aprovada para implementação.
   sobrescrito;
 - segurança: RLS habilitado, `anon` sem acesso, `authenticated` somente leitura
   e escrita reservada ao contexto server-side `service_role`;
-- estado: migration versionada, ainda sem aplicação remota, adapter, ingestão,
-  scheduler, backfill ou repository.
+- adapter: mapping explícito dos 58 campos e uma RPC transacional com lock de
+  writers, batch atômico e conflitos estruturados, executável somente por
+  `service_role`;
+- estado: migrations e adapter versionados, ainda sem aplicação remota,
+  ingestão, scheduler, backfill ou repository.
 
 ### `editorial_asset_news`
 
@@ -587,7 +591,7 @@ planejamento V1.
 8. Provider SEC para eventos de ETFs — concluído.
 9. Contrato de storage global — concluído.
 10. Migration de `official_asset_events` — concluído.
-11. Adapter Supabase.
+11. Adapter Supabase — concluído.
 12. Execução real server-side.
 13. Backfill controlado.
 14. Repository de leitura.
@@ -604,8 +608,10 @@ memória, sem banco, Supabase ou runtime. O item 9 definiu record canônico
 lossless, `eventId` e `deduplicationKey` como identidades persistentes, batch
 determinístico e upsert idempotente por interface abstrata. O item 10 versionou
 a tabela global com constraints, índices, grants e RLS, sem aplicá-la ao
-Supabase remoto. Os itens 1 a 10 estão concluídos. O próximo ciclo é somente o
-item 11, adapter Supabase de `official_asset_events`.
+Supabase remoto. O item 11 implementou mapping lossless e uma única RPC
+transacional server-side, sem conectar providers ou runtime. Os itens 1 a 11
+estão concluídos. O próximo ciclo é somente o item 12, execução real server-side
+de eventos oficiais.
 
 ### Provider SEC EDGAR ETF Events V1
 
