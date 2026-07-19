@@ -385,9 +385,24 @@ OfficialAssetEventV1
 O upsert preserva o menor `ingestedAt`, aceita somente `updatedAt` posterior para
 mudança de payload, ignora versões stale e trata divergência na mesma versão como
 conflito. Amendments e demais revisões permanecem documentos independentes. A
-implementação em memória existe apenas como referência de conformance; não há
-SQL, migration, Supabase, runtime, scheduler, backfill ou repository de leitura.
-O próximo ciclo é a migration de `official_asset_events`.
+implementação em memória existe apenas como referência de conformance.
+
+### Migration global de eventos oficiais V1
+
+A migration versionada de `official_asset_events` materializa as 58 propriedades
+do record sem `user_id`, `asset_id` ou FK para `assets`. `event_id` é a PK e
+`deduplication_key` é a única unicidade natural adicional. Datas civis usam
+`date`; instantes, valores brutos e timestamps internos permanecem `text`
+canônico para preservar precisão e round-trip. Estruturas auditáveis usam
+`jsonb`, com shape superficial no SQL e validação profunda no contrato runtime.
+
+A tabela global habilita RLS, revoga todo acesso de `anon`, concede somente
+`select` a `authenticated` e reserva `select`, `insert`, `update` e `delete` a
+`service_role`. Revisões continuam registros independentes e
+`supersedes_event_id` não possui FK, permitindo backfill fora de ordem. A
+migration ainda não foi aplicada ao Supabase; não existem adapter, ingestão,
+scheduler, backfill ou repository de leitura. O próximo ciclo é o adapter
+Supabase de `official_asset_events`.
 
 ### Infraestrutura
 

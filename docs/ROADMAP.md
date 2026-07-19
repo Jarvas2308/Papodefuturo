@@ -606,11 +606,25 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   na mesma versão;
 - histórico de amendments preservado sem sobrescrita destrutiva;
 - implementação em memória somente como referência e suporte de testes;
-- sem SQL, migration, Supabase, runtime ou repository de leitura.
+- sem runtime ou repository de leitura.
+
+### Migration global de eventos oficiais V1
+
+- tabela global `official_asset_events` com as 58 propriedades lossless do record;
+- `event_id` como PK e `deduplication_key` como unique natural;
+- identidade regulatória discriminada por classe e identidade documental
+  preservada separadamente;
+- datas civis em `date`, instantes e timestamps lossless em `text`, sem
+  meia-noite inventada;
+- estruturas auditáveis em `jsonb`, com validação profunda mantida no runtime;
+- RLS habilitado, `anon` sem acesso, `authenticated` somente leitura e escrita
+  reservada a `service_role`;
+- migration versionada e ainda não aplicada ao Supabase remoto;
+- sem adapter, ingestão, scheduler, backfill, repository ou integração runtime.
 
 ## Próximo
 
-1. Migration de `official_asset_events`;
+1. Adapter Supabase de `official_asset_events`;
 2. Comitê de IA;
 3. Auditoria;
 4. Polimento.
@@ -621,5 +635,6 @@ A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM 
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
 permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
 para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
-concluídos; o contrato global de storage também está concluído. O próximo ciclo
-começa somente pela migration de `official_asset_events`.
+concluídos; o contrato global de storage e sua migration versionada também estão
+concluídos. O próximo ciclo começa somente pelo adapter Supabase de
+`official_asset_events`.

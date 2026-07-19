@@ -445,8 +445,8 @@ após término quando exigido. Nunca reter corpo/imagem editorial por padrão.
 ## 20. Persistência conceitual
 
 A arquitetura mantém `official_asset_events` e `editorial_asset_news`
-conceitualmente separados. Somente a primeira tabela poderá ser proposta em ciclo
-futuro; a segunda não está aprovada para implementação.
+separados. A migration versionada implementa somente a primeira tabela; a segunda
+continua não aprovada para implementação.
 
 ### `official_asset_events`
 
@@ -463,7 +463,11 @@ futuro; a segunda não está aprovada para implementação.
 - constraints: discriminante de identidade completo por kind, enumerações
   fechadas, URL/host permitido e coerência entre status e relação;
 - atualizações: upsert idempotente de metadados; histórico de amendments não é
-  sobrescrito.
+  sobrescrito;
+- segurança: RLS habilitado, `anon` sem acesso, `authenticated` somente leitura
+  e escrita reservada ao contexto server-side `service_role`;
+- estado: migration versionada, ainda sem aplicação remota, adapter, ingestão,
+  scheduler, backfill ou repository.
 
 ### `editorial_asset_news`
 
@@ -582,7 +586,7 @@ planejamento V1.
 7. Provider CVM para eventos de FIIs — concluído.
 8. Provider SEC para eventos de ETFs — concluído.
 9. Contrato de storage global — concluído.
-10. Migration de `official_asset_events`.
+10. Migration de `official_asset_events` — concluído.
 11. Adapter Supabase.
 12. Execução real server-side.
 13. Backfill controlado.
@@ -598,9 +602,10 @@ item 8 usa Submissions como índice e Filing Detail como confirmação obrigató
 de CIK, série e classe. Os três providers usam mapping fechado e deduplicação em
 memória, sem banco, Supabase ou runtime. O item 9 definiu record canônico
 lossless, `eventId` e `deduplicationKey` como identidades persistentes, batch
-determinístico e upsert idempotente por interface abstrata. Os itens 1 a 9 estão
-concluídos. O próximo ciclo é somente o item 10, migration de
-`official_asset_events`.
+determinístico e upsert idempotente por interface abstrata. O item 10 versionou
+a tabela global com constraints, índices, grants e RLS, sem aplicá-la ao
+Supabase remoto. Os itens 1 a 10 estão concluídos. O próximo ciclo é somente o
+item 11, adapter Supabase de `official_asset_events`.
 
 ### Provider SEC EDGAR ETF Events V1
 

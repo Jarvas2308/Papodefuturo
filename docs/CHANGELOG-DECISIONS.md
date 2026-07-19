@@ -463,3 +463,25 @@ Este documento registra decisões de produto e arquitetura.
   runtime, scheduler, backfill, conexão com providers ou repository de leitura.
   O próximo ciclo é a migration de `official_asset_events`; adapter e leitura
   permanecem posteriores.
+
+## DEC-029 — Migration official_asset_events preserva identidade global e separa datas civis de instantes
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: O contrato global de storage precisa de uma representação PostgreSQL
+  que preserve identidade, temporalidade e proveniência sem transformar datas
+  civis em instantes nem acoplar fatos globais a usuários ou carteiras.
+- Decisão: A migration cria a tabela global `official_asset_events`, sem
+  `user_id` e sem FK para `assets`. `event_id` é a PK,
+  `deduplication_key` é a chave natural unique e a identidade documental
+  discriminada permanece separada. A identidade regulatória é validada por
+  classe. Datas civis usam `date`; instantes UTC, valores temporais brutos e
+  timestamps internos ficam em texto canônico lossless, sem meia-noite
+  inventada. Somente estruturas auditáveis usam `jsonb`. RLS fica habilitado,
+  `anon` não possui acesso, `authenticated` recebe somente leitura e a escrita é
+  reservada ao contexto server-side. Revisões são preservadas sem FK obrigatória
+  em `supersedes_event_id`, permitindo backfill fora de ordem.
+- Consequências: A validação profunda continua no contrato TypeScript e no futuro
+  adapter. Esta decisão não cria adapter, runtime, scheduler, ingestão ou
+  backfill e não aplica a migration ao Supabase remoto. A sincronização dos tipos
+  gerados fica para o ciclo que aplicar o schema real e implementar o adapter.

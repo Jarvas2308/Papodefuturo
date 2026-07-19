@@ -150,7 +150,11 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   fair access, sem storage, runtime ou leitura do primary document;
 - contrato global de storage de eventos oficiais V1 concluído em memória, com
   record canônico lossless, validação estrita, deduplicação de batch e semântica
-  de upsert idempotente, ainda sem migration, Supabase ou runtime;
+  de upsert idempotente;
+- migration global de `official_asset_events` versionada com RLS, identidade
+  regulatória discriminada, datas civis separadas de instantes e acesso de
+  cliente autenticado somente para leitura, ainda sem aplicação remota, adapter
+  ou runtime;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -160,8 +164,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- migration de `official_asset_events` como próximo ciclo independente;
-- adapter e runtime de eventos somente após a migration;
+- adapter Supabase de `official_asset_events` como próximo ciclo independente;
+- execução, backfill, repository e runtime de eventos somente em ciclos
+  posteriores;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;
