@@ -117,6 +117,10 @@ Estado já integrado:
   determinísticos, preview sem efeitos, checkpoint global, leases recuperáveis,
   retries explícitos e etapas limitadas; as migrations permanecem não aplicadas
   e nenhum backfill real foi executado;
+- repository global `official-asset-event-read-repository.v1` implementado com
+  leitura por `eventId`, timeline filtrável, ordenação temporal determinística,
+  cursor opaco ligado à consulta e adapters Supabase e em memória conformes;
+  as RPCs de leitura permanecem apenas versionadas e sem aplicação remota;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -402,9 +406,13 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   atribuição e proveniência;
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
+- o repository global é somente leitura, não expõe contagem total, busca textual,
+  escrita, identidade de usuário ou garantia de snapshot entre páginas;
+- preservar a timeline canônica por data civil publicada, precisão, instante UTC
+  e `eventId`, sem converter data civil em meia-noite;
 - implementar infraestrutura somente nos ciclos próprios posteriores e na
-  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é o
-  repository global de leitura de eventos oficiais.
+  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é a
+  integração runtime opcional dos eventos oficiais.
 
 ## 7. Modelos e valores atuais do domínio
 

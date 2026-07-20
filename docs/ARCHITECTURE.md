@@ -442,7 +442,8 @@ Jobs são validados integralmente antes dos efeitos e executados na ordem de
 entrada. Falhas de provider ou persistência ficam isoladas no job; conflitos
 contratuais são preservados e não bloqueiam os jobs seguintes. O executor não é
 exportado por barrels do browser e ainda não possui scheduler, checkpoint,
-backfill, entrypoint de produção, repository de leitura ou UI.
+backfill, entrypoint de produção ou UI. O repository de leitura foi criado em
+ciclo posterior e permanece desacoplado do executor.
 
 ### Backfill controlado e reiniciável de eventos oficiais V1
 
@@ -468,7 +469,30 @@ A migration cria `official_event_backfill_runs` e
 com execução exclusiva de `service_role`. O adapter usa somente uma porta RPC
 injetada e valida profundamente os retornos. As migrations não foram aplicadas,
 o backfill não foi executado e não existem scheduler, cron, entrypoint de
-produção, repository de leitura ou UI.
+produção ou UI. O repository posterior não executa nem controla o backfill.
+
+### Repository global de leitura de eventos oficiais V1
+
+O contrato `official-asset-event-read-repository.v1` oferece somente
+`getByEventId` e `listPage`. A timeline é global e provider-agnostic, sem
+`userId`, `assetId`, contagem total ou busca textual. Filtros fechados cobrem
+identidade regulatória, ticker, fonte, tipo, status e intervalo inclusivo da data
+civil de publicação.
+
+A ordenação canônica descendente usa data civil publicada, rank de precisão
+(`second`, `minute`, `date`), instante UTC canônico quando existe e `eventId`.
+Datas civis permanecem datas: nenhuma meia-noite artificial é criada. O cursor
+`official-asset-event-read-cursor.v1` carrega a última tupla e um hash
+determinístico da consulta sem cursor. A paginação é keyset e não promete
+snapshot diante de inserções concorrentes.
+
+O adapter Supabase usa somente as RPCs `get_official_asset_event_by_id_v1` e
+`list_official_asset_events_v1`, ambas `STABLE`, `SECURITY INVOKER`, com
+`search_path` fixo e execução revogada de `PUBLIC` e `anon`. O resultado percorre
+o mapper lossless de 58 campos e as validações de storage e domínio. A referência
+em memória compartilha filtros, ordenação e cursor para testes de conformance.
+As RPCs permanecem não aplicadas; não existe integração runtime, UI, scheduler
+ou execução de backfill neste ciclo.
 
 ### Infraestrutura
 

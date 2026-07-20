@@ -6,6 +6,7 @@ export {
 export type {
   BuildOfficialAssetEventV1Input,
   OfficialAssetEventV1,
+  OfficialEventAssetTickerV1,
   OfficialEventAssetIdentityV1,
   OfficialEventAssociationEvidenceV1,
   OfficialEventAssociationReasonV1,

@@ -563,3 +563,27 @@ Este documento registra decisões de produto e arquitetura.
   execução automática, backfill real, migration aplicada, repository de
   leitura, runtime ou UI. A validação profunda permanece em TypeScript e SQL; o
   próximo ciclo é o repository global de leitura de eventos oficiais.
+
+## DEC-033 — Repository global de eventos oficiais usa timeline publicada e cursor determinístico
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: O contrato global, a tabela versionada, o adapter de escrita, o
+  executor e o backfill já definem fatos oficiais auditáveis, mas consumidores
+  futuros precisam de uma fronteira única de leitura que não dependa de provider,
+  usuário ou paginação por offset. Datas civis e instantes possuem semânticas
+  distintas e não podem ser achatados em um timestamp artificial.
+- Decisão: O repository V1 expõe somente leitura por `eventId` e timeline
+  paginada. A ordem descendente combina data civil publicada, precisão, instante
+  UTC canônico quando existente e `eventId`. O cursor opaco e versionado inclui
+  essa tupla e um hash determinístico da consulta canônica. Filtros são fechados,
+  o limite fica entre 1 e 100 e não existem count global, busca textual ou campos
+  de usuário/carteira. As RPCs são `STABLE`, `SECURITY INVOKER`, obedecem à RLS e
+  concedem execução somente a `authenticated` e `service_role`. Toda linha passa
+  pelos contratos Supabase, storage e domínio existentes.
+- Consequências: A paginação é keyset e não oferece snapshot transacional entre
+  chamadas; inserções concorrentes seguem a posição da chave. A validação
+  profunda e o cursor público permanecem no adapter TypeScript, enquanto o SQL
+  valida a fronteira e aplica filtros/ordenação. A migration não foi aplicada e
+  este ciclo não cria runtime, UI, scheduler, backfill real, escrita, count ou
+  busca editorial. O próximo ciclo é a integração runtime opcional.

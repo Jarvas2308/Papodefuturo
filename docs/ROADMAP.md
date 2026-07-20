@@ -606,7 +606,7 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   na mesma versão;
 - histórico de amendments preservado sem sobrescrita destrutiva;
 - implementação em memória somente como referência e suporte de testes;
-- sem runtime ou repository de leitura.
+- esse ciclo não incluiu runtime ou repository de leitura.
 
 ### Migration global de eventos oficiais V1
 
@@ -620,7 +620,8 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - RLS habilitado, `anon` sem acesso, `authenticated` somente leitura e escrita
   reservada a `service_role`;
 - migration versionada e ainda não aplicada ao Supabase remoto;
-- sem ingestão, scheduler, backfill, repository ou integração runtime.
+- esse ciclo não incluiu ingestão, scheduler, backfill, repository ou
+  integração runtime.
 
 ### Adapter Supabase de eventos oficiais V1
 
@@ -647,7 +648,8 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - resultados auditáveis com contadores, rejeições, conflitos e persistência;
 - fronteira exclusiva de servidor, sem segredo, env, singleton ou export para o
   browser;
-- sem scheduler, checkpoint, backfill, execução remota, repository ou UI.
+- esse ciclo não incluiu scheduler, checkpoint, backfill, execução remota,
+  repository ou UI.
 
 ### Backfill controlado e reiniciável de eventos oficiais V1
 
@@ -667,14 +669,27 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - sem scheduler, execução remota, migration aplicada, backfill executado,
   repository ou UI.
 
+### Repository global de leitura de eventos oficiais V1
+
+- contrato `official-asset-event-read-repository.v1` somente leitura;
+- busca exata por `eventId` e timeline global paginada;
+- filtros fechados por identidade regulatória, ticker, fonte, tipo, status e
+  intervalo de data civil publicada;
+- ordem descendente determinística por data civil, precisão, instante e
+  `eventId`, sem meia-noite inventada;
+- cursor `official-asset-event-read-cursor.v1` opaco e ligado ao hash canônico da
+  consulta;
+- adapters Supabase e em memória sob a mesma suíte de conformance;
+- RPCs `STABLE SECURITY INVOKER`, com leitura autenticada e sem acesso `anon`;
+- sem count global, busca textual, escrita, runtime, UI ou migration aplicada.
+
 ## Próximo
 
-1. Repository global de leitura de eventos oficiais;
-2. Integração runtime opcional;
-3. Apresentação na UI;
-4. Comitê de IA;
-5. Auditoria;
-6. Polimento.
+1. Integração runtime opcional dos eventos oficiais;
+2. Apresentação na UI;
+3. Comitê de IA;
+4. Auditoria;
+5. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -685,5 +700,6 @@ para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
 concluídos; o contrato global de storage e sua migration versionada também estão
 concluídos. O adapter Supabase transacional e o executor server-side também
 estão concluídos localmente, sem aplicação remota ou integração runtime. O
-backfill controlado está concluído localmente, sem execução real. O próximo
-ciclo começa somente pelo repository global de leitura.
+backfill controlado está concluído localmente, sem execução real. O repository
+global de leitura também está concluído localmente, com migration ainda não
+aplicada. O próximo ciclo começa somente pela integração runtime opcional.

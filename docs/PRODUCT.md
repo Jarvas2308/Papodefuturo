@@ -165,6 +165,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   determinísticos, preview sem efeitos, checkpoint global, leases, resume,
   retries explícitos, política de falha e execução em passos limitados; nenhuma
   migration foi aplicada e nenhum backfill real foi executado;
+- repository global de leitura de eventos oficiais V1 implementado localmente,
+  com consulta por `eventId`, filtros fechados e timeline determinística por
+  cursor; não há integração runtime, tela ou migration aplicada;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -174,8 +177,7 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- repository global de leitura e runtime de eventos somente em ciclos
-  posteriores;
+- integração runtime opcional dos eventos oficiais em ciclo posterior;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;
