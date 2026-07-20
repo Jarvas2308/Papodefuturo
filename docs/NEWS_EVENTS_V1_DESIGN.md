@@ -597,7 +597,7 @@ planejamento V1.
 14. Repository de leitura — concluído localmente.
 15. Integração runtime opcional — concluída localmente, sem ativação.
 16. Apresentação opcional na UI — concluída localmente, modo real desabilitado.
-17. Nova auditoria antes de qualquer notícia editorial.
+17. Auditoria Editorial News Providers V2 — concluída com decisão `NO-GO`.
 
 Cada item é um ciclo independente; não há autorização implícita para os itens
 seguintes. Os itens 1 a 5 foram implementados como domínio puro. O item 6 usa o
@@ -623,8 +623,26 @@ adiciona a página autenticada com timeline, filtros, cursor, detalhes, revisõe
 temporalidade e links seguros, dependendo somente do runtime. A composição real
 permanece `disabled`, sem item de navegação. Não há runtime read-only ativado,
 scheduler, execução remota, migration aplicada, backfill executado ou notícia
-editorial. O próximo ciclo é somente o item 17, uma nova auditoria antes de
-qualquer notícia editorial.
+editorial. O item 17 foi concluído em 20/07/2026 como auditoria documental; não
+houve implementação editorial. A próxima ação permitida é somente um deployment
+controlado dos eventos oficiais mediante autorização separada.
+
+## 27. Auditoria Editorial News Providers V2
+
+A auditoria registrada em
+`docs/audits/EDITORIAL_NEWS_PROVIDERS_V2_2026-07-20.md` e no artefato estruturado
+`docs/audits/editorial-news-providers-v2-evidence.json` avaliou GDELT, NewsAPI,
+Finnhub, Marketaux, Alpha Vantage, Financial Modeling Prep, Massive com Benzinga
+e Benzinga direta. Nenhum candidato comprovou simultaneamente licença comercial
+para aplicação multiusuário, direitos de exibição e retenção por campo,
+identidade forte do instrumento e cobertura dos 12 ativos.
+
+A decisão é `NO-GO`. GDELT, NewsAPI, Finnhub, Marketaux e Alpha Vantage foram
+rejeitados. FMP, Massive com Benzinga e Benzinga direta são apenas condicionais
+a contrato específico, revisão jurídica e teste autenticado 12/12. Não há
+provider aprovado nem composição multiprovider aprovada. A auditoria não cria
+`EditorialAssetNewsV1`, provider, storage, migration, repository, runtime, UI,
+IA, sentimento ou score. Eventos Oficiais Primeiro permanece a política vigente.
 
 ### Provider SEC EDGAR ETF Events V1
 

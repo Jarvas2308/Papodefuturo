@@ -703,7 +703,8 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 
 ## Próximo
 
-1. Nova auditoria antes de qualquer notícia editorial.
+1. Deployment controlado dos eventos oficiais, somente mediante autorização
+   separada.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -718,5 +719,8 @@ concluído localmente, sem execução real. O repository global de leitura e o
 runtime opcional e a apresentação UI também estão concluídos localmente. As
 migrations continuam não aplicadas, o modo real permanece `disabled` e nenhum
 backfill foi executado. Os itens 1 a 16 da sequência de eventos oficiais estão
-concluídos localmente. O próximo ciclo começa somente por nova auditoria antes
-de qualquer notícia editorial.
+concluídos localmente. O item 17, auditoria Editorial News Providers V2, também
+está concluído com decisão `NO-GO`; isso não significa provider editorial
+implementado. Nenhum provider editorial foi aprovado. A próxima ação permitida
+é somente o deployment controlado dos eventos oficiais mediante autorização
+separada.

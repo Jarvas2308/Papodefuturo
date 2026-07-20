@@ -317,11 +317,9 @@ CVM para ações e FIIs / SEC EDGAR para ETFs
                   ↓
        contexto factual opcional
 
-provider editorial futuro após nova auditoria
+provider editorial futuro somente após nova evidência
                   ↓
-         EditorialAssetNewsV1
-                  ↓
-       contexto editorial opcional
+ EditorialAssetNewsV1 ainda não implementado
 ```
 
 Eventos oficiais e notícias editoriais possuem identidade, proveniência,
@@ -329,7 +327,12 @@ deduplicação e persistência conceitual separadas. A associação usa apenas
 identidade forte do universo fechado. Nenhuma das fronteiras é engine, IA ou
 fonte de recomendação, e nenhuma altera fatos fundamentalistas, Dossiê Técnico,
 Motor V2 ou plano de aporte. `EditorialAssetNewsV1` permanece adiado e apenas
-conceitual. `OfficialAssetEventV1` já implementa contratos puros, mapping,
+conceitual. A auditoria Editorial News Providers V2, de 20/07/2026, resultou em
+`NO-GO`: GDELT, NewsAPI, Finnhub, Marketaux e Alpha Vantage foram rejeitados;
+FMP, Massive com Benzinga e Benzinga direta permanecem condicionais, sem licença,
+identidade e cobertura 12/12 simultaneamente comprovadas. Logo, não há provider
+editorial aprovado nem autorização para contrato runtime, storage, migration,
+repository ou UI editorial. `OfficialAssetEventV1` já implementa contratos puros, mapping,
 taxonomia, precisão temporal, identidade documental, deduplicação e revisões.
 O provider CVM IPE V1 de ações transforma somente metadados oficiais em eventos
 por código CVM, CNPJ e registry, mantendo aliases oficiais em allowlist fechada
@@ -720,11 +723,12 @@ Planejado:
 
 ## Integrações futuras
 
-Integrações candidatas sob avaliação:
+Integrações candidatas ou anteriormente avaliadas:
 
 - BRAPI para mercado brasileiro;
 - Twelve Data para mercado internacional;
-- Finnhub para notícias;
+- providers editoriais somente após nova evidência contratual, identidade forte
+  e cobertura 12/12; a auditoria V2 atual resultou em `NO-GO`;
 - Financial Modeling Prep para fundamentos;
 - provedor de USD/BRL ainda a definir.
 

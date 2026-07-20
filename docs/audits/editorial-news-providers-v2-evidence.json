@@ -1,0 +1,211 @@
+{
+  "auditVersion": "editorial-news-provider-audit.v2",
+  "auditedAt": "2026-07-20",
+  "scope": "documentation-and-architecture-decision-only",
+  "assets": [
+    { "ticker": "BBAS3", "category": "brazilian-stock", "market": "BR" },
+    { "ticker": "ITSA4", "category": "brazilian-stock", "market": "BR" },
+    { "ticker": "TAEE11", "category": "brazilian-stock", "market": "BR" },
+    { "ticker": "WEGE3", "category": "brazilian-stock", "market": "BR" },
+    { "ticker": "PSSA3", "category": "brazilian-stock", "market": "BR" },
+    { "ticker": "KNRI11", "category": "real-estate-fund", "market": "BR" },
+    { "ticker": "VISC11", "category": "real-estate-fund", "market": "BR" },
+    { "ticker": "XPLG11", "category": "real-estate-fund", "market": "BR" },
+    { "ticker": "HGRU11", "category": "real-estate-fund", "market": "BR" },
+    { "ticker": "VOO", "category": "international-etf", "market": "US" },
+    { "ticker": "VNQ", "category": "international-etf", "market": "US" },
+    { "ticker": "VEA", "category": "international-etf", "market": "US" }
+  ],
+  "providers": [
+    {
+      "name": "GDELT",
+      "products": ["DOC 2.0", "Context 2.0"],
+      "finalStatus": "REJECTED",
+      "licenseGate": "PASS",
+      "copyrightGate": "UNVERIFIED",
+      "identityGate": "FAIL",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "PASS",
+      "operationalGate": "CONDITIONAL",
+      "identityClassification": "text-only",
+      "reason": "Open dataset license does not provide deterministic instrument identity."
+    },
+    {
+      "name": "NewsAPI",
+      "products": ["Developer", "Business", "Advanced", "Enterprise"],
+      "finalStatus": "REJECTED",
+      "licenseGate": "FAIL",
+      "copyrightGate": "FAIL",
+      "identityGate": "FAIL",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "PASS",
+      "operationalGate": "PASS",
+      "identityClassification": "text-only",
+      "reason": "Production plans do not transfer publisher rights and article discovery is keyword based."
+    },
+    {
+      "name": "Finnhub",
+      "products": ["Free", "All-in-One", "Enterprise"],
+      "finalStatus": "REJECTED",
+      "licenseGate": "CONDITIONAL",
+      "copyrightGate": "CONDITIONAL",
+      "identityGate": "FAIL",
+      "coverageGate": "FAIL",
+      "costGate": "CONDITIONAL",
+      "operationalGate": "PASS",
+      "identityClassification": "unsupported",
+      "reason": "Company News is documented for North American companies and does not cover the closed BR universe."
+    },
+    {
+      "name": "Marketaux",
+      "products": ["Free", "Basic", "Standard", "Pro", "Pro 50K", "Custom"],
+      "finalStatus": "REJECTED",
+      "licenseGate": "FAIL",
+      "copyrightGate": "UNVERIFIED",
+      "identityGate": "UNVERIFIED",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "PASS",
+      "operationalGate": "FAIL",
+      "identityClassification": "ambiguous",
+      "reason": "Public terms restrict commercial and automated use without approval."
+    },
+    {
+      "name": "Alpha Vantage",
+      "products": ["Free", "Premium", "Commercial"],
+      "finalStatus": "REJECTED",
+      "licenseGate": "CONDITIONAL",
+      "copyrightGate": "UNVERIFIED",
+      "identityGate": "FAIL",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "CONDITIONAL",
+      "operationalGate": "PASS",
+      "identityClassification": "text-only",
+      "reason": "NEWS_SENTIMENT filters articles that mention a ticker and commercial use needs a written agreement."
+    },
+    {
+      "name": "Financial Modeling Prep",
+      "products": ["Personal", "Ultimate", "Enterprise/Data Display"],
+      "finalStatus": "CONDITIONAL",
+      "licenseGate": "CONDITIONAL",
+      "copyrightGate": "CONDITIONAL",
+      "identityGate": "UNVERIFIED",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "CONDITIONAL",
+      "operationalGate": "PASS",
+      "identityClassification": "ambiguous",
+      "reason": "A specific display agreement and authenticated 12-asset identity and coverage evidence are required."
+    },
+    {
+      "name": "Massive",
+      "products": ["Benzinga News Individual", "Benzinga News Business"],
+      "finalStatus": "CONDITIONAL",
+      "licenseGate": "CONDITIONAL",
+      "copyrightGate": "CONDITIONAL",
+      "identityGate": "UNVERIFIED",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "CONDITIONAL",
+      "operationalGate": "PASS",
+      "identityClassification": "ambiguous",
+      "reason": "Business use requires an Order Form and may require a separate third-party agreement with Benzinga."
+    },
+    {
+      "name": "Benzinga",
+      "products": ["Stock News API", "Newsfeed API"],
+      "finalStatus": "CONDITIONAL",
+      "licenseGate": "CONDITIONAL",
+      "copyrightGate": "CONDITIONAL",
+      "identityGate": "CONDITIONAL",
+      "coverageGate": "UNVERIFIED",
+      "costGate": "CONDITIONAL",
+      "operationalGate": "PASS",
+      "identityClassification": "strong-provider-mapping-potential",
+      "reason": "Direct licensing is designed for display, but contract price and B3/FII coverage for all 12 assets are unproven."
+    }
+  ],
+  "sources": [
+    {
+      "provider": "GDELT",
+      "title": "The GDELT Story: Terms of Use",
+      "url": "https://www.gdeltproject.org/about.html#termsofuse",
+      "accessedAt": "2026-07-20",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "NewsAPI",
+      "title": "News API Terms of Service",
+      "url": "https://newsapi.org/terms",
+      "accessedAt": "2026-07-20",
+      "termsVersion": "2020-04-30",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "Finnhub",
+      "title": "Finnhub Terms of Service",
+      "url": "https://finnhub.io/terms-of-service",
+      "accessedAt": "2026-07-20",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "Marketaux",
+      "title": "Marketaux Terms of Service",
+      "url": "https://www.marketaux.com/tos",
+      "accessedAt": "2026-07-20",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "Alpha Vantage",
+      "title": "Alpha Vantage Terms of Service",
+      "url": "https://www.alphavantage.co/terms_of_service/",
+      "accessedAt": "2026-07-20",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "Financial Modeling Prep",
+      "title": "FMP Terms of Service",
+      "url": "https://site.financialmodelingprep.com/developer/docs/terms-of-service",
+      "accessedAt": "2026-07-20",
+      "termsVersion": "2023-08-01",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "Massive",
+      "title": "Massive for Businesses Terms of Service",
+      "url": "https://massive.com/legal/businesses-terms-of-service",
+      "accessedAt": "2026-07-20",
+      "termsVersion": "2025-09-02",
+      "evidenceClass": "official-terms"
+    },
+    {
+      "provider": "Benzinga",
+      "title": "Benzinga Stock News API",
+      "url": "https://www.benzinga.com/apis/cloud-product/stock-news-api/",
+      "accessedAt": "2026-07-20",
+      "evidenceClass": "official-product-documentation"
+    }
+  ],
+  "empiricalTests": [
+    {
+      "provider": "GDELT",
+      "asset": "BBAS3",
+      "window": "30d",
+      "status": "NOT_EXECUTED",
+      "reason": "Sandbox Schannel failed before a response; no payload was stored."
+    }
+  ],
+  "decision": {
+    "result": "NO-GO",
+    "approvedProviders": [],
+    "conditionalProviders": ["Financial Modeling Prep", "Massive", "Benzinga"],
+    "rejectedProviders": [
+      "GDELT",
+      "NewsAPI",
+      "Finnhub",
+      "Marketaux",
+      "Alpha Vantage"
+    ],
+    "implementationAuthorized": false,
+    "multiProviderCompositionAuthorized": false,
+    "nextAllowedAction": "Separately authorized controlled deployment of official events.",
+    "legalReviewRequiredForFutureContract": true
+  }
+}

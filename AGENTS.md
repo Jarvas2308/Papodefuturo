@@ -87,6 +87,10 @@ Estado já integrado:
   separada em memória, sem persistência ou integração runtime;
 - política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
   SEC como únicas fontes automatizadas V1 e notícias editoriais adiadas;
+- auditoria Editorial News Providers V2 concluída em 20/07/2026 com decisão
+  `NO-GO`: nenhum dos oito providers avaliados comprovou simultaneamente licença
+  comercial, identidade forte e cobertura do universo fechado; não existe
+  provider editorial, storage, migration, repository, runtime ou UI aprovados;
 - domínio puro `OfficialAssetEventV1` implementado com registry fechado dos 12
   ativos, taxonomia, precisão temporal explícita, identidade documental,
   deduplicação e histórico de revisões, sem banco ou runtime;
@@ -419,8 +423,9 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - preservar a timeline canônica por data civil publicada, precisão, instante UTC
   e `eventId`, sem converter data civil em meia-noite;
 - implementar infraestrutura somente nos ciclos próprios posteriores e na
-  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é a
-  apresentação opcional dos eventos oficiais na UI.
+  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; a auditoria editorial
+  V2 não autoriza implementação e a única próxima ação permitida é um deployment
+  controlado dos eventos oficiais, mediante autorização separada.
 
 ## 7. Modelos e valores atuais do domínio
 

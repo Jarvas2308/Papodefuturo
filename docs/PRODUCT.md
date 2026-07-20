@@ -136,6 +136,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   memória para razões e reconciliações derivadas dos snapshots factuais;
 - política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
   SEC como únicas fontes automatizadas V1, sem integração ao runtime;
+- auditoria Editorial News Providers V2 concluída com `NO-GO`: nenhum provider
+  editorial está aprovado e nenhum conteúdo editorial foi integrado, armazenado
+  ou exibido;
 - `OfficialAssetEventV1` implementado como contexto regulatório puro e não
   bloqueante, com 12 identidades fortes, 15 tipos fechados, tempo explícito,
   deduplicação documental e revisões históricas;
@@ -185,8 +188,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- notícias editoriais adiadas até nova auditoria de provider, cobertura,
-  identidade e licença comercial;
+- eventual reavaliação editorial somente diante de novo contrato comercial,
+  direitos por campo, identidade forte e cobertura comprovada dos 12 ativos;
 - camada futura de IA explicativa;
 - auditoria e polimento.
 

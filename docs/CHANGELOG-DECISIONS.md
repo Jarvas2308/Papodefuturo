@@ -637,3 +637,28 @@ Este documento registra decisões de produto e arquitetura.
   backfill foi executado e nenhum evento está disponível em produção. O recurso
   `read-only` só poderá ser ativado após deployment e validação do schema e das
   RPCs. Fluxos financeiros, Motor V2 e plano técnico permanecem independentes.
+
+## DEC-036 — Notícias editoriais permanecem condicionadas a licença, identidade forte e cobertura comprovada
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: A sequência local de eventos oficiais chegou à apresentação opcional
+  ainda desativada. Antes de qualquer implementação editorial, a auditoria V2
+  avaliou GDELT, NewsAPI, Finnhub, Marketaux, Alpha Vantage, Financial Modeling
+  Prep, Massive com Benzinga e Benzinga direta quanto a uso comercial
+  multiusuário, copyright, identidade do instrumento, cobertura dos 12 ativos,
+  custo e operação. Nenhum candidato comprovou todos os gates simultaneamente.
+- Decisão: O resultado é `NO-GO`. GDELT, NewsAPI, Finnhub, Marketaux e Alpha
+  Vantage ficam rejeitados para o contrato atual. FMP, Massive com Benzinga e
+  Benzinga direta permanecem condicionais, sem autorização de implementação.
+  Não existe provider ou composição multiprovider aprovada. Notícias editoriais
+  só poderão ser reavaliadas com contrato comercial completo e revisão jurídica,
+  direitos explícitos por campo, identidade forte e teste autenticado de
+  cobertura dos 12 ativos. Eventos Oficiais Primeiro permanece a política do
+  produto.
+- Consequências: O item 17 do roadmap está concluído como auditoria e decisão,
+  não como funcionalidade editorial. Não serão criados contrato runtime,
+  provider, storage, migration, repository, UI, IA, sentimento ou score
+  editorial. As migrations oficiais permanecem não aplicadas, nenhum backfill
+  foi executado e o runtime real segue `disabled`. A única próxima ação permitida
+  é um deployment controlado dos eventos oficiais mediante autorização separada.
