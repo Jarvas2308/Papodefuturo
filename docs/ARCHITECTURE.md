@@ -427,6 +427,30 @@ escrita direta da tabela pelo role server-side é revogada em favor da RPC.
 aplicado. A migration complementar e o adapter ainda não foram aplicados ao
 Supabase remoto.
 
+### Fronteira operacional de deployment de eventos oficiais V1
+
+O pacote de readiness versiona o manifesto verificável, o runbook, o checklist
+de segurança e as consultas pós-deployment somente leitura. Ele não é importado
+pelo runtime e não concede autorização implícita para acessar ou alterar o
+Supabase.
+
+```text
+migrations versionadas + manifesto local verificado
+  -> aplicação autorizada e sequencial do schema
+  -> checks de objetos, constraints, RLS, grants e RPCs
+  -> geração oficial de database.types.ts contra o schema aplicado
+  -> canário server-side com leitura real ainda desabilitada
+  -> backfill gradual com checkpoints e monitoramento
+  -> autorização separada para runtime read-only e navegação
+```
+
+Cada seta é um gate operacional independente. A composição real permanece em
+modo `disabled`; nem o manifesto nem o runbook alteram esse estado. Antes de
+qualquer dado, uma falha pode permitir rollback destrutivo conforme o runbook.
+Depois de escrita ou backfill, a estratégia padrão é correção forward-only para
+preservar fatos, revisões e checkpoints. Drift de hash, ordem, grants, RLS,
+assinaturas ou tipos gera `NO-GO`.
+
 ### Executor server-side de eventos oficiais V1
 
 O módulo `src/server/context/official-events` compõe os três providers em jobs

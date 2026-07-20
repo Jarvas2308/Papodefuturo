@@ -1,0 +1,175 @@
+{
+  "manifestVersion": "official-events-deployment-manifest.v1",
+  "preparedAt": "2026-07-20T22:02:49.737Z",
+  "sourceHead": "66dc336fb78bef03580bc2a454196b318269cda0",
+  "sourceBase": "2808fc3cc385613c0f9914c24b8beb238409e7b9",
+  "migrations": [
+    {
+      "ordinal": 1,
+      "phase": "schema",
+      "filename": "20260719165850_create_official_asset_events.sql",
+      "sha256": "f2f53d1fcd23e7c60d14d17a1c5de3eab9268748705db02926f50654f27f57d1",
+      "sizeBytes": 16499,
+      "creates": {
+        "tables": ["official_asset_events"],
+        "functions": [],
+        "indexes": [
+          "official_asset_events_asset_identity_idx",
+          "official_asset_events_asset_category_idx",
+          "official_asset_events_asset_market_idx",
+          "official_asset_events_asset_ticker_idx",
+          "official_asset_events_source_idx",
+          "official_asset_events_event_type_idx",
+          "official_asset_events_status_idx",
+          "official_asset_events_supersedes_idx",
+          "official_asset_events_document_identity_idx",
+          "official_asset_events_published_date_idx",
+          "official_asset_events_published_instant_idx",
+          "official_asset_events_occurred_date_idx",
+          "official_asset_events_occurred_instant_idx"
+        ]
+      },
+      "dependsOn": [],
+      "riskLevel": "medium",
+      "rollbackClass": "conditionally-reversible"
+    },
+    {
+      "ordinal": 2,
+      "phase": "transactional-write",
+      "filename": "20260719173416_create_official_asset_events_upsert_rpc_v1.sql",
+      "sha256": "ed3d4c2786f513b929efd494cad9abfc0b8dabe07bd516f5670c2fb6bb8904db",
+      "sizeBytes": 16159,
+      "creates": {
+        "tables": [],
+        "functions": ["upsert_official_asset_events_v1(jsonb)"],
+        "indexes": []
+      },
+      "dependsOn": ["20260719165850_create_official_asset_events.sql"],
+      "riskLevel": "high",
+      "rollbackClass": "conditionally-reversible"
+    },
+    {
+      "ordinal": 3,
+      "phase": "backfill-checkpoint",
+      "filename": "20260719221733_create_official_events_backfill_checkpoint_v1.sql",
+      "sha256": "72f37c6a9207e96ac458d16812083959eb543701b433f6dd9e9ae7eb1f33dddd",
+      "sizeBytes": 35196,
+      "creates": {
+        "tables": [
+          "official_event_backfill_runs",
+          "official_event_backfill_jobs"
+        ],
+        "functions": [
+          "get_official_event_backfill_snapshot_v1(text)",
+          "refresh_official_event_backfill_run_v1(text,text)",
+          "create_or_resume_official_event_backfill_v1(jsonb,text)",
+          "claim_official_event_backfill_jobs_v1(text,text,integer,integer,text)",
+          "complete_official_event_backfill_job_v1(text,text,text,text,jsonb)",
+          "fail_official_event_backfill_job_v1(text,text,text,text,text,jsonb,jsonb)",
+          "release_official_event_backfill_jobs_v1(text,jsonb,text,text,boolean)",
+          "pause_official_event_backfill_v1(text,text)",
+          "finalize_official_event_backfill_v1(text,text)"
+        ],
+        "indexes": [
+          "official_event_backfill_runs_status_idx",
+          "official_event_backfill_runs_updated_at_idx",
+          "official_event_backfill_jobs_status_idx",
+          "official_event_backfill_jobs_provider_idx",
+          "official_event_backfill_jobs_lease_expires_at_idx",
+          "official_event_backfill_jobs_updated_at_idx"
+        ]
+      },
+      "dependsOn": [
+        "20260719165850_create_official_asset_events.sql",
+        "20260719173416_create_official_asset_events_upsert_rpc_v1.sql"
+      ],
+      "riskLevel": "high",
+      "rollbackClass": "conditionally-reversible"
+    },
+    {
+      "ordinal": 4,
+      "phase": "read-api",
+      "filename": "20260719235049_create_official_asset_events_read_rpcs_v1.sql",
+      "sha256": "9d923f55014810300b70978f53d4ba0c2d49feb9a5638d3ab8764dd1bd2f8008",
+      "sizeBytes": 15424,
+      "creates": {
+        "tables": [],
+        "functions": [
+          "get_official_asset_event_by_id_v1(text)",
+          "list_official_asset_events_v1(jsonb)"
+        ],
+        "indexes": ["official_asset_events_published_timeline_v1_idx"]
+      },
+      "dependsOn": ["20260719165850_create_official_asset_events.sql"],
+      "riskLevel": "medium",
+      "rollbackClass": "conditionally-reversible"
+    }
+  ],
+  "expectedObjects": {
+    "tables": {
+      "official_asset_events": { "columnCount": 58, "rlsEnabled": true },
+      "official_event_backfill_runs": {
+        "columnCount": 17,
+        "rlsEnabled": true
+      },
+      "official_event_backfill_jobs": {
+        "columnCount": 18,
+        "rlsEnabled": true
+      }
+    },
+    "functions": {
+      "securityDefiner": [
+        "upsert_official_asset_events_v1(jsonb)",
+        "get_official_event_backfill_snapshot_v1(text)",
+        "refresh_official_event_backfill_run_v1(text,text)",
+        "create_or_resume_official_event_backfill_v1(jsonb,text)",
+        "claim_official_event_backfill_jobs_v1(text,text,integer,integer,text)",
+        "complete_official_event_backfill_job_v1(text,text,text,text,jsonb)",
+        "fail_official_event_backfill_job_v1(text,text,text,text,text,jsonb,jsonb)",
+        "release_official_event_backfill_jobs_v1(text,jsonb,text,text,boolean)",
+        "pause_official_event_backfill_v1(text,text)",
+        "finalize_official_event_backfill_v1(text,text)"
+      ],
+      "securityInvokerStable": [
+        "get_official_asset_event_by_id_v1(text)",
+        "list_official_asset_events_v1(jsonb)"
+      ]
+    },
+    "access": {
+      "anon": "none",
+      "authenticated": "official-events-read-only",
+      "serviceRole": "rpc-execution"
+    }
+  },
+  "preDeploymentGates": [
+    "reviewed-branch",
+    "published-series",
+    "ci-passed",
+    "validated-backup",
+    "confirmed-environment",
+    "authorized-operator",
+    "official-deployment-method-available",
+    "administrative-access-confirmed",
+    "migration-hashes-match",
+    "no-unknown-schema-drift",
+    "database-types-can-be-regenerated",
+    "approved-change-window",
+    "runtime-disabled",
+    "no-automatic-backfill"
+  ],
+  "postDeploymentChecks": [
+    "migration-history-complete",
+    "expected-tables-and-columns",
+    "expected-constraints-and-indexes",
+    "rls-enabled",
+    "anon-denied",
+    "authenticated-read-only",
+    "service-role-rpcs-only",
+    "fixed-search-paths",
+    "read-rpcs-security-invoker",
+    "checkpoint-tables-empty",
+    "events-table-empty",
+    "runtime-still-disabled"
+  ],
+  "activationState": "disabled"
+}

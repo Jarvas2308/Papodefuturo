@@ -724,3 +724,23 @@ está concluído com decisão `NO-GO`; isso não significa provider editorial
 implementado. Nenhum provider editorial foi aprovado. A próxima ação permitida
 é somente o deployment controlado dos eventos oficiais mediante autorização
 separada.
+
+## Fase operacional — ainda não executada
+
+1. Publicar a série no GitHub — pendente.
+2. Revisar e aprovar PR — pendente.
+3. Confirmar ambiente, operador, janela e backup — pendente.
+4. Aplicar as quatro migrations na ordem do manifesto — pendente.
+5. Validar schema, RLS, grants e RPCs — pendente.
+6. Regenerar e revisar `database.types.ts` — pendente.
+7. Executar smoke tests sem backfill — pendente.
+8. Executar backfill canário de um job — pendente.
+9. Validar dados, conflitos e checkpoint — pendente.
+10. Autorizar runtime `read-only` — pendente.
+11. Ativar a composição e a sidebar pela capability — pendente.
+12. Monitorar e decidir ampliação gradual — pendente.
+
+O roadmap de desenvolvimento dos 17 itens está encerrado. Esta fase operacional
+é separada, depende de autorização em cada transição e começa com runtime
+`disabled`. A preparação local não aplicou migration, não acessou Supabase, não
+executou SQL ou backfill e não alterou dados remotos.

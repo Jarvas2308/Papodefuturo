@@ -662,3 +662,25 @@ Este documento registra decisões de produto e arquitetura.
   editorial. As migrations oficiais permanecem não aplicadas, nenhum backfill
   foi executado e o runtime real segue `disabled`. A única próxima ação permitida
   é um deployment controlado dos eventos oficiais mediante autorização separada.
+
+## DEC-037 — Deployment de eventos oficiais exige migrations em fases, gates explícitos e ativação posterior
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: Os 17 itens de desenvolvimento de News & Events estão concluídos
+  localmente, mas as migrations de eventos oficiais não foram aplicadas, os types
+  gerados ainda refletem o schema remoto anterior, nenhum backfill foi executado
+  e a composição real permanece `disabled`. Aplicação, dados e ativação não podem
+  ser tratados como uma única mudança implícita.
+- Decisão: A fase operacional é separada e usa manifesto com hashes reais,
+  runbook, SQL somente leitura e checklist. A ordem obrigatória é schema, escrita
+  transacional, checkpoint e leitura. Migrations precedem regeneração de types;
+  types precedem smoke tests; backfill canário precede validação dos dados; e
+  somente autorização posterior permite `read-only` e sidebar. Backup, ambiente,
+  operador, CI, drift, RLS, grants e hashes são gates de `GO/NO-GO`. O runtime
+  permanece `disabled` durante o deployment.
+- Consequências: Cada ação remota exige autorização separada. Após dados,
+  rollback conservador desativa consumidores e prefere forward fixes
+  versionados; eventos não são removidos automaticamente. A auditoria editorial
+  continua `NO-GO`. Este ciclo não acessa Supabase, não aplica migrations, não
+  executa SQL, provider ou backfill, não regenera types e não ativa runtime ou UI.

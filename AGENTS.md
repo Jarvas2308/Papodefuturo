@@ -91,6 +91,10 @@ Estado já integrado:
   `NO-GO`: nenhum dos oito providers avaliados comprovou simultaneamente licença
   comercial, identidade forte e cobertura do universo fechado; não existe
   provider editorial, storage, migration, repository, runtime ou UI aprovados;
+- preparação local de deployment controlado de eventos oficiais V1 definida por
+  manifesto com hashes, runbook, checks SQL somente leitura e checklist de
+  segurança; nenhuma migration foi aplicada, nenhum backfill foi executado e o
+  runtime permanece `disabled`;
 - domínio puro `OfficialAssetEventV1` implementado com registry fechado dos 12
   ativos, taxonomia, precisão temporal explícita, identidade documental,
   deduplicação e histórico de revisões, sem banco ou runtime;
@@ -426,6 +430,14 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; a auditoria editorial
   V2 não autoriza implementação e a única próxima ação permitida é um deployment
   controlado dos eventos oficiais, mediante autorização separada.
+- tratar aplicação de migrations, regeneração de types, canário, ativação
+  `read-only` e sidebar como autorizações independentes;
+- durante deployment, conferir o manifesto local, backup, drift, RLS, grants e
+  assinaturas antes de avançar; qualquer divergência é `NO-GO`;
+- manter `src/lib/database.types.ts` intocado até o schema remoto autorizado ser
+  aplicado e validado; depois regenerar pelo mecanismo oficial e revisar o diff;
+- após existirem dados, preferir forward fix versionado e nunca remover eventos
+  automaticamente como rollback.
 
 ## 7. Modelos e valores atuais do domínio
 

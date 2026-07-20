@@ -687,3 +687,22 @@ confirmados os gates aplicáveis:
 
 Se qualquer gate falhar, a implementação permanece bloqueada sem fallback por
 scraping, texto livre, artigo integral ou provider não licenciado.
+
+## 28. Preparação operacional do deployment oficial V1
+
+O deployment de eventos oficiais possui um pacote local e verificável em
+`docs/runbooks`: manifesto com hashes das quatro migrations, runbook de
+aplicação sequencial, checklist de segurança e consultas pós-deployment somente
+leitura. O verificador local confirma integridade, ordem, dependências e estado
+de ativação sem acessar rede, ambiente ou Supabase.
+
+O pacote não executa deployment. Aplicação de schema, geração dos tipos
+Supabase, canário server-side, backfill, ativação read-only e navegação exigem
+autorizações independentes. A composição real permanece `disabled`, sem leitura
+real ou item de menu. Qualquer drift de migration, RLS, grants, assinatura de
+RPC, schema gerado ou contagem inicial é `NO-GO`.
+
+Rollback destrutivo só pode ser considerado antes da existência de dados e com
+backup validado. Após canário ou backfill, a correção padrão é forward-only,
+preservando eventos, revisões e checkpoints. A camada editorial permanece fora
+do escopo e continua bloqueada pela decisão `NO-GO` da auditoria V2.

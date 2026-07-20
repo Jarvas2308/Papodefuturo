@@ -139,6 +139,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - auditoria Editorial News Providers V2 concluída com `NO-GO`: nenhum provider
   editorial está aprovado e nenhum conteúdo editorial foi integrado, armazenado
   ou exibido;
+- pacote local de preparação do deployment de eventos oficiais concluído, com
+  manifesto, runbook, checks somente leitura e gates; a fase operacional ainda
+  não foi executada e a experiência continua desativada;
 - `OfficialAssetEventV1` implementado como contexto regulatório puro e não
   bloqueante, com 12 identidades fortes, 15 tipos fechados, tempo explícito,
   deduplicação documental e revisões históricas;
