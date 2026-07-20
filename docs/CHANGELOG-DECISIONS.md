@@ -615,3 +615,25 @@ Este documento registra decisões de produto e arquitetura.
   o schema estar disponível. O próximo ciclo é a apresentação opcional dos
   eventos oficiais na UI, sem autorização implícita para escrita ou execução de
   providers.
+
+## DEC-035 — UI de eventos oficiais usa runtime opcional e permanece desligada até o deployment do schema
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: O runtime opcional já distingue capacidade, autenticação,
+  indisponibilidade, falha e sucesso, mas a aplicação precisa apresentar os
+  eventos sem acoplar componentes ao repository ou ativar infraestrutura ainda
+  não aplicada no Supabase remoto.
+- Decisão: A página autenticada de Eventos Oficiais recebe somente
+  `OfficialEventsRuntimeV1`. Ela apresenta timeline read-only, filtros fechados,
+  paginação por cursor, detalhes por `eventId`, revisões, fontes CVM e SEC,
+  precisão temporal e links HTTPS para hosts oficiais auditados. Eventos não são
+  notícias editoriais nem recomendações. A composição real seleciona
+  explicitamente `disabled`: o item da navegação não é renderizado e o acesso
+  direto mostra o estado desabilitado sem chamar repository ou Supabase.
+- Consequências: Estados do runtime não são convertidos em vazio, respostas
+  obsoletas não sobrescrevem filtros atuais e a UI não acessa storage, escrita,
+  providers, executor ou backfill. Nenhuma migration foi aplicada, nenhum
+  backfill foi executado e nenhum evento está disponível em produção. O recurso
+  `read-only` só poderá ser ativado após deployment e validação do schema e das
+  RPCs. Fluxos financeiros, Motor V2 e plano técnico permanecem independentes.

@@ -596,7 +596,7 @@ planejamento V1.
 13. Backfill controlado — concluído localmente.
 14. Repository de leitura — concluído localmente.
 15. Integração runtime opcional — concluída localmente, sem ativação.
-16. Apresentação na UI.
+16. Apresentação opcional na UI — concluída localmente, modo real desabilitado.
 17. Nova auditoria antes de qualquer notícia editorial.
 
 Cada item é um ciclo independente; não há autorização implícita para os itens
@@ -616,11 +616,15 @@ preview puro, checkpoint global, leases recuperáveis, retries explícitos e
 execução em passos limitados. O item 14 adiciona leitura por identidade e uma
 timeline global com filtros fechados, ordem temporal canônica e cursor keyset
 ligado ao hash da consulta, por adapters Supabase e em memória conformes. Os
-itens 1 a 15 estão concluídos localmente. O item 15 adiciona uma fronteira
+itens 1 a 16 estão concluídos localmente. O item 15 adiciona uma fronteira
 browser-compatible, opcional e somente de leitura, com modos explícitos,
-autenticação anterior à leitura, erros sanitizados e relógio injetado. O próximo
-ciclo é somente o item 16, apresentação na UI. Não há runtime ativado, scheduler,
-execução remota, migration aplicada, backfill executado ou UI.
+autenticação anterior à leitura, erros sanitizados e relógio injetado. O item 16
+adiciona a página autenticada com timeline, filtros, cursor, detalhes, revisões,
+temporalidade e links seguros, dependendo somente do runtime. A composição real
+permanece `disabled`, sem item de navegação. Não há runtime read-only ativado,
+scheduler, execução remota, migration aplicada, backfill executado ou notícia
+editorial. O próximo ciclo é somente o item 17, uma nova auditoria antes de
+qualquer notícia editorial.
 
 ### Provider SEC EDGAR ETF Events V1
 

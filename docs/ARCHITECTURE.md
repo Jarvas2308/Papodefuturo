@@ -492,7 +492,8 @@ O adapter Supabase usa somente as RPCs `get_official_asset_event_by_id_v1` e
 o mapper lossless de 58 campos e as validações de storage e domínio. A referência
 em memória compartilha filtros, ordenação e cursor para testes de conformance.
 As RPCs permanecem não aplicadas. O runtime opcional existe como módulo local,
-mas não está ativado no app; não existe UI, scheduler ou execução de backfill.
+mas não está ativado em modo de leitura; não existe scheduler ou execução de
+backfill.
 
 ### Runtime opcional de eventos oficiais V1
 
@@ -510,11 +511,31 @@ permanecem distintas de timeline vazia e de evento ausente; erros retornados ao
 consumidor são sanitizados. O relógio preserva UTC canônico com até nove casas
 fracionárias e rejeita regressão sem depender de `Date` na lógica central.
 
-O runtime não está importado pelo `AuthProvider`, pelas páginas ou por fluxos
-financeiros. A futura composição de UI deverá escolher o modo e mapear o estado
-de autenticação existente; `read-only` só pode ser ativado após tabela e RPCs
-estarem aplicadas. Ativá-lo não habilita escrita, providers, executor, backfill
-ou scheduler.
+O runtime não está importado pelo `AuthProvider` nem por fluxos financeiros. A
+composição da UI escolhe o modo explicitamente; `read-only` só pode ser ativado
+após tabela e RPCs estarem aplicadas. Ativá-lo não habilita escrita, providers,
+executor, backfill ou scheduler.
+
+### Apresentação opcional dos eventos oficiais V1
+
+`src/features/official-events` contém a fronteira de apresentação autenticada.
+Uma porta estreita fornece somente `OfficialEventsRuntimeV1`; componentes não
+importam repository, adapter, storage, executor, providers ou Supabase. A
+timeline preserva a ordem recebida, usa cursor opaco, filtros fechados pelos 12
+ativos, três fontes, 15 tipos, cinco status e intervalo civil, e trata respostas
+obsoletas e duplicidades entre páginas como falhas de contrato.
+
+Detalhes são consultados por `eventId` sem recarregar a timeline. A apresentação
+preserva precisão temporal, não transforma data civil em instante, omite
+proveniência sensível e abre somente URLs HTTPS dos hosts oficiais auditados da
+CVM e SEC. Estados `disabled`, autenticação necessária, acesso não resolvido,
+indisponibilidade, falha e vazio permanecem distintos.
+
+A composição real em `src/app/AppComposition.tsx` continua explicitamente
+`disabled`: o item não é criado na sidebar e a rota direta informa que o recurso
+não foi ativado sem executar leitura. A UI pode receber um runtime `read-only`
+em testes, mas não existe ativação de produção, migration aplicada, backfill
+executado ou notícia editorial.
 
 ### Infraestrutura
 

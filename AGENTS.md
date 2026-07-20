@@ -123,8 +123,12 @@ Estado já integrado:
   as RPCs de leitura permanecem apenas versionadas e sem aplicação remota;
 - runtime opcional `official-events-runtime.v1` implementado como fronteira
   browser-compatible, somente leitura e não bloqueante, com modos explícitos
-  `disabled` e `read-only`, autenticação e relógio injetados e sem ativação no
-  app; migrations e RPCs permanecem não aplicadas;
+  `disabled` e `read-only`, autenticação e relógio injetados;
+- interface autenticada de Eventos Oficiais implementada com timeline, filtros
+  fechados, cursor, detalhes, revisões e links externos seguros, dependendo
+  somente do runtime; a composição real permanece explicitamente `disabled`, o
+  item da navegação fica ausente e a rota direta explica a indisponibilidade sem
+  chamar repository ou Supabase; migrations e RPCs permanecem não aplicadas;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram

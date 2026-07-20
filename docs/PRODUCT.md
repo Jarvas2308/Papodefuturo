@@ -170,7 +170,12 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   cursor;
 - runtime opcional de eventos oficiais V1 implementado localmente, com modos
   explícitos `disabled` e `read-only`, leitura condicionada à autenticação e
-  falhas isoladas; ele não foi ativado no app e não há tela ou migration aplicada;
+  falhas isoladas;
+- página autenticada de Eventos Oficiais implementada localmente com timeline
+  read-only, filtros fechados, cursor, detalhes, revisões, fontes CVM/SEC e links
+  externos seguros; a composição real permanece `disabled`, o item não aparece
+  na navegação e a rota direta informa o estado sem chamar Supabase; não há
+  migration aplicada, backfill executado ou eventos em produção;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -180,7 +185,6 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- apresentação opcional dos eventos oficiais na UI em ciclo posterior;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;
 - camada futura de IA explicativa;

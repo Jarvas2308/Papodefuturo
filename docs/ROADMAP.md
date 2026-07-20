@@ -683,12 +683,27 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - RPCs `STABLE SECURITY INVOKER`, com leitura autenticada e sem acesso `anon`;
 - sem count global, busca textual, escrita, runtime, UI ou migration aplicada.
 
+### Apresentação opcional dos eventos oficiais V1
+
+- rota autenticada `/eventos-oficiais` e integração responsiva ao shell atual;
+- dependência exclusiva de `OfficialEventsRuntimeV1`, sem acesso direto ao
+  repository, Supabase, storage, executor, providers ou backfill;
+- filtros fechados pelos 12 ativos, três fontes, 15 tipos, cinco status e
+  intervalo civil de publicação;
+- timeline em ordem do runtime, paginação por cursor opaco e detalhes por
+  `eventId`, com revisões preservadas;
+- precisão temporal mantida sem meia-noite inventada e links HTTPS limitados aos
+  hosts oficiais auditados;
+- estados completos do runtime, loading independente, proteção contra resposta
+  obsoleta, dupla paginação e duplicidade entre páginas;
+- composição real explicitamente `disabled`, item ausente da navegação e rota
+  direta sem chamada de leitura;
+- nenhuma migration aplicada, nenhum backfill executado, nenhum evento em
+  produção e nenhuma notícia editorial criada.
+
 ## Próximo
 
-1. Apresentação dos eventos oficiais na UI;
-2. Comitê de IA;
-3. Auditoria;
-4. Polimento.
+1. Nova auditoria antes de qualquer notícia editorial.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -700,7 +715,8 @@ concluídos; o contrato global de storage e sua migration versionada também est
 concluídos. O adapter Supabase transacional e o executor server-side também
 estão concluídos localmente, sem aplicação remota. O backfill controlado está
 concluído localmente, sem execução real. O repository global de leitura e o
-runtime opcional também estão concluídos localmente, com migrations ainda não
-aplicadas e runtime não ativado no app. Os itens 1 a 15 da sequência de eventos
-oficiais estão concluídos localmente. O próximo ciclo começa somente pela
-apresentação opcional na UI.
+runtime opcional e a apresentação UI também estão concluídos localmente. As
+migrations continuam não aplicadas, o modo real permanece `disabled` e nenhum
+backfill foi executado. Os itens 1 a 16 da sequência de eventos oficiais estão
+concluídos localmente. O próximo ciclo começa somente por nova auditoria antes
+de qualquer notícia editorial.

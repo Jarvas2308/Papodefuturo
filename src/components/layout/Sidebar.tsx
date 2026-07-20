@@ -5,12 +5,14 @@ import {
   History,
   Landmark,
   LayoutDashboard,
+  FileClock,
   Settings,
   Wallet,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '../../lib/cn'
-import { navigationItems } from '../../lib/navigation'
+import { useOfficialEventsUiDependenciesV1 } from '../../features/official-events/officialEventsUiContext'
+import { getNavigationItems } from '../../lib/navigation'
 import { Button } from '../ui/Button'
 
 type SidebarProps = {
@@ -28,6 +30,7 @@ const iconMap = {
   portfolio: Wallet,
   contribution: Landmark,
   history: History,
+  officialEvents: FileClock,
   strategy: Goal,
   settings: Settings,
 }
@@ -73,11 +76,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 }
 
 export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
+  const { runtime } = useOfficialEventsUiDependenciesV1()
+  const items = getNavigationItems(runtime.getCapability().mode)
+
   return (
     <>
       <nav className="flex-1 px-3 py-5" aria-label="Seções da plataforma">
         <ul className="space-y-1.5">
-          {navigationItems.map((item) => {
+          {items.map((item) => {
             const Icon = iconMap[item.icon]
 
             return (
