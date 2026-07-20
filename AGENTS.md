@@ -121,6 +121,10 @@ Estado já integrado:
   leitura por `eventId`, timeline filtrável, ordenação temporal determinística,
   cursor opaco ligado à consulta e adapters Supabase e em memória conformes;
   as RPCs de leitura permanecem apenas versionadas e sem aplicação remota;
+- runtime opcional `official-events-runtime.v1` implementado como fronteira
+  browser-compatible, somente leitura e não bloqueante, com modos explícitos
+  `disabled` e `read-only`, autenticação e relógio injetados e sem ativação no
+  app; migrations e RPCs permanecem não aplicadas;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -412,7 +416,7 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   e `eventId`, sem converter data civil em meia-noite;
 - implementar infraestrutura somente nos ciclos próprios posteriores e na
   sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é a
-  integração runtime opcional dos eventos oficiais.
+  apresentação opcional dos eventos oficiais na UI.
 
 ## 7. Modelos e valores atuais do domínio
 

@@ -257,8 +257,24 @@ function repositoryError(input: {
   message: string
   limit?: number | null
   itemCount?: number | null
+  upstreamCode?: string | null
+  upstreamStatus?: number | null
 }): OfficialAssetEventReadRepositoryErrorV1 {
   return new OfficialAssetEventReadRepositoryErrorV1(input)
+}
+
+function safeErrorCode(error: unknown): string | null {
+  if (!isPlainObject(error) || typeof error.code !== 'string') return null
+  return /^[A-Za-z0-9_.-]{1,64}$/.test(error.code) ? error.code : null
+}
+
+function safeErrorStatus(error: unknown): number | null {
+  if (!isPlainObject(error) || typeof error.status !== 'number') return null
+  return Number.isSafeInteger(error.status) &&
+    error.status >= 100 &&
+    error.status <= 599
+    ? error.status
+    : null
 }
 
 function mapSupabaseRow(
@@ -319,6 +335,8 @@ async function callRpc(input: {
       operation: input.operation,
       message: 'Official asset event read RPC failed',
       limit: input.limit,
+      upstreamCode: safeErrorCode(response.error),
+      upstreamStatus: safeErrorStatus(response.error),
     })
   }
   return response.data

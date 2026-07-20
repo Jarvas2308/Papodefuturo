@@ -587,3 +587,31 @@ Este documento registra decisões de produto e arquitetura.
   valida a fronteira e aplica filtros/ordenação. A migration não foi aplicada e
   este ciclo não cria runtime, UI, scheduler, backfill real, escrita, count ou
   busca editorial. O próximo ciclo é a integração runtime opcional.
+
+## DEC-034 — Runtime de eventos oficiais é opcional, somente leitura e não bloqueante
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: O repository global oferece leitura auditável por identidade e
+  timeline, mas a aplicação ainda não possui uma fronteira opcional que trate
+  autenticação, indisponibilidade e capacidade local sem acoplar eventos aos
+  fluxos financeiros ou ativar infraestrutura ainda não aplicada.
+- Decisão: `official-events-runtime.v1` usa uma união discriminada sem default:
+  `disabled` não recebe nem chama repository ou acesso; `read-only` recebe o
+  repository global, um client autenticado por composição indireta, uma porta de
+  estado de acesso e relógio UTC injetados. Somente `authenticated` lê;
+  `unauthenticated` e `unresolved` não chamam o repository. Cada operação faz no
+  máximo uma leitura, sem retry, preflight, cache ou count. Falhas não viram
+  timeline vazia: página vazia e `get` nulo válidos são `succeeded`, enquanto
+  transporte/schema indisponível e violações contratuais têm estados separados
+  e erros sanitizados. O relógio preserva até nove dígitos fracionários e rejeita
+  regressão. A composição Supabase estreita reutiliza o repository e nunca cria
+  client, singleton, service role, escrita, provider, executor, backfill ou
+  scheduler.
+- Consequências: O runtime é browser-compatible, somente leitura e não bloqueia
+  login, carteira, compras, Motor V2, Dossiê Técnico ou Novo Aporte. Não existe
+  UI, hook, rota ou ativação no composition root neste ciclo. As migrations e
+  RPCs continuam não aplicadas; o modo `read-only` só poderá ser selecionado após
+  o schema estar disponível. O próximo ciclo é a apresentação opcional dos
+  eventos oficiais na UI, sem autorização implícita para escrita ou execução de
+  providers.

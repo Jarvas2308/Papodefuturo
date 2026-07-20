@@ -595,7 +595,7 @@ planejamento V1.
 12. Executor server-side de eventos oficiais — concluído localmente.
 13. Backfill controlado — concluído localmente.
 14. Repository de leitura — concluído localmente.
-15. Integração runtime opcional.
+15. Integração runtime opcional — concluída localmente, sem ativação.
 16. Apresentação na UI.
 17. Nova auditoria antes de qualquer notícia editorial.
 
@@ -616,9 +616,11 @@ preview puro, checkpoint global, leases recuperáveis, retries explícitos e
 execução em passos limitados. O item 14 adiciona leitura por identidade e uma
 timeline global com filtros fechados, ordem temporal canônica e cursor keyset
 ligado ao hash da consulta, por adapters Supabase e em memória conformes. Os
-itens 1 a 14 estão concluídos localmente. O próximo ciclo é somente o item 15,
-integração runtime opcional. Não há scheduler, execução remota, migration
-aplicada, backfill executado ou UI.
+itens 1 a 15 estão concluídos localmente. O item 15 adiciona uma fronteira
+browser-compatible, opcional e somente de leitura, com modos explícitos,
+autenticação anterior à leitura, erros sanitizados e relógio injetado. O próximo
+ciclo é somente o item 16, apresentação na UI. Não há runtime ativado, scheduler,
+execução remota, migration aplicada, backfill executado ou UI.
 
 ### Provider SEC EDGAR ETF Events V1
 

@@ -354,4 +354,41 @@ describe('safe read errors', () => {
     ).rejects.toMatchObject({ kind: 'transport' })
     expect(calls).toHaveLength(1)
   })
+
+  it('preserves only safe upstream error metadata for runtime classification', async () => {
+    const { client } = createClient(() => ({
+      data: null,
+      error: {
+        code: 'PGRST202',
+        status: 404,
+        message: 'sensitive SQL detail',
+      },
+    }))
+
+    await expect(
+      createSupabaseOfficialAssetEventReadRepositoryV1({ client }).listPage({
+        limit: 1,
+      })
+    ).rejects.toMatchObject({
+      kind: 'transport',
+      upstreamCode: 'PGRST202',
+      upstreamStatus: 404,
+    })
+  })
+
+  it('drops unsafe upstream metadata', async () => {
+    const { client } = createClient(() => ({
+      data: null,
+      error: { code: 'PGRST202\ntoken', status: 999 },
+    }))
+
+    await expect(
+      createSupabaseOfficialAssetEventReadRepositoryV1({ client }).listPage({
+        limit: 1,
+      })
+    ).rejects.toMatchObject({
+      upstreamCode: null,
+      upstreamStatus: null,
+    })
+  })
 })

@@ -685,11 +685,10 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 
 ## Próximo
 
-1. Integração runtime opcional dos eventos oficiais;
-2. Apresentação na UI;
-3. Comitê de IA;
-4. Auditoria;
-5. Polimento.
+1. Apresentação dos eventos oficiais na UI;
+2. Comitê de IA;
+3. Auditoria;
+4. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -699,7 +698,9 @@ permanecem posteriores. O domínio puro e os três providers oficiais — CVM IP
 para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
 concluídos; o contrato global de storage e sua migration versionada também estão
 concluídos. O adapter Supabase transacional e o executor server-side também
-estão concluídos localmente, sem aplicação remota ou integração runtime. O
-backfill controlado está concluído localmente, sem execução real. O repository
-global de leitura também está concluído localmente, com migration ainda não
-aplicada. O próximo ciclo começa somente pela integração runtime opcional.
+estão concluídos localmente, sem aplicação remota. O backfill controlado está
+concluído localmente, sem execução real. O repository global de leitura e o
+runtime opcional também estão concluídos localmente, com migrations ainda não
+aplicadas e runtime não ativado no app. Os itens 1 a 15 da sequência de eventos
+oficiais estão concluídos localmente. O próximo ciclo começa somente pela
+apresentação opcional na UI.

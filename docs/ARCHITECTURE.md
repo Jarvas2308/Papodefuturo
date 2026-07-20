@@ -491,8 +491,30 @@ O adapter Supabase usa somente as RPCs `get_official_asset_event_by_id_v1` e
 `search_path` fixo e execução revogada de `PUBLIC` e `anon`. O resultado percorre
 o mapper lossless de 58 campos e as validações de storage e domínio. A referência
 em memória compartilha filtros, ordenação e cursor para testes de conformance.
-As RPCs permanecem não aplicadas; não existe integração runtime, UI, scheduler
-ou execução de backfill neste ciclo.
+As RPCs permanecem não aplicadas. O runtime opcional existe como módulo local,
+mas não está ativado no app; não existe UI, scheduler ou execução de backfill.
+
+### Runtime opcional de eventos oficiais V1
+
+`official-events-runtime.v1` é uma fronteira browser-compatible e somente de
+leitura sobre `OfficialAssetEventReadRepositoryV1`. O modo é sempre explícito:
+`disabled` não cria repository nem chama dependências; `read-only` recebe o
+repository, uma porta de estado de acesso e um relógio UTC injetados. Somente o
+estado `authenticated` permite uma chamada de leitura. `unauthenticated` e
+`unresolved` retornam estados estruturados sem tocar no repository.
+
+A composição Supabase estreita recebe um client RPC estrutural já autenticado e
+reutiliza o adapter de leitura existente. Ela não cria client, singleton,
+service role, query, cursor ou mapper paralelo. Falhas de transporte e schema
+permanecem distintas de timeline vazia e de evento ausente; erros retornados ao
+consumidor são sanitizados. O relógio preserva UTC canônico com até nove casas
+fracionárias e rejeita regressão sem depender de `Date` na lógica central.
+
+O runtime não está importado pelo `AuthProvider`, pelas páginas ou por fluxos
+financeiros. A futura composição de UI deverá escolher o modo e mapear o estado
+de autenticação existente; `read-only` só pode ser ativado após tabela e RPCs
+estarem aplicadas. Ativá-lo não habilita escrita, providers, executor, backfill
+ou scheduler.
 
 ### Infraestrutura
 

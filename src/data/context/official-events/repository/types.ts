@@ -75,6 +75,8 @@ export class OfficialAssetEventReadRepositoryErrorV1 extends Error {
   readonly operation: OfficialAssetEventReadRepositoryOperationV1
   readonly limit: number | null
   readonly itemCount: number | null
+  readonly upstreamCode: string | null
+  readonly upstreamStatus: number | null
 
   constructor(input: {
     kind: OfficialAssetEventReadRepositoryErrorKindV1
@@ -82,6 +84,8 @@ export class OfficialAssetEventReadRepositoryErrorV1 extends Error {
     operation: OfficialAssetEventReadRepositoryOperationV1
     limit?: number | null
     itemCount?: number | null
+    upstreamCode?: string | null
+    upstreamStatus?: number | null
   }) {
     super(input.message)
     this.name = 'OfficialAssetEventReadRepositoryErrorV1'
@@ -90,6 +94,8 @@ export class OfficialAssetEventReadRepositoryErrorV1 extends Error {
     this.operation = input.operation
     this.limit = input.limit ?? null
     this.itemCount = input.itemCount ?? null
+    this.upstreamCode = input.upstreamCode ?? null
+    this.upstreamStatus = input.upstreamStatus ?? null
   }
 }
 
