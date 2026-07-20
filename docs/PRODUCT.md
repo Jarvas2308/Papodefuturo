@@ -161,6 +161,10 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   IPE, CVM Fund Delivery e SEC EDGAR, com jobs explícitos, ordem preservada,
   falha isolada e persistência canônica; não há scheduler, backfill, execução em
   produção ou integração com a interface;
+- backfill controlado V1 implementado localmente com plano e jobs
+  determinísticos, preview sem efeitos, checkpoint global, leases, resume,
+  retries explícitos, política de falha e execução em passos limitados; nenhuma
+  migration foi aplicada e nenhum backfill real foi executado;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -170,7 +174,7 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- backfill controlado, repository e runtime de eventos somente em ciclos
+- repository global de leitura e runtime de eventos somente em ciclos
   posteriores;
 - notícias editoriais adiadas até nova auditoria de provider, cobertura,
   identidade e licença comercial;

@@ -593,7 +593,7 @@ planejamento V1.
 10. Migration de `official_asset_events` — concluído.
 11. Adapter Supabase — concluído.
 12. Executor server-side de eventos oficiais — concluído localmente.
-13. Backfill controlado.
+13. Backfill controlado — concluído localmente.
 14. Repository de leitura.
 15. Integração runtime opcional.
 16. Apresentação na UI.
@@ -611,9 +611,12 @@ a tabela global com constraints, índices, grants e RLS, sem aplicá-la ao
 Supabase remoto. O item 11 implementou mapping lossless e uma única RPC
 transacional server-side. O item 12 compõe os três providers, a fachada
 canônica de persistência e o adapter injetado em execução sequencial, com fetch
-seguro e falha isolada por job. Os itens 1 a 12 estão concluídos localmente. O
-próximo ciclo é somente o item 13, backfill controlado e reiniciável. Não há
-scheduler, checkpoint, execução remota, migration aplicada, repository ou UI.
+seguro e falha isolada por job. O item 13 adicionou plano e jobs determinísticos,
+preview puro, checkpoint global, leases recuperáveis, retries explícitos e
+execução em passos limitados. Os itens 1 a 13 estão concluídos localmente. O
+próximo ciclo é somente o item 14, repository global de leitura. Não há
+scheduler, execução remota, migration aplicada, backfill executado, repository
+ou UI.
 
 ### Provider SEC EDGAR ETF Events V1
 

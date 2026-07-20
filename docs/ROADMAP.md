@@ -649,15 +649,32 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   browser;
 - sem scheduler, checkpoint, backfill, execução remota, repository ou UI.
 
+### Backfill controlado e reiniciável de eventos oficiais V1
+
+- plano explícito e fechado para CVM IPE, CVM Fund Delivery e SEC EDGAR;
+- `planId`, hash e `jobId` determinísticos, sem UUID ou relógio ambiental;
+- preview puro, sem checkpoint, executor, storage, Supabase ou rede;
+- jobs cronológicos por ano, mês e janela civil inclusiva;
+- checkpoint global sem usuário, carteira ou ativo;
+- leases com owner explícito, recuperação após expiração e sem heartbeat;
+- retry de falha somente em nova etapa explícita, dentro do limite configurado;
+- conflito nunca repetido automaticamente;
+- `failureMode` explícito para continuar ou pausar com devolução dos jobs não
+  iniciados;
+- orquestrador limitado por `maxJobs`, sem loop de novos claims na mesma chamada;
+- duas tabelas e RPCs server-side versionadas com RLS e menor privilégio;
+- implementação em memória de referência e adapter RPC injetado;
+- sem scheduler, execução remota, migration aplicada, backfill executado,
+  repository ou UI.
+
 ## Próximo
 
-1. Backfill controlado e reiniciável de eventos oficiais;
-2. Repository de leitura;
-3. Integração runtime opcional;
-4. Apresentação na UI;
-5. Comitê de IA;
-6. Auditoria;
-7. Polimento.
+1. Repository global de leitura de eventos oficiais;
+2. Integração runtime opcional;
+3. Apresentação na UI;
+4. Comitê de IA;
+5. Auditoria;
+6. Polimento.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -668,4 +685,5 @@ para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
 concluídos; o contrato global de storage e sua migration versionada também estão
 concluídos. O adapter Supabase transacional e o executor server-side também
 estão concluídos localmente, sem aplicação remota ou integração runtime. O
-próximo ciclo começa somente pelo backfill controlado e reiniciável.
+backfill controlado está concluído localmente, sem execução real. O próximo
+ciclo começa somente pelo repository global de leitura.

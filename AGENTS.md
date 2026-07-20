@@ -113,6 +113,10 @@ Estado já integrado:
   sequenciais para os três providers, fetch com allowlist, relógio injetado,
   falha por job e persistência pela fachada canônica, ainda sem scheduler,
   backfill, entrypoint de produção ou execução remota;
+- backfill V1 de eventos oficiais isolado em `src/server`, com plano e jobs
+  determinísticos, preview sem efeitos, checkpoint global, leases recuperáveis,
+  retries explícitos e etapas limitadas; as migrations permanecem não aplicadas
+  e nenhum backfill real foi executado;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -399,8 +403,8 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
 - implementar infraestrutura somente nos ciclos próprios posteriores e na
-  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é a
-  execução real server-side de eventos oficiais.
+  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é o
+  repository global de leitura de eventos oficiais.
 
 ## 7. Modelos e valores atuais do domínio
 

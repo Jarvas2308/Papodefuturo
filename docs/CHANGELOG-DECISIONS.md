@@ -536,3 +536,30 @@ Este documento registra decisões de produto e arquitetura.
   cria scheduler, retry, checkpoint, backfill, entrypoint de produção,
   repository de leitura ou UI; não executa rede real, não acessa Supabase real e
   não aplica migrations. O próximo ciclo é o backfill controlado e reiniciável.
+
+## DEC-032 — Backfill de eventos oficiais usa planos determinísticos, leases e checkpoint persistente
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: O executor server-side já compõe os três providers e o storage
+  global, mas um histórico amplo não pode depender de uma chamada monolítica,
+  memória volátil, retries implícitos ou jobs sem identidade. Interrupções e
+  concorrência precisam preservar progresso auditável sem vincular fatos
+  globais a usuários ou carteiras.
+- Decisão: O backfill V1 recebe plano explícito e fechado, deriva `planId`, hash
+  e `jobId` deterministicamente e gera um job por ano, mês ou janela civil. A
+  execução ocorre em passos limitados por `maxJobs`, sem loop infinito. O
+  checkpoint global não possui `user_id`; runs e jobs preservam status,
+  contadores e summaries seguros. Claims usam lease com owner explícito e
+  recuperação após expiração. Retry de `failed` exige nova etapa,
+  `retryFailed: true` e tentativas restantes; `conflict` não recebe retry.
+  `failureMode` define continuar ou pausar, devolvendo transacionalmente jobs
+  ainda não iniciados. RPCs server-side versionadas, `SECURITY DEFINER`,
+  `search_path` fixo, RLS e revokes impedem acesso de `anon` e `authenticated`;
+  `service_role` opera somente pelas RPCs.
+- Consequências: O mesmo plano retoma as mesmas identidades e não reexecuta jobs
+  concluídos. A implementação em memória é referência de conformance e o
+  adapter Supabase usa client RPC injetado. Não existem scheduler, cron,
+  execução automática, backfill real, migration aplicada, repository de
+  leitura, runtime ou UI. A validação profunda permanece em TypeScript e SQL; o
+  próximo ciclo é o repository global de leitura de eventos oficiais.

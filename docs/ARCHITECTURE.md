@@ -444,6 +444,32 @@ contratuais são preservados e não bloqueiam os jobs seguintes. O executor não
 exportado por barrels do browser e ainda não possui scheduler, checkpoint,
 backfill, entrypoint de produção, repository de leitura ou UI.
 
+### Backfill controlado e reiniciável de eventos oficiais V1
+
+O módulo `src/server/context/official-events/backfill` transforma um plano
+explícito em jobs determinísticos do executor: um job por ano de CVM IPE, por
+mês de CVM Fund Delivery e por janela civil inclusiva de SEC EDGAR. O `planId`,
+o hash e os `jobId` derivam somente do conteúdo canônico com componentes
+length-prefixed. O preview é puro e não chama checkpoint, executor, storage,
+Supabase ou rede.
+
+O checkpoint é global, sem `user_id`, carteira ou ativo. Runs e jobs preservam
+status, contadores, summaries e leases com owner explícito. Cada chamada do
+orquestrador reivindica no máximo `maxJobs`, executa somente esse lote e pode ser
+repetida. Leases ativos não são roubados; leases expirados podem ser retomados;
+falhas só retornam quando `retryFailed` permite e conflitos nunca recebem retry
+automático. Em `failureMode: stop`, jobs ainda não iniciados voltam
+transacionalmente para `pending` e o plano fica pausado.
+
+A migration cria `official_event_backfill_runs` e
+`official_event_backfill_jobs`, ambas com RLS e sem policy ou acesso direto de
+`anon`, `authenticated` e `service_role`. As operações usam RPCs
+`SECURITY DEFINER`, `search_path` fixo, locks de linha e `FOR UPDATE SKIP LOCKED`,
+com execução exclusiva de `service_role`. O adapter usa somente uma porta RPC
+injetada e valida profundamente os retornos. As migrations não foram aplicadas,
+o backfill não foi executado e não existem scheduler, cron, entrypoint de
+produção, repository de leitura ou UI.
+
 ### Infraestrutura
 
 Responsável pela base técnica atual de Supabase e, futuramente, pela camada real

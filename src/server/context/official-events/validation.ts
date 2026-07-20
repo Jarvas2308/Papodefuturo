@@ -57,13 +57,13 @@ function assertYear(value: unknown, minimum: number): asserts value is number {
 }
 
 export function assertOfficialEventsServerJobsV1(
-  jobs: readonly OfficialEventsServerJobV1[]
-): void {
+  jobs: readonly unknown[]
+): asserts jobs is readonly OfficialEventsServerJobV1[] {
   if (!Array.isArray(jobs)) throw new Error('Jobs must be an array')
   const ids = new Set<string>()
   for (let index = 0; index < jobs.length; index += 1) {
     if (!(index in jobs)) throw new Error('Jobs must be dense')
-    const job = jobs[index] as unknown
+    const job = jobs[index]
     if (!job || typeof job !== 'object' || Array.isArray(job))
       throw new Error('Job must be an object')
     const record = job as Record<string, unknown>
