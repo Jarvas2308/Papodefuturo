@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          expected=(00 01 02 03 04 05 06 07 08 09 10 11 12)
+          expected=(00 01 02 03 04 05 06 07 08 09a 09b 09c 09d 10 11 12)
           present=true
           for part in "${expected[@]}"; do
             if [[ ! -f ".bootstrap/official-events.patch.xz.b64.chunk-$part" ]]; then
