@@ -1,0 +1,70 @@
+name: Publicar série local de eventos oficiais
+
+on:
+  push:
+    branches:
+      - automation/publish-official-events-series
+
+permissions:
+  contents: write
+
+jobs:
+  publish-series:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout da branch auxiliar
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preparar e validar o patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .automation/official-events-complete-with-deployment-readiness-v1.patch.gz /tmp/official-events-series.patch.gz
+          echo "72c81470e37b5392ea630cb31c5d53c2c009f7545aab364ad152937cd165195e  /tmp/official-events-series.patch.gz" | sha256sum --check --strict
+          gzip -dc /tmp/official-events-series.patch.gz > /tmp/official-events-series.patch
+          echo "14c71acb73edf70350da43bb2530c49496b183369c00760140216bc110d69e6c  /tmp/official-events-series.patch" | sha256sum --check --strict
+          test "$(wc -c < /tmp/official-events-series.patch)" -eq 878193
+
+      - name: Aplicar os dez commits sobre a base aprovada
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Jarvas2308"
+          git config user.email "jarvas23@outlook.com"
+          git checkout -B ops/official-events-deployment-readiness-v1 2808fc3cc385613c0f9914c24b8beb238409e7b9
+          git am --committer-date-is-author-date /tmp/official-events-series.patch
+          test "$(git rev-list --count 2808fc3cc385613c0f9914c24b8beb238409e7b9..HEAD)" -eq 10
+          git diff --check 2808fc3cc385613c0f9914c24b8beb238409e7b9..HEAD
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Validar série
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run format:check
+          npm run lint
+          npm test
+          npm run build
+          npm run verify:official-events-deployment
+
+      - name: Publicar branch revisável
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:refs/heads/ops/official-events-deployment-readiness-v1
+
+      - name: Remover branch auxiliar
+        if: success()
+        shell: bash
+        run: git push origin --delete automation/publish-official-events-series || true
