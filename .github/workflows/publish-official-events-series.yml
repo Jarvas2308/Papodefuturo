@@ -1,8 +1,7 @@
-# Disparo controlado da série validada em 2026-07-21
 name: Publicar série local de eventos oficiais
 
 on:
-  push:
+  pull_request:
     branches:
       - automation/publish-official-events-series
 
@@ -14,9 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout da branch auxiliar
+      - name: Checkout da branch auxiliar aprovada
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
 
       - name: Preparar e validar o patch
@@ -64,8 +64,3 @@ jobs:
         run: |
           set -euo pipefail
           git push origin HEAD:refs/heads/ops/official-events-deployment-readiness-v1
-
-      - name: Remover branch auxiliar
-        if: success()
-        shell: bash
-        run: git push origin --delete automation/publish-official-events-series || true
