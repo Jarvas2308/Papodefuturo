@@ -1,0 +1,68 @@
+name: Apply official events series bootstrap
+
+on:
+  push:
+    branches:
+      - ops/official-events-deployment-readiness-v1
+    paths:
+      - .github/workflows/apply-official-events-series-bootstrap.yml
+      - .bootstrap/official-events.patch.gz.b64
+
+permissions:
+  contents: write
+
+concurrency:
+  group: official-events-series-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  apply-series:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout bootstrap branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip until the validated patch is present
+        id: patch
+        shell: bash
+        run: |
+          if [[ -f .bootstrap/official-events.patch.gz.b64 ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reconstruct validated ten-commit series
+        if: steps.patch.outputs.present == 'true'
+        shell: bash
+        env:
+          BASE_SHA: 2808fc3cc385613c0f9914c24b8beb238409e7b9
+          EXPECTED_SHA256: 14c71acb73edf70350da43bb2530c49496b183369c00760140216bc110d69e6c
+          EXPECTED_SIZE: '878193'
+          TARGET_BRANCH: ops/official-events-deployment-readiness-v1
+        run: |
+          set -euo pipefail
+
+          base64 --decode .bootstrap/official-events.patch.gz.b64 | gzip --decompress > /tmp/official-events-series.patch
+
+          actual_hash="$(sha256sum /tmp/official-events-series.patch | awk '{print $1}')"
+          actual_size="$(wc -c < /tmp/official-events-series.patch | tr -d ' ')"
+          commit_count="$(grep -c '^From [0-9a-f]\{40\} Mon Sep 17 00:00:00 2001$' /tmp/official-events-series.patch)"
+
+          test "$actual_hash" = "$EXPECTED_SHA256"
+          test "$actual_size" = "$EXPECTED_SIZE"
+          test "$commit_count" = '10'
+
+          git config user.name 'Papo de Futuro Automation'
+          git config user.email 'actions@users.noreply.github.com'
+
+          git reset --hard "$BASE_SHA"
+          git am --committer-date-is-author-date /tmp/official-events-series.patch
+          git diff --check "$BASE_SHA"..HEAD
+          test "$(git rev-list --count "$BASE_SHA"..HEAD)" = '10'
+
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH" \
+            --force-with-lease="refs/heads/$TARGET_BRANCH:$GITHUB_SHA"
