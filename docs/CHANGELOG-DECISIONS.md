@@ -684,3 +684,54 @@ Este documento registra decisões de produto e arquitetura.
   versionados; eventos não são removidos automaticamente. A auditoria editorial
   continua `NO-GO`. Este ciclo não acessa Supabase, não aplica migrations, não
   executa SQL, provider ou backfill, não regenera types e não ativa runtime ou UI.
+
+## DEC-038 — Branches obsoletas do incidente de publicação removidas
+
+- Data: 27 de julho de 2026
+- Status: Aceita
+- Contexto: `docs/PROJECT_HANDOFF.md` documentava três branches remanescentes do
+  incidente de publicação do PR #85 (`ops/official-events-deployment-readiness-v1`,
+  `automation/publish-official-events-series` e
+  `automation/trigger-official-events-series`) como pendentes de decisão. A
+  série real já estava publicada e mergeada em `main` pelo PR #86; as três
+  branches estavam defasadas em relação à `main` e não continham nenhum
+  trabalho não integrado. `automation/trigger-official-events-series` continha
+  especificamente o workflow `publish-official-events-series.yml` com
+  `permissions: contents: write` disparado em `pull_request`, o mesmo mecanismo
+  do incidente original.
+- Decisão: Confirmado com o usuário que o incidente já está documentado em
+  `docs/PROJECT_HANDOFF.md` (seção 3) e que a evidência não depende de manter
+  as branches vivas, as três foram excluídas — local e remotamente no GitHub.
+- Consequências: Nenhum código foi perdido: as três branches eram byte a byte
+  regressivas em relação à `main` (nenhum commit exclusivo com trabalho útil,
+  exceto os commits do próprio incidente, já superados pelo PR #86). O
+  workflow de escrita automática do incidente não existe mais em nenhuma
+  branch do repositório. Este ciclo não tocou `main`, migrations, Supabase ou
+  qualquer código de produto.
+
+## DEC-039 — Suíte pgTAP de RLS conectada ao CI via Postgres local efêmero
+
+- Data: 27 de julho de 2026
+- Status: Aceita
+- Contexto: `supabase/tests/database/rls_user_isolation.test.sql` (43
+  asserções) só havia sido executado manualmente contra o Supabase real de
+  produção, nunca em CI, porque rodá-lo exigiria credencial de banco. CI não
+  deve ter acesso a credenciais de produção.
+- Decisão: Adicionar um job `rls-pgtap` a `.github/workflows/validate.yml` que
+  usa o Supabase CLI (`supabase/setup-cli@v1`) para subir um Postgres local
+  efêmero via Docker dentro do próprio runner (`supabase db start`), aplicar
+  as migrations versionadas (`supabase db reset --local --no-seed`) e então
+  rodar a suíte pgTAP (`supabase test db --local supabase/tests/database`).
+  Um `supabase/config.toml` mínimo foi criado só para isso, com Studio,
+  Storage, Realtime, SMTP local e o serviço de Auth desabilitados — apenas o
+  Postgres e os schemas embutidos (incluindo `auth` e a extensão `pgtap`) são
+  necessários. Nenhuma credencial ou projeto de produção é referenciado.
+- Consequências: A suíte de isolamento de RLS passa a rodar automaticamente
+  em todo PR e push para `main`, sem depender de execução manual contra
+  produção. Como o ambiente local deste ciclo não tinha Docker disponível, a
+  validação de ponta a ponta do job só pôde ser confirmada até o ponto de
+  inspeção do serviço Docker pela CLI (o `supabase/config.toml` foi validado
+  como sintaticamente correto); a execução completa do job (`db start` →
+  `db reset` → `test db`) só será comprovada na primeira execução real do
+  GitHub Actions após o merge. Este ciclo não alterou o schema real, não
+  aplicou migrations em produção e não tocou o Supabase real.

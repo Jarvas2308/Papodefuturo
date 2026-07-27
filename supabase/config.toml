@@ -1,0 +1,49 @@
+# For detailed configuration reference documentation, visit:
+# https://supabase.com/docs/guides/local-development/cli/config
+#
+# This config exists only to let the Supabase CLI start an ephemeral local
+# Postgres for running supabase/tests/database (pgTAP) in CI. It intentionally
+# disables every service that is not needed for that (Studio, Storage,
+# Realtime, local SMTP, Auth service) — only the database and its bundled
+# auth/extensions schemas are required. It is never used against production.
+project_id = "papodefuturo"
+
+[api]
+enabled = false
+
+[db]
+port = 54322
+shadow_port = 54320
+health_timeout = "2m"
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+[local_smtp]
+enabled = false
+
+[storage]
+enabled = false
+
+[storage.s3_protocol]
+enabled = false
+
+[storage.vector]
+enabled = false
+
+[auth]
+enabled = false
