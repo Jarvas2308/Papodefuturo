@@ -87,6 +87,14 @@ Estado já integrado:
   separada em memória, sem persistência ou integração runtime;
 - política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
   SEC como únicas fontes automatizadas V1 e notícias editoriais adiadas;
+- auditoria Editorial News Providers V2 concluída em 20/07/2026 com decisão
+  `NO-GO`: nenhum dos oito providers avaliados comprovou simultaneamente licença
+  comercial, identidade forte e cobertura do universo fechado; não existe
+  provider editorial, storage, migration, repository, runtime ou UI aprovados;
+- preparação local de deployment controlado de eventos oficiais V1 definida por
+  manifesto com hashes, runbook, checks SQL somente leitura e checklist de
+  segurança; nenhuma migration foi aplicada, nenhum backfill foi executado e o
+  runtime permanece `disabled`;
 - domínio puro `OfficialAssetEventV1` implementado com registry fechado dos 12
   ativos, taxonomia, precisão temporal explícita, identidade documental,
   deduplicação e histórico de revisões, sem banco ou runtime;
@@ -100,6 +108,35 @@ Estado já integrado:
   como índice, Filing Detail obrigatória, associação exata por CIK, série e
   classe, seis forms fechados, fair access e deduplicação em memória, sem
   storage, Supabase ou runtime;
+- contrato global `official-asset-event-storage-record.v1` puro e provider-agnostic,
+  com mapeamento lossless, validação runtime, batch determinístico, upsert
+  idempotente e referência em memória;
+- migration global de `official_asset_events` versionada, com identidade e
+  temporalidade lossless, RLS, leitura somente para `authenticated` e escrita
+  reservada a `service_role`, ainda sem aplicação remota ou runtime;
+- adapter Supabase global de `official_asset_events` implementado sobre RPC
+  transacional server-side, com mapping dos 58 campos, batch atômico, writers
+  serializados e retorno validado;
+- executor V1 de eventos oficiais isolado em `src/server`, com jobs explícitos e
+  sequenciais para os três providers, fetch com allowlist, relógio injetado,
+  falha por job e persistência pela fachada canônica, ainda sem scheduler,
+  backfill, entrypoint de produção ou execução remota;
+- backfill V1 de eventos oficiais isolado em `src/server`, com plano e jobs
+  determinísticos, preview sem efeitos, checkpoint global, leases recuperáveis,
+  retries explícitos e etapas limitadas; as migrations permanecem não aplicadas
+  e nenhum backfill real foi executado;
+- repository global `official-asset-event-read-repository.v1` implementado com
+  leitura por `eventId`, timeline filtrável, ordenação temporal determinística,
+  cursor opaco ligado à consulta e adapters Supabase e em memória conformes;
+  as RPCs de leitura permanecem apenas versionadas e sem aplicação remota;
+- runtime opcional `official-events-runtime.v1` implementado como fronteira
+  browser-compatible, somente leitura e não bloqueante, com modos explícitos
+  `disabled` e `read-only`, autenticação e relógio injetados;
+- interface autenticada de Eventos Oficiais implementada com timeline, filtros
+  fechados, cursor, detalhes, revisões e links externos seguros, dependendo
+  somente do runtime; a composição real permanece explicitamente `disabled`, o
+  item da navegação fica ausente e a rota direta explica a indisponibilidade sem
+  chamar repository ou Supabase; migrations e RPCs permanecem não aplicadas;
 - provider CVM V1 isolado para as cinco ações brasileiras e os quatro FIIs do
   universo fechado, com ingestão, storages e repositories Supabase injetados,
   ainda sem scheduler ou integração com telas; os adapters de FIIs foram
@@ -385,9 +422,22 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   atribuição e proveniência;
 - falha ou ausência de contexto nunca bloqueia carteira, motor ou Novo Aporte;
 - `EditorialAssetNewsV1` permanece apenas conceitual, sem implementação aprovada;
+- o repository global é somente leitura, não expõe contagem total, busca textual,
+  escrita, identidade de usuário ou garantia de snapshot entre páginas;
+- preservar a timeline canônica por data civil publicada, precisão, instante UTC
+  e `eventId`, sem converter data civil em meia-noite;
 - implementar infraestrutura somente nos ciclos próprios posteriores e na
-  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; o próximo ciclo é o
-  storage global de eventos oficiais.
+  sequência aprovada em `docs/NEWS_EVENTS_V1_DESIGN.md`; a auditoria editorial
+  V2 não autoriza implementação e a única próxima ação permitida é um deployment
+  controlado dos eventos oficiais, mediante autorização separada.
+- tratar aplicação de migrations, regeneração de types, canário, ativação
+  `read-only` e sidebar como autorizações independentes;
+- durante deployment, conferir o manifesto local, backup, drift, RLS, grants e
+  assinaturas antes de avançar; qualquer divergência é `NO-GO`;
+- manter `src/lib/database.types.ts` intocado até o schema remoto autorizado ser
+  aplicado e validado; depois regenerar pelo mecanismo oficial e revisar o diff;
+- após existirem dados, preferir forward fix versionado e nunca remover eventos
+  automaticamente como rollback.
 
 ## 7. Modelos e valores atuais do domínio
 

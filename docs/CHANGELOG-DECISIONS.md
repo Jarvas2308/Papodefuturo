@@ -440,3 +440,247 @@ Este documento registra decisões de produto e arquitetura.
   omissão silenciosa. O provider permanece isolado, sem storage, migration,
   Supabase, scheduler, runtime, UI ou ingestão real, e falhas não alteram nem
   bloqueiam o Motor V2. O próximo ciclo é o storage global de eventos oficiais.
+
+## DEC-028 — Contrato global de storage de eventos oficiais usa eventId e deduplicationKey como identidades persistentes
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: Os três providers oficiais já produzem `OfficialAssetEventV1`, mas a
+  futura persistência precisa de uma fronteira global, auditável e independente
+  de CVM, SEC, usuário ou carteira. A identidade não pode depender apenas de
+  `source_type + source_document_id`, pois o domínio possui uma hierarquia
+  canônica de identidades documentais.
+- Decisão: O contrato `official-asset-event-storage-record.v1` é global,
+  provider-agnostic e lossless. `eventId` é a identidade determinística
+  persistente, `deduplicationKey` é a chave natural global e
+  `documentIdentity` permanece preservada. O record não possui `user_id` nem FK
+  para `assets.id`. A escrita usa batch validado e upsert idempotente: preserva
+  o menor `ingestedAt`, aceita a versão de `updatedAt` mais recente, ignora stale
+  e trata payload divergente na mesma versão como conflito. Amendments,
+  correções, substituições e cancelamentos permanecem registros independentes.
+- Consequências: A implementação em memória serve somente como referência de
+  conformance e test double. Este ciclo não cria SQL, migration, Supabase,
+  runtime, scheduler, backfill, conexão com providers ou repository de leitura.
+  O próximo ciclo é a migration de `official_asset_events`; adapter e leitura
+  permanecem posteriores.
+
+## DEC-029 — Migration official_asset_events preserva identidade global e separa datas civis de instantes
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: O contrato global de storage precisa de uma representação PostgreSQL
+  que preserve identidade, temporalidade e proveniência sem transformar datas
+  civis em instantes nem acoplar fatos globais a usuários ou carteiras.
+- Decisão: A migration cria a tabela global `official_asset_events`, sem
+  `user_id` e sem FK para `assets`. `event_id` é a PK,
+  `deduplication_key` é a chave natural unique e a identidade documental
+  discriminada permanece separada. A identidade regulatória é validada por
+  classe. Datas civis usam `date`; instantes UTC, valores temporais brutos e
+  timestamps internos ficam em texto canônico lossless, sem meia-noite
+  inventada. Somente estruturas auditáveis usam `jsonb`. RLS fica habilitado,
+  `anon` não possui acesso, `authenticated` recebe somente leitura e a escrita é
+  reservada ao contexto server-side. Revisões são preservadas sem FK obrigatória
+  em `supersedes_event_id`, permitindo backfill fora de ordem.
+- Consequências: A validação profunda continua no contrato TypeScript e no futuro
+  adapter. Esta decisão não cria adapter, runtime, scheduler, ingestão ou
+  backfill e não aplica a migration ao Supabase remoto. A sincronização dos tipos
+  gerados fica para o ciclo que aplicar o schema real e implementar o adapter.
+
+## DEC-030 — Adapter Supabase de eventos oficiais usa RPC transacional e escrita server-side
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: A tabela global versionada precisa implementar a semântica de
+  `OfficialAssetEventStorageV1` sem simular atomicidade por múltiplas chamadas
+  PostgREST nem expor escrita direta ao browser. A fronteira deve preservar os
+  58 campos, identidades, temporalidade lossless, proveniência e histórico de
+  revisões sob concorrência.
+- Decisão: O adapter mapeia explicitamente os 58 campos e chama uma única RPC
+  `upsert_official_asset_events_v1` por batch de até 500 records. A função usa
+  `SECURITY DEFINER`, `search_path` fixo e `pg_advisory_xact_lock` transacional
+  para serializar writers. Todo o lote é classificado antes de writes e qualquer
+  conflito impede gravações. `eventId` e `deduplicationKey` permanecem
+  identidades imutáveis; stale é ignorado, divergência na mesma versão é
+  conflito, conteúdo mutável posterior pode ser atualizado, o menor
+  `ingestedAt` é preservado e o `updatedAt` mais recente governa a versão.
+  Somente `service_role` executa a RPC, a escrita direta da tabela por esse role
+  é revogada, `authenticated` continua somente leitura e `anon` permanece sem
+  acesso.
+- Consequências: O client é estrutural, injetado e exclusivo da camada
+  server-side; não existe singleton, chave privilegiada ou operação direta no
+  frontend. `database.types.ts` permanece gerado e não foi falsificado. A
+  migration complementar ainda não foi aplicada ao Supabase remoto, o adapter
+  ainda não está conectado ao runtime e os providers ainda não executam
+  persistência real. Execução server-side, backfill, scheduler, repository e UI
+  permanecem ciclos posteriores.
+
+## DEC-031 — Executor de eventos oficiais compõe providers e storage somente no servidor
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: Os três providers oficiais e o contrato global de persistência já
+  existem, mas precisam ser compostos sem levar credenciais, rede regulatória ou
+  escrita privilegiada ao browser e sem permitir que falhas contextuais afetem
+  o produto financeiro.
+- Decisão: O executor V1 recebe jobs explícitos de CVM IPE, CVM Fund Delivery e
+  SEC EDGAR, valida todo o lote e os executa sequencialmente na ordem recebida.
+  Cada provider produz `OfficialAssetEventV1`, que é persistido somente por
+  `persistOfficialAssetEventsV1` e pelo adapter Supabase injetado. Falhas são
+  isoladas por job e não bloqueiam login, carteira, compras, Motor V2 ou Novo
+  Aporte. O fetch server-side usa allowlist exata de hosts, HTTPS, redirect
+  manual rejeitado, timeout com abort e headers mínimos. User-Agent SEC,
+  relógio, fetch e RPC client são injetados; o módulo não lê segredo ou ambiente
+  e não é exportado ao browser.
+- Consequências: O resultado preserva ordem, contadores, rejeições, duplicatas,
+  conflitos e retorno da persistência com erros sanitizados. Este ciclo não
+  cria scheduler, retry, checkpoint, backfill, entrypoint de produção,
+  repository de leitura ou UI; não executa rede real, não acessa Supabase real e
+  não aplica migrations. O próximo ciclo é o backfill controlado e reiniciável.
+
+## DEC-032 — Backfill de eventos oficiais usa planos determinísticos, leases e checkpoint persistente
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: O executor server-side já compõe os três providers e o storage
+  global, mas um histórico amplo não pode depender de uma chamada monolítica,
+  memória volátil, retries implícitos ou jobs sem identidade. Interrupções e
+  concorrência precisam preservar progresso auditável sem vincular fatos
+  globais a usuários ou carteiras.
+- Decisão: O backfill V1 recebe plano explícito e fechado, deriva `planId`, hash
+  e `jobId` deterministicamente e gera um job por ano, mês ou janela civil. A
+  execução ocorre em passos limitados por `maxJobs`, sem loop infinito. O
+  checkpoint global não possui `user_id`; runs e jobs preservam status,
+  contadores e summaries seguros. Claims usam lease com owner explícito e
+  recuperação após expiração. Retry de `failed` exige nova etapa,
+  `retryFailed: true` e tentativas restantes; `conflict` não recebe retry.
+  `failureMode` define continuar ou pausar, devolvendo transacionalmente jobs
+  ainda não iniciados. RPCs server-side versionadas, `SECURITY DEFINER`,
+  `search_path` fixo, RLS e revokes impedem acesso de `anon` e `authenticated`;
+  `service_role` opera somente pelas RPCs.
+- Consequências: O mesmo plano retoma as mesmas identidades e não reexecuta jobs
+  concluídos. A implementação em memória é referência de conformance e o
+  adapter Supabase usa client RPC injetado. Não existem scheduler, cron,
+  execução automática, backfill real, migration aplicada, repository de
+  leitura, runtime ou UI. A validação profunda permanece em TypeScript e SQL; o
+  próximo ciclo é o repository global de leitura de eventos oficiais.
+
+## DEC-033 — Repository global de eventos oficiais usa timeline publicada e cursor determinístico
+
+- Data: 19 de julho de 2026
+- Status: Aceita
+- Contexto: O contrato global, a tabela versionada, o adapter de escrita, o
+  executor e o backfill já definem fatos oficiais auditáveis, mas consumidores
+  futuros precisam de uma fronteira única de leitura que não dependa de provider,
+  usuário ou paginação por offset. Datas civis e instantes possuem semânticas
+  distintas e não podem ser achatados em um timestamp artificial.
+- Decisão: O repository V1 expõe somente leitura por `eventId` e timeline
+  paginada. A ordem descendente combina data civil publicada, precisão, instante
+  UTC canônico quando existente e `eventId`. O cursor opaco e versionado inclui
+  essa tupla e um hash determinístico da consulta canônica. Filtros são fechados,
+  o limite fica entre 1 e 100 e não existem count global, busca textual ou campos
+  de usuário/carteira. As RPCs são `STABLE`, `SECURITY INVOKER`, obedecem à RLS e
+  concedem execução somente a `authenticated` e `service_role`. Toda linha passa
+  pelos contratos Supabase, storage e domínio existentes.
+- Consequências: A paginação é keyset e não oferece snapshot transacional entre
+  chamadas; inserções concorrentes seguem a posição da chave. A validação
+  profunda e o cursor público permanecem no adapter TypeScript, enquanto o SQL
+  valida a fronteira e aplica filtros/ordenação. A migration não foi aplicada e
+  este ciclo não cria runtime, UI, scheduler, backfill real, escrita, count ou
+  busca editorial. O próximo ciclo é a integração runtime opcional.
+
+## DEC-034 — Runtime de eventos oficiais é opcional, somente leitura e não bloqueante
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: O repository global oferece leitura auditável por identidade e
+  timeline, mas a aplicação ainda não possui uma fronteira opcional que trate
+  autenticação, indisponibilidade e capacidade local sem acoplar eventos aos
+  fluxos financeiros ou ativar infraestrutura ainda não aplicada.
+- Decisão: `official-events-runtime.v1` usa uma união discriminada sem default:
+  `disabled` não recebe nem chama repository ou acesso; `read-only` recebe o
+  repository global, um client autenticado por composição indireta, uma porta de
+  estado de acesso e relógio UTC injetados. Somente `authenticated` lê;
+  `unauthenticated` e `unresolved` não chamam o repository. Cada operação faz no
+  máximo uma leitura, sem retry, preflight, cache ou count. Falhas não viram
+  timeline vazia: página vazia e `get` nulo válidos são `succeeded`, enquanto
+  transporte/schema indisponível e violações contratuais têm estados separados
+  e erros sanitizados. O relógio preserva até nove dígitos fracionários e rejeita
+  regressão. A composição Supabase estreita reutiliza o repository e nunca cria
+  client, singleton, service role, escrita, provider, executor, backfill ou
+  scheduler.
+- Consequências: O runtime é browser-compatible, somente leitura e não bloqueia
+  login, carteira, compras, Motor V2, Dossiê Técnico ou Novo Aporte. Não existe
+  UI, hook, rota ou ativação no composition root neste ciclo. As migrations e
+  RPCs continuam não aplicadas; o modo `read-only` só poderá ser selecionado após
+  o schema estar disponível. O próximo ciclo é a apresentação opcional dos
+  eventos oficiais na UI, sem autorização implícita para escrita ou execução de
+  providers.
+
+## DEC-035 — UI de eventos oficiais usa runtime opcional e permanece desligada até o deployment do schema
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: O runtime opcional já distingue capacidade, autenticação,
+  indisponibilidade, falha e sucesso, mas a aplicação precisa apresentar os
+  eventos sem acoplar componentes ao repository ou ativar infraestrutura ainda
+  não aplicada no Supabase remoto.
+- Decisão: A página autenticada de Eventos Oficiais recebe somente
+  `OfficialEventsRuntimeV1`. Ela apresenta timeline read-only, filtros fechados,
+  paginação por cursor, detalhes por `eventId`, revisões, fontes CVM e SEC,
+  precisão temporal e links HTTPS para hosts oficiais auditados. Eventos não são
+  notícias editoriais nem recomendações. A composição real seleciona
+  explicitamente `disabled`: o item da navegação não é renderizado e o acesso
+  direto mostra o estado desabilitado sem chamar repository ou Supabase.
+- Consequências: Estados do runtime não são convertidos em vazio, respostas
+  obsoletas não sobrescrevem filtros atuais e a UI não acessa storage, escrita,
+  providers, executor ou backfill. Nenhuma migration foi aplicada, nenhum
+  backfill foi executado e nenhum evento está disponível em produção. O recurso
+  `read-only` só poderá ser ativado após deployment e validação do schema e das
+  RPCs. Fluxos financeiros, Motor V2 e plano técnico permanecem independentes.
+
+## DEC-036 — Notícias editoriais permanecem condicionadas a licença, identidade forte e cobertura comprovada
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: A sequência local de eventos oficiais chegou à apresentação opcional
+  ainda desativada. Antes de qualquer implementação editorial, a auditoria V2
+  avaliou GDELT, NewsAPI, Finnhub, Marketaux, Alpha Vantage, Financial Modeling
+  Prep, Massive com Benzinga e Benzinga direta quanto a uso comercial
+  multiusuário, copyright, identidade do instrumento, cobertura dos 12 ativos,
+  custo e operação. Nenhum candidato comprovou todos os gates simultaneamente.
+- Decisão: O resultado é `NO-GO`. GDELT, NewsAPI, Finnhub, Marketaux e Alpha
+  Vantage ficam rejeitados para o contrato atual. FMP, Massive com Benzinga e
+  Benzinga direta permanecem condicionais, sem autorização de implementação.
+  Não existe provider ou composição multiprovider aprovada. Notícias editoriais
+  só poderão ser reavaliadas com contrato comercial completo e revisão jurídica,
+  direitos explícitos por campo, identidade forte e teste autenticado de
+  cobertura dos 12 ativos. Eventos Oficiais Primeiro permanece a política do
+  produto.
+- Consequências: O item 17 do roadmap está concluído como auditoria e decisão,
+  não como funcionalidade editorial. Não serão criados contrato runtime,
+  provider, storage, migration, repository, UI, IA, sentimento ou score
+  editorial. As migrations oficiais permanecem não aplicadas, nenhum backfill
+  foi executado e o runtime real segue `disabled`. A única próxima ação permitida
+  é um deployment controlado dos eventos oficiais mediante autorização separada.
+
+## DEC-037 — Deployment de eventos oficiais exige migrations em fases, gates explícitos e ativação posterior
+
+- Data: 20 de julho de 2026
+- Status: Aceita
+- Contexto: Os 17 itens de desenvolvimento de News & Events estão concluídos
+  localmente, mas as migrations de eventos oficiais não foram aplicadas, os types
+  gerados ainda refletem o schema remoto anterior, nenhum backfill foi executado
+  e a composição real permanece `disabled`. Aplicação, dados e ativação não podem
+  ser tratados como uma única mudança implícita.
+- Decisão: A fase operacional é separada e usa manifesto com hashes reais,
+  runbook, SQL somente leitura e checklist. A ordem obrigatória é schema, escrita
+  transacional, checkpoint e leitura. Migrations precedem regeneração de types;
+  types precedem smoke tests; backfill canário precede validação dos dados; e
+  somente autorização posterior permite `read-only` e sidebar. Backup, ambiente,
+  operador, CI, drift, RLS, grants e hashes são gates de `GO/NO-GO`. O runtime
+  permanece `disabled` durante o deployment.
+- Consequências: Cada ação remota exige autorização separada. Após dados,
+  rollback conservador desativa consumidores e prefere forward fixes
+  versionados; eventos não são removidos automaticamente. A auditoria editorial
+  continua `NO-GO`. Este ciclo não acessa Supabase, não aplica migrations, não
+  executa SQL, provider ou backfill, não regenera types e não ativa runtime ou UI.

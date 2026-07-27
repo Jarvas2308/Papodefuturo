@@ -43,6 +43,7 @@ describe('official events public API', () => {
         'OFFICIAL_EVENT_ASSET_IDENTITIES_V1_VERSION',
         'OFFICIAL_EVENT_TAXONOMY_V1_VERSION',
         'analyzeOfficialEventRevisionGraphV1',
+        'assertOfficialAssetEventV1',
         'assertOfficialEventAssetIdentity',
         'assertOfficialEventTypeCompatibility',
         'buildOfficialAssetEventV1',

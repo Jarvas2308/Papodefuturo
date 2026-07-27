@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "verify:official-events-deployment": "node scripts/verify-official-events-deployment-manifest.mjs",
     "preview": "vite preview",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

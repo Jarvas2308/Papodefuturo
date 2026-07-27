@@ -17,8 +17,9 @@ aporte, `FundamentalFactsV1`, `FundamentalDerivedFactsV1` ou
 
 O desenho permanece a política de referência. O domínio puro e os três
 providers oficiais V1 — CVM IPE para ações, CVM Fund Delivery para FIIs e SEC
-EDGAR para ETFs — foram implementados em ciclos isolados; migration, tabela,
-storage, scheduler, ingestão real, UI e IA continuam ausentes.
+EDGAR para ETFs — foram implementados em ciclos isolados. Contrato de storage,
+migration global e adapter Supabase transacional estão versionados; aplicação
+remota da migration, scheduler, ingestão real, UI e IA continuam ausentes.
 
 ## 2. Estado atual
 
@@ -445,8 +446,8 @@ após término quando exigido. Nunca reter corpo/imagem editorial por padrão.
 ## 20. Persistência conceitual
 
 A arquitetura mantém `official_asset_events` e `editorial_asset_news`
-conceitualmente separados. Somente a primeira tabela poderá ser proposta em ciclo
-futuro; a segunda não está aprovada para implementação.
+separados. A migration versionada implementa somente a primeira tabela; a segunda
+continua não aprovada para implementação.
 
 ### `official_asset_events`
 
@@ -455,13 +456,22 @@ futuro; a segunda não está aprovada para implementação.
   precisão, source/type/document ID, URLs, textos permitidos, status/relação,
   idioma/jurisdição, proveniência JSON validada, parser/mapping version, hash e
   timestamps internos;
-- chaves/unicidade: PK interna; única por `source_type + source_document_id`;
-  índices por identidade global, `published_at desc`, `occurred_at desc`,
-  `event_type`, `source` e relação;
+- chaves/unicidade: `eventId` como identidade determinística e
+  `deduplicationKey` como chave natural global; `source` e a identidade
+  documental discriminada permanecem indexáveis para auditoria; índices por
+  identidade global, `published_at desc`, `occurred_at desc`, `event_type`,
+  `source` e relação;
 - constraints: discriminante de identidade completo por kind, enumerações
   fechadas, URL/host permitido e coerência entre status e relação;
 - atualizações: upsert idempotente de metadados; histórico de amendments não é
-  sobrescrito.
+  sobrescrito;
+- segurança: RLS habilitado, `anon` sem acesso, `authenticated` somente leitura
+  e escrita reservada ao contexto server-side `service_role`;
+- adapter: mapping explícito dos 58 campos e uma RPC transacional com lock de
+  writers, batch atômico e conflitos estruturados, executável somente por
+  `service_role`;
+- estado: migrations e adapter versionados, ainda sem aplicação remota,
+  ingestão, scheduler, backfill ou repository.
 
 ### `editorial_asset_news`
 
@@ -579,23 +589,60 @@ planejamento V1.
 6. Provider CVM para eventos de ações — concluído.
 7. Provider CVM para eventos de FIIs — concluído.
 8. Provider SEC para eventos de ETFs — concluído.
-9. Contrato de storage global.
-10. Migration de `official_asset_events`.
-11. Adapter Supabase.
-12. Execução real server-side.
-13. Backfill controlado.
-14. Repository de leitura.
-15. Integração runtime opcional.
-16. Apresentação na UI.
-17. Nova auditoria antes de qualquer notícia editorial.
+9. Contrato de storage global — concluído.
+10. Migration de `official_asset_events` — concluído.
+11. Adapter Supabase — concluído.
+12. Executor server-side de eventos oficiais — concluído localmente.
+13. Backfill controlado — concluído localmente.
+14. Repository de leitura — concluído localmente.
+15. Integração runtime opcional — concluída localmente, sem ativação.
+16. Apresentação opcional na UI — concluída localmente, modo real desabilitado.
+17. Auditoria Editorial News Providers V2 — concluída com decisão `NO-GO`.
 
 Cada item é um ciclo independente; não há autorização implícita para os itens
 seguintes. Os itens 1 a 5 foram implementados como domínio puro. O item 6 usa o
 arquivo anual oficial IPE; o item 7 usa somente o CSV mensal Fund Delivery; e o
 item 8 usa Submissions como índice e Filing Detail como confirmação obrigatória
 de CIK, série e classe. Os três providers usam mapping fechado e deduplicação em
-memória, sem banco, Supabase ou runtime. O próximo ciclo é somente o item 9,
-contrato de storage global.
+memória, sem banco, Supabase ou runtime. O item 9 definiu record canônico
+lossless, `eventId` e `deduplicationKey` como identidades persistentes, batch
+determinístico e upsert idempotente por interface abstrata. O item 10 versionou
+a tabela global com constraints, índices, grants e RLS, sem aplicá-la ao
+Supabase remoto. O item 11 implementou mapping lossless e uma única RPC
+transacional server-side. O item 12 compõe os três providers, a fachada
+canônica de persistência e o adapter injetado em execução sequencial, com fetch
+seguro e falha isolada por job. O item 13 adicionou plano e jobs determinísticos,
+preview puro, checkpoint global, leases recuperáveis, retries explícitos e
+execução em passos limitados. O item 14 adiciona leitura por identidade e uma
+timeline global com filtros fechados, ordem temporal canônica e cursor keyset
+ligado ao hash da consulta, por adapters Supabase e em memória conformes. Os
+itens 1 a 16 estão concluídos localmente. O item 15 adiciona uma fronteira
+browser-compatible, opcional e somente de leitura, com modos explícitos,
+autenticação anterior à leitura, erros sanitizados e relógio injetado. O item 16
+adiciona a página autenticada com timeline, filtros, cursor, detalhes, revisões,
+temporalidade e links seguros, dependendo somente do runtime. A composição real
+permanece `disabled`, sem item de navegação. Não há runtime read-only ativado,
+scheduler, execução remota, migration aplicada, backfill executado ou notícia
+editorial. O item 17 foi concluído em 20/07/2026 como auditoria documental; não
+houve implementação editorial. A próxima ação permitida é somente um deployment
+controlado dos eventos oficiais mediante autorização separada.
+
+## 27. Auditoria Editorial News Providers V2
+
+A auditoria registrada em
+`docs/audits/EDITORIAL_NEWS_PROVIDERS_V2_2026-07-20.md` e no artefato estruturado
+`docs/audits/editorial-news-providers-v2-evidence.json` avaliou GDELT, NewsAPI,
+Finnhub, Marketaux, Alpha Vantage, Financial Modeling Prep, Massive com Benzinga
+e Benzinga direta. Nenhum candidato comprovou simultaneamente licença comercial
+para aplicação multiusuário, direitos de exibição e retenção por campo,
+identidade forte do instrumento e cobertura dos 12 ativos.
+
+A decisão é `NO-GO`. GDELT, NewsAPI, Finnhub, Marketaux e Alpha Vantage foram
+rejeitados. FMP, Massive com Benzinga e Benzinga direta são apenas condicionais
+a contrato específico, revisão jurídica e teste autenticado 12/12. Não há
+provider aprovado nem composição multiprovider aprovada. A auditoria não cria
+`EditorialAssetNewsV1`, provider, storage, migration, repository, runtime, UI,
+IA, sentimento ou score. Eventos Oficiais Primeiro permanece a política vigente.
 
 ### Provider SEC EDGAR ETF Events V1
 
@@ -640,3 +687,22 @@ confirmados os gates aplicáveis:
 
 Se qualquer gate falhar, a implementação permanece bloqueada sem fallback por
 scraping, texto livre, artigo integral ou provider não licenciado.
+
+## 28. Preparação operacional do deployment oficial V1
+
+O deployment de eventos oficiais possui um pacote local e verificável em
+`docs/runbooks`: manifesto com hashes das quatro migrations, runbook de
+aplicação sequencial, checklist de segurança e consultas pós-deployment somente
+leitura. O verificador local confirma integridade, ordem, dependências e estado
+de ativação sem acessar rede, ambiente ou Supabase.
+
+O pacote não executa deployment. Aplicação de schema, geração dos tipos
+Supabase, canário server-side, backfill, ativação read-only e navegação exigem
+autorizações independentes. A composição real permanece `disabled`, sem leitura
+real ou item de menu. Qualquer drift de migration, RLS, grants, assinatura de
+RPC, schema gerado ou contagem inicial é `NO-GO`.
+
+Rollback destrutivo só pode ser considerado antes da existência de dados e com
+backup validado. Após canário ou backfill, a correção padrão é forward-only,
+preservando eventos, revisões e checkpoints. A camada editorial permanece fora
+do escopo e continua bloqueada pela decisão `NO-GO` da auditoria V2.

@@ -6,6 +6,7 @@ import { HistoryPage } from '../../pages/HistoryPage'
 import { LoginPage } from '../../pages/LoginPage'
 import { NewContributionPage } from '../../pages/NewContributionPage'
 import { NotFoundPage } from '../../pages/NotFoundPage'
+import { OfficialEventsPage } from '../../pages/OfficialEventsPage'
 import { PortfolioPage } from '../../pages/PortfolioPage'
 import { SettingsPage } from '../../pages/SettingsPage'
 import { StrategyPage } from '../../pages/StrategyPage'
@@ -21,6 +22,7 @@ export function AppRouter() {
           <Route path="/carteira" element={<PortfolioPage />} />
           <Route path="/novo-aporte" element={<NewContributionPage />} />
           <Route path="/historico" element={<HistoryPage />} />
+          <Route path="/eventos-oficiais" element={<OfficialEventsPage />} />
           <Route path="/estrategia" element={<StrategyPage />} />
           <Route path="/configuracoes" element={<SettingsPage />} />
         </Route>

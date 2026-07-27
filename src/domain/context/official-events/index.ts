@@ -6,13 +6,17 @@ export {
 export type {
   BuildOfficialAssetEventV1Input,
   OfficialAssetEventV1,
+  OfficialEventAssetTickerV1,
   OfficialEventAssetIdentityV1,
   OfficialEventAssociationEvidenceV1,
   OfficialEventAssociationReasonV1,
   OfficialEventDeduplicationResultV1,
+  OfficialEventDocumentIdentityKindV1,
   OfficialEventDocumentIdentifiersV1,
   OfficialEventDocumentIdentityV1,
+  OfficialEventProvenanceScalarV1,
   OfficialEventProvenanceV1,
+  OfficialEventRelatedDocumentV1,
   OfficialEventRevisionAnalysisV1,
   OfficialEventSourceV1,
   OfficialEventStatusV1,
@@ -35,5 +39,6 @@ export {
 export { normalizeOfficialEventTemporalValueV1 } from './temporal'
 export { selectOfficialEventDocumentIdentityV1 } from './documentIdentity'
 export { buildOfficialAssetEventV1 } from './buildOfficialAssetEventV1'
+export { assertOfficialAssetEventV1 } from './eventValidation'
 export { deduplicateOfficialAssetEventsV1 } from './deduplication'
 export { analyzeOfficialEventRevisionGraphV1 } from './revisions'

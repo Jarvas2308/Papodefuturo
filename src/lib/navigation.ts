@@ -33,6 +33,26 @@ export const navigationItems: NavigationItem[] = [
   },
 ]
 
+const officialEventsNavigationItem: NavigationItem = {
+  to: '/eventos-oficiais',
+  label: 'Eventos Oficiais',
+  icon: 'officialEvents',
+}
+
+export function getNavigationItems(
+  officialEventsMode: 'disabled' | 'read-only'
+): NavigationItem[] {
+  if (officialEventsMode === 'disabled') return [...navigationItems]
+  const historyIndex = navigationItems.findIndex(
+    (item) => item.to === '/historico'
+  )
+  return [
+    ...navigationItems.slice(0, historyIndex + 1),
+    officialEventsNavigationItem,
+    ...navigationItems.slice(historyIndex + 1),
+  ]
+}
+
 export const pageCopyByPath: Record<string, PageCopy> = {
   '/dashboard': {
     title: 'Visão Geral',
@@ -49,6 +69,11 @@ export const pageCopyByPath: Record<string, PageCopy> = {
   '/historico': {
     title: 'Histórico',
     description: 'Consulte as movimentações demonstrativas da sua carteira.',
+  },
+  '/eventos-oficiais': {
+    title: 'Eventos Oficiais',
+    description:
+      'Acompanhe documentos regulatórios publicados para os ativos monitorados.',
   },
   '/estrategia': {
     title: 'Estratégia',

@@ -595,12 +595,116 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   rejeições e contadores explícitos;
 - sem storage, migration, Supabase, scheduler, ingestão real, runtime ou UI.
 
+### Contrato global de storage de eventos oficiais V1
+
+- record `official-asset-event-storage-record.v1` global e lossless;
+- `eventId` como identidade determinística e `deduplicationKey` como chave natural;
+- mapeamento de ida e volta com identidade regulatória, temporalidade e proveniência;
+- validação runtime estrita e preparação determinística de batches;
+- interface de escrita provider-agnostic com resultados e conflitos estruturados;
+- upsert idempotente, preservação do menor `ingestedAt` e rejeição de divergência
+  na mesma versão;
+- histórico de amendments preservado sem sobrescrita destrutiva;
+- implementação em memória somente como referência e suporte de testes;
+- esse ciclo não incluiu runtime ou repository de leitura.
+
+### Migration global de eventos oficiais V1
+
+- tabela global `official_asset_events` com as 58 propriedades lossless do record;
+- `event_id` como PK e `deduplication_key` como unique natural;
+- identidade regulatória discriminada por classe e identidade documental
+  preservada separadamente;
+- datas civis em `date`, instantes e timestamps lossless em `text`, sem
+  meia-noite inventada;
+- estruturas auditáveis em `jsonb`, com validação profunda mantida no runtime;
+- RLS habilitado, `anon` sem acesso, `authenticated` somente leitura e escrita
+  reservada a `service_role`;
+- migration versionada e ainda não aplicada ao Supabase remoto;
+- esse ciclo não incluiu ingestão, scheduler, backfill, repository ou
+  integração runtime.
+
+### Adapter Supabase de eventos oficiais V1
+
+- implementação de `OfficialAssetEventStorageV1` com client server-side injetado;
+- mapping explícito e defensivo dos 58 campos canônicos;
+- RPC transacional com `SECURITY DEFINER`, `search_path` fixo e lock de writers;
+- batch atômico de até 500 records, sem fracionamento silencioso;
+- conflitos classificados antes de qualquer escrita;
+- stale ignorado, divergência na mesma versão preservada como conflito e menor
+  `ingestedAt` mantido;
+- `service_role` com execução exclusiva da RPC e sem escrita direta na tabela;
+- `authenticated` somente leitura e `anon` sem acesso preservados;
+- migration complementar e adapter versionados, ainda sem aplicação remota,
+  scheduler, backfill, repository ou UI.
+
+### Executor server-side de eventos oficiais V1
+
+- jobs explícitos para CVM IPE, CVM Fund Delivery e SEC EDGAR;
+- execução sequencial, ordem preservada e falha isolada por job;
+- persistência exclusivamente por `persistOfficialAssetEventsV1` e pelo storage
+  injetado;
+- fetch HTTPS com allowlist exata, redirect bloqueado, timeout e abort;
+- User-Agent SEC, relógio, fetch e RPC client injetados;
+- resultados auditáveis com contadores, rejeições, conflitos e persistência;
+- fronteira exclusiva de servidor, sem segredo, env, singleton ou export para o
+  browser;
+- esse ciclo não incluiu scheduler, checkpoint, backfill, execução remota,
+  repository ou UI.
+
+### Backfill controlado e reiniciável de eventos oficiais V1
+
+- plano explícito e fechado para CVM IPE, CVM Fund Delivery e SEC EDGAR;
+- `planId`, hash e `jobId` determinísticos, sem UUID ou relógio ambiental;
+- preview puro, sem checkpoint, executor, storage, Supabase ou rede;
+- jobs cronológicos por ano, mês e janela civil inclusiva;
+- checkpoint global sem usuário, carteira ou ativo;
+- leases com owner explícito, recuperação após expiração e sem heartbeat;
+- retry de falha somente em nova etapa explícita, dentro do limite configurado;
+- conflito nunca repetido automaticamente;
+- `failureMode` explícito para continuar ou pausar com devolução dos jobs não
+  iniciados;
+- orquestrador limitado por `maxJobs`, sem loop de novos claims na mesma chamada;
+- duas tabelas e RPCs server-side versionadas com RLS e menor privilégio;
+- implementação em memória de referência e adapter RPC injetado;
+- sem scheduler, execução remota, migration aplicada, backfill executado,
+  repository ou UI.
+
+### Repository global de leitura de eventos oficiais V1
+
+- contrato `official-asset-event-read-repository.v1` somente leitura;
+- busca exata por `eventId` e timeline global paginada;
+- filtros fechados por identidade regulatória, ticker, fonte, tipo, status e
+  intervalo de data civil publicada;
+- ordem descendente determinística por data civil, precisão, instante e
+  `eventId`, sem meia-noite inventada;
+- cursor `official-asset-event-read-cursor.v1` opaco e ligado ao hash canônico da
+  consulta;
+- adapters Supabase e em memória sob a mesma suíte de conformance;
+- RPCs `STABLE SECURITY INVOKER`, com leitura autenticada e sem acesso `anon`;
+- sem count global, busca textual, escrita, runtime, UI ou migration aplicada.
+
+### Apresentação opcional dos eventos oficiais V1
+
+- rota autenticada `/eventos-oficiais` e integração responsiva ao shell atual;
+- dependência exclusiva de `OfficialEventsRuntimeV1`, sem acesso direto ao
+  repository, Supabase, storage, executor, providers ou backfill;
+- filtros fechados pelos 12 ativos, três fontes, 15 tipos, cinco status e
+  intervalo civil de publicação;
+- timeline em ordem do runtime, paginação por cursor opaco e detalhes por
+  `eventId`, com revisões preservadas;
+- precisão temporal mantida sem meia-noite inventada e links HTTPS limitados aos
+  hosts oficiais auditados;
+- estados completos do runtime, loading independente, proteção contra resposta
+  obsoleta, dupla paginação e duplicidade entre páginas;
+- composição real explicitamente `disabled`, item ausente da navegação e rota
+  direta sem chamada de leitura;
+- nenhuma migration aplicada, nenhum backfill executado, nenhum evento em
+  produção e nenhuma notícia editorial criada.
+
 ## Próximo
 
-1. Storage global de eventos oficiais;
-2. Comitê de IA;
-3. Auditoria;
-4. Polimento.
+1. Deployment controlado dos eventos oficiais, somente mediante autorização
+   separada.
 
 As futuras camadas qualitativas deverão consumir os contratos factuais e
 derivados sem recalcular ou alterar o plano técnico do motor determinístico.
@@ -608,4 +712,35 @@ A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM 
 SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
 permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
 para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
-concluídos; o próximo ciclo começa somente pelo storage global de eventos.
+concluídos; o contrato global de storage e sua migration versionada também estão
+concluídos. O adapter Supabase transacional e o executor server-side também
+estão concluídos localmente, sem aplicação remota. O backfill controlado está
+concluído localmente, sem execução real. O repository global de leitura e o
+runtime opcional e a apresentação UI também estão concluídos localmente. As
+migrations continuam não aplicadas, o modo real permanece `disabled` e nenhum
+backfill foi executado. Os itens 1 a 16 da sequência de eventos oficiais estão
+concluídos localmente. O item 17, auditoria Editorial News Providers V2, também
+está concluído com decisão `NO-GO`; isso não significa provider editorial
+implementado. Nenhum provider editorial foi aprovado. A próxima ação permitida
+é somente o deployment controlado dos eventos oficiais mediante autorização
+separada.
+
+## Fase operacional — ainda não executada
+
+1. Publicar a série no GitHub — pendente.
+2. Revisar e aprovar PR — pendente.
+3. Confirmar ambiente, operador, janela e backup — pendente.
+4. Aplicar as quatro migrations na ordem do manifesto — pendente.
+5. Validar schema, RLS, grants e RPCs — pendente.
+6. Regenerar e revisar `database.types.ts` — pendente.
+7. Executar smoke tests sem backfill — pendente.
+8. Executar backfill canário de um job — pendente.
+9. Validar dados, conflitos e checkpoint — pendente.
+10. Autorizar runtime `read-only` — pendente.
+11. Ativar a composição e a sidebar pela capability — pendente.
+12. Monitorar e decidir ampliação gradual — pendente.
+
+O roadmap de desenvolvimento dos 17 itens está encerrado. Esta fase operacional
+é separada, depende de autorização em cada transição e começa com runtime
+`disabled`. A preparação local não aplicou migration, não acessou Supabase, não
+executou SQL ou backfill e não alterou dados remotos.

@@ -136,6 +136,12 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
   memória para razões e reconciliações derivadas dos snapshots factuais;
 - política News & Events V1 aprovada como Eventos Oficiais Primeiro, com CVM e
   SEC como únicas fontes automatizadas V1, sem integração ao runtime;
+- auditoria Editorial News Providers V2 concluída com `NO-GO`: nenhum provider
+  editorial está aprovado e nenhum conteúdo editorial foi integrado, armazenado
+  ou exibido;
+- pacote local de preparação do deployment de eventos oficiais concluído, com
+  manifesto, runbook, checks somente leitura e gates; a fase operacional ainda
+  não foi executada e a experiência continua desativada;
 - `OfficialAssetEventV1` implementado como contexto regulatório puro e não
   bloqueante, com 12 identidades fortes, 15 tipos fechados, tempo explícito,
   deduplicação documental e revisões históricas;
@@ -148,6 +154,34 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - provider SEC EDGAR ETF Events V1 isolado para VOO, VNQ e VEA, com confirmação
   obrigatória por CIK, série e classe na Filing Detail, seis forms fechados e
   fair access, sem storage, runtime ou leitura do primary document;
+- contrato global de storage de eventos oficiais V1 concluído em memória, com
+  record canônico lossless, validação estrita, deduplicação de batch e semântica
+  de upsert idempotente;
+- migration global de `official_asset_events` versionada com RLS, identidade
+  regulatória discriminada, datas civis separadas de instantes e acesso de
+  cliente autenticado somente para leitura, ainda sem aplicação remota ou
+  runtime;
+- adapter Supabase de eventos oficiais implementado com mapping lossless dos 58
+  campos e RPC transacional exclusiva de contexto server-side;
+- executor server-side V1 de eventos oficiais implementado localmente para CVM
+  IPE, CVM Fund Delivery e SEC EDGAR, com jobs explícitos, ordem preservada,
+  falha isolada e persistência canônica; não há scheduler, backfill, execução em
+  produção ou integração com a interface;
+- backfill controlado V1 implementado localmente com plano e jobs
+  determinísticos, preview sem efeitos, checkpoint global, leases, resume,
+  retries explícitos, política de falha e execução em passos limitados; nenhuma
+  migration foi aplicada e nenhum backfill real foi executado;
+- repository global de leitura de eventos oficiais V1 implementado localmente,
+  com consulta por `eventId`, filtros fechados e timeline determinística por
+  cursor;
+- runtime opcional de eventos oficiais V1 implementado localmente, com modos
+  explícitos `disabled` e `read-only`, leitura condicionada à autenticação e
+  falhas isoladas;
+- página autenticada de Eventos Oficiais implementada localmente com timeline
+  read-only, filtros fechados, cursor, detalhes, revisões, fontes CVM/SEC e links
+  externos seguros; a composição real permanece `disabled`, o item não aparece
+  na navegação e a rota direta informa o estado sem chamar Supabase; não há
+  migration aplicada, backfill executado ou eventos em produção;
 - providers CVM V1 isolados para ações brasileiras e para KNRI11, VISC11,
   XPLG11 e HGRU11, sem conexão com telas ou scheduler;
 - provider SEC N-PORT V1 e adapter Supabase global isolados para VOO, VNQ e
@@ -157,10 +191,8 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 
 ### Planejado
 
-- storage global de eventos oficiais como próximo ciclo independente;
-- banco e runtime de eventos somente após o contrato de storage;
-- notícias editoriais adiadas até nova auditoria de provider, cobertura,
-  identidade e licença comercial;
+- eventual reavaliação editorial somente diante de novo contrato comercial,
+  direitos por campo, identidade forte e cobertura comprovada dos 12 ativos;
 - camada futura de IA explicativa;
 - auditoria e polimento.
 

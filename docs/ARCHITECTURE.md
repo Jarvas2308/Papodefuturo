@@ -317,11 +317,9 @@ CVM para ações e FIIs / SEC EDGAR para ETFs
                   ↓
        contexto factual opcional
 
-provider editorial futuro após nova auditoria
+provider editorial futuro somente após nova evidência
                   ↓
-         EditorialAssetNewsV1
-                  ↓
-       contexto editorial opcional
+ EditorialAssetNewsV1 ainda não implementado
 ```
 
 Eventos oficiais e notícias editoriais possuem identidade, proveniência,
@@ -329,7 +327,12 @@ deduplicação e persistência conceitual separadas. A associação usa apenas
 identidade forte do universo fechado. Nenhuma das fronteiras é engine, IA ou
 fonte de recomendação, e nenhuma altera fatos fundamentalistas, Dossiê Técnico,
 Motor V2 ou plano de aporte. `EditorialAssetNewsV1` permanece adiado e apenas
-conceitual. `OfficialAssetEventV1` já implementa contratos puros, mapping,
+conceitual. A auditoria Editorial News Providers V2, de 20/07/2026, resultou em
+`NO-GO`: GDELT, NewsAPI, Finnhub, Marketaux e Alpha Vantage foram rejeitados;
+FMP, Massive com Benzinga e Benzinga direta permanecem condicionais, sem licença,
+identidade e cobertura 12/12 simultaneamente comprovadas. Logo, não há provider
+editorial aprovado nem autorização para contrato runtime, storage, migration,
+repository ou UI editorial. `OfficialAssetEventV1` já implementa contratos puros, mapping,
 taxonomia, precisão temporal, identidade documental, deduplicação e revisões.
 O provider CVM IPE V1 de ações transforma somente metadados oficiais em eventos
 por código CVM, CNPJ e registry, mantendo aliases oficiais em allowlist fechada
@@ -363,8 +366,203 @@ sequenciais com intervalo mínimo de 500 ms e cache por URL. Somente
 `filings.recent` é suportado; sobreposição com `filings.files` aborta o lote.
 SGML fica como fallback futuro e `index.json` não é usado porque não confirma a
 identidade de série e classe. Mudança estrutural ou indisponibilidade da Filing
-Detail aborta sem omissão silenciosa. Não há storage, Supabase ou runtime; o
-próximo ciclo é o storage global de eventos oficiais.
+Detail aborta sem omissão silenciosa. Não há conexão com Supabase ou runtime.
+
+### Contrato global de storage de eventos oficiais V1
+
+O contrato `official-asset-event-storage-record.v1` transforma
+`OfficialAssetEventV1` em um registro global, flat e lossless. `eventId` é a
+identidade determinística persistente e `deduplicationKey` é a chave natural
+global; `documentIdentity` permanece discriminada para auditoria. O contrato não
+possui `user_id`, FK para `assets.id`, provider específico ou método de leitura.
+
+O fluxo puro é:
+
+```text
+OfficialAssetEventV1
+  -> validação e record canônico
+  -> preparação determinística do batch
+  -> interface abstrata de upsert
+```
+
+O upsert preserva o menor `ingestedAt`, aceita somente `updatedAt` posterior para
+mudança de payload, ignora versões stale e trata divergência na mesma versão como
+conflito. Amendments e demais revisões permanecem documentos independentes. A
+implementação em memória existe apenas como referência de conformance.
+
+### Migration global de eventos oficiais V1
+
+A migration versionada de `official_asset_events` materializa as 58 propriedades
+do record sem `user_id`, `asset_id` ou FK para `assets`. `event_id` é a PK e
+`deduplication_key` é a única unicidade natural adicional. Datas civis usam
+`date`; instantes, valores brutos e timestamps internos permanecem `text`
+canônico para preservar precisão e round-trip. Estruturas auditáveis usam
+`jsonb`, com shape superficial no SQL e validação profunda no contrato runtime.
+
+A tabela global habilita RLS, revoga todo acesso de `anon`, concede somente
+`select` a `authenticated` e reserva `select`, `insert`, `update` e `delete` a
+`service_role`. Revisões continuam registros independentes e
+`supersedes_event_id` não possui FK, permitindo backfill fora de ordem. A
+migration ainda não foi aplicada ao Supabase; não existem ingestão, scheduler,
+backfill ou repository de leitura.
+
+### Adapter Supabase de eventos oficiais V1
+
+O adapter implementa `OfficialAssetEventStorageV1` por injeção de um client
+server-side mínimo e mapeia explicitamente os 58 campos entre camelCase e
+snake_case. Uma única chamada à RPC `upsert_official_asset_events_v1` processa
+até 500 records, preserva a ordem e rejeita entradas maiores sem fracionar a
+atomicidade.
+
+A RPC usa `SECURITY DEFINER`, `search_path` fixo e
+`pg_advisory_xact_lock` transacional para serializar apenas os writers deste
+contrato. Todo o batch é classificado antes das escritas; qualquer conflito
+impede gravações. Stale writes são ignorados, divergências na mesma versão são
+conflitos, o menor `ingested_at` é preservado e apenas `updated_at` posterior
+permite atualizar conteúdo mutável. A execução é exclusiva de `service_role`;
+`authenticated` continua somente leitura, `anon` permanece sem acesso e a
+escrita direta da tabela pelo role server-side é revogada em favor da RPC.
+
+`database.types.ts` continua gerado e não foi editado sem schema remoto
+aplicado. A migration complementar e o adapter ainda não foram aplicados ao
+Supabase remoto.
+
+### Fronteira operacional de deployment de eventos oficiais V1
+
+O pacote de readiness versiona o manifesto verificável, o runbook, o checklist
+de segurança e as consultas pós-deployment somente leitura. Ele não é importado
+pelo runtime e não concede autorização implícita para acessar ou alterar o
+Supabase.
+
+```text
+migrations versionadas + manifesto local verificado
+  -> aplicação autorizada e sequencial do schema
+  -> checks de objetos, constraints, RLS, grants e RPCs
+  -> geração oficial de database.types.ts contra o schema aplicado
+  -> canário server-side com leitura real ainda desabilitada
+  -> backfill gradual com checkpoints e monitoramento
+  -> autorização separada para runtime read-only e navegação
+```
+
+Cada seta é um gate operacional independente. A composição real permanece em
+modo `disabled`; nem o manifesto nem o runbook alteram esse estado. Antes de
+qualquer dado, uma falha pode permitir rollback destrutivo conforme o runbook.
+Depois de escrita ou backfill, a estratégia padrão é correção forward-only para
+preservar fatos, revisões e checkpoints. Drift de hash, ordem, grants, RLS,
+assinaturas ou tipos gera `NO-GO`.
+
+### Executor server-side de eventos oficiais V1
+
+O módulo `src/server/context/official-events` compõe os três providers em jobs
+explícitos e sequenciais. Cada provider entrega `OfficialAssetEventV1` à fachada
+`persistOfficialAssetEventsV1`, que então usa `OfficialAssetEventStorageV1` e o
+adapter Supabase injetado. O executor nunca chama a RPC nem transforma record de
+storage diretamente.
+
+O fetch server-side aceita somente HTTPS para `dados.cvm.gov.br`,
+`data.sec.gov` e `www.sec.gov`, rejeita redirects, credenciais na URL e headers
+não autorizados, usa timeout com `AbortController` e não expõe payloads em
+erros. User-Agent SEC, relógio, fetch e client RPC são injetados; não existe
+leitura de ambiente, segredo ou singleton no módulo.
+
+Jobs são validados integralmente antes dos efeitos e executados na ordem de
+entrada. Falhas de provider ou persistência ficam isoladas no job; conflitos
+contratuais são preservados e não bloqueiam os jobs seguintes. O executor não é
+exportado por barrels do browser e ainda não possui scheduler, checkpoint,
+backfill, entrypoint de produção ou UI. O repository de leitura foi criado em
+ciclo posterior e permanece desacoplado do executor.
+
+### Backfill controlado e reiniciável de eventos oficiais V1
+
+O módulo `src/server/context/official-events/backfill` transforma um plano
+explícito em jobs determinísticos do executor: um job por ano de CVM IPE, por
+mês de CVM Fund Delivery e por janela civil inclusiva de SEC EDGAR. O `planId`,
+o hash e os `jobId` derivam somente do conteúdo canônico com componentes
+length-prefixed. O preview é puro e não chama checkpoint, executor, storage,
+Supabase ou rede.
+
+O checkpoint é global, sem `user_id`, carteira ou ativo. Runs e jobs preservam
+status, contadores, summaries e leases com owner explícito. Cada chamada do
+orquestrador reivindica no máximo `maxJobs`, executa somente esse lote e pode ser
+repetida. Leases ativos não são roubados; leases expirados podem ser retomados;
+falhas só retornam quando `retryFailed` permite e conflitos nunca recebem retry
+automático. Em `failureMode: stop`, jobs ainda não iniciados voltam
+transacionalmente para `pending` e o plano fica pausado.
+
+A migration cria `official_event_backfill_runs` e
+`official_event_backfill_jobs`, ambas com RLS e sem policy ou acesso direto de
+`anon`, `authenticated` e `service_role`. As operações usam RPCs
+`SECURITY DEFINER`, `search_path` fixo, locks de linha e `FOR UPDATE SKIP LOCKED`,
+com execução exclusiva de `service_role`. O adapter usa somente uma porta RPC
+injetada e valida profundamente os retornos. As migrations não foram aplicadas,
+o backfill não foi executado e não existem scheduler, cron, entrypoint de
+produção ou UI. O repository posterior não executa nem controla o backfill.
+
+### Repository global de leitura de eventos oficiais V1
+
+O contrato `official-asset-event-read-repository.v1` oferece somente
+`getByEventId` e `listPage`. A timeline é global e provider-agnostic, sem
+`userId`, `assetId`, contagem total ou busca textual. Filtros fechados cobrem
+identidade regulatória, ticker, fonte, tipo, status e intervalo inclusivo da data
+civil de publicação.
+
+A ordenação canônica descendente usa data civil publicada, rank de precisão
+(`second`, `minute`, `date`), instante UTC canônico quando existe e `eventId`.
+Datas civis permanecem datas: nenhuma meia-noite artificial é criada. O cursor
+`official-asset-event-read-cursor.v1` carrega a última tupla e um hash
+determinístico da consulta sem cursor. A paginação é keyset e não promete
+snapshot diante de inserções concorrentes.
+
+O adapter Supabase usa somente as RPCs `get_official_asset_event_by_id_v1` e
+`list_official_asset_events_v1`, ambas `STABLE`, `SECURITY INVOKER`, com
+`search_path` fixo e execução revogada de `PUBLIC` e `anon`. O resultado percorre
+o mapper lossless de 58 campos e as validações de storage e domínio. A referência
+em memória compartilha filtros, ordenação e cursor para testes de conformance.
+As RPCs permanecem não aplicadas. O runtime opcional existe como módulo local,
+mas não está ativado em modo de leitura; não existe scheduler ou execução de
+backfill.
+
+### Runtime opcional de eventos oficiais V1
+
+`official-events-runtime.v1` é uma fronteira browser-compatible e somente de
+leitura sobre `OfficialAssetEventReadRepositoryV1`. O modo é sempre explícito:
+`disabled` não cria repository nem chama dependências; `read-only` recebe o
+repository, uma porta de estado de acesso e um relógio UTC injetados. Somente o
+estado `authenticated` permite uma chamada de leitura. `unauthenticated` e
+`unresolved` retornam estados estruturados sem tocar no repository.
+
+A composição Supabase estreita recebe um client RPC estrutural já autenticado e
+reutiliza o adapter de leitura existente. Ela não cria client, singleton,
+service role, query, cursor ou mapper paralelo. Falhas de transporte e schema
+permanecem distintas de timeline vazia e de evento ausente; erros retornados ao
+consumidor são sanitizados. O relógio preserva UTC canônico com até nove casas
+fracionárias e rejeita regressão sem depender de `Date` na lógica central.
+
+O runtime não está importado pelo `AuthProvider` nem por fluxos financeiros. A
+composição da UI escolhe o modo explicitamente; `read-only` só pode ser ativado
+após tabela e RPCs estarem aplicadas. Ativá-lo não habilita escrita, providers,
+executor, backfill ou scheduler.
+
+### Apresentação opcional dos eventos oficiais V1
+
+`src/features/official-events` contém a fronteira de apresentação autenticada.
+Uma porta estreita fornece somente `OfficialEventsRuntimeV1`; componentes não
+importam repository, adapter, storage, executor, providers ou Supabase. A
+timeline preserva a ordem recebida, usa cursor opaco, filtros fechados pelos 12
+ativos, três fontes, 15 tipos, cinco status e intervalo civil, e trata respostas
+obsoletas e duplicidades entre páginas como falhas de contrato.
+
+Detalhes são consultados por `eventId` sem recarregar a timeline. A apresentação
+preserva precisão temporal, não transforma data civil em instante, omite
+proveniência sensível e abre somente URLs HTTPS dos hosts oficiais auditados da
+CVM e SEC. Estados `disabled`, autenticação necessária, acesso não resolvido,
+indisponibilidade, falha e vazio permanecem distintos.
+
+A composição real em `src/app/AppComposition.tsx` continua explicitamente
+`disabled`: o item não é criado na sidebar e a rota direta informa que o recurso
+não foi ativado sem executar leitura. A UI pode receber um runtime `read-only`
+em testes, mas não existe ativação de produção, migration aplicada, backfill
+executado ou notícia editorial.
 
 ### Infraestrutura
 
@@ -549,11 +747,12 @@ Planejado:
 
 ## Integrações futuras
 
-Integrações candidatas sob avaliação:
+Integrações candidatas ou anteriormente avaliadas:
 
 - BRAPI para mercado brasileiro;
 - Twelve Data para mercado internacional;
-- Finnhub para notícias;
+- providers editoriais somente após nova evidência contratual, identidade forte
+  e cobertura 12/12; a auditoria V2 atual resultou em `NO-GO`;
 - Financial Modeling Prep para fundamentos;
 - provedor de USD/BRL ainda a definir.
 

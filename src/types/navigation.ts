@@ -3,6 +3,7 @@ export type NavigationIcon =
   | 'portfolio'
   | 'contribution'
   | 'history'
+  | 'officialEvents'
   | 'strategy'
   | 'settings'
 
