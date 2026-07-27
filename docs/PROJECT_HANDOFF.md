@@ -10,10 +10,10 @@ A atualização de 27 de julho corrigiu a seção 3, que afirmava que a série a
 não havia sido publicada. Ela havia sido, por um mecanismo que falhou; o
 histórico está registrado abaixo.
 
-Este documento é versionado na `main` antes do merge do PR #86. Portanto ele
-cita caminhos que ainda não existem na `main` — `src/server/context`,
-`src/application/context`, `src/features/official-events`, `docs/runbooks` e as
-quatro migrations de eventos oficiais chegam com aquele PR.
+Uma segunda atualização, ainda em 27 de julho, corrigiu as seções 1, 8, 13, 14
+e 17: as quatro migrations de eventos oficiais foram aplicadas ao Supabase real
+nesse mesmo dia, com duas migrations corretivas adicionais para bugs
+encontrados por auditoria transacional. O detalhe está na seção 8.
 
 ## 1. Resumo executivo
 
@@ -32,8 +32,9 @@ Estado consolidado:
 - Dossiê Técnico V1, Fundamental Facts V1 e Fundamental Derived Facts V1 como
   contratos puros e determinísticos;
 - providers oficiais CVM e SEC implementados para fundamentos e eventos;
-- infraestrutura completa de eventos oficiais implementada localmente, mas não
-  aplicada ao Supabase e mantida em modo `disabled`;
+- infraestrutura completa de eventos oficiais aplicada ao Supabase real em 27
+  de julho de 2026 e mantida em modo `disabled` por decisão de produto, não
+  por schema pendente — ver seção 8;
 - notícias editoriais em `NO-GO`; IA, sentimento e score não foram integrados;
 - modo demo preservado e sem fallback silencioso após erro de consulta real.
 
@@ -305,21 +306,89 @@ Infraestrutura local concluída:
 11. auditoria editorial V2 em `NO-GO`;
 12. pacote de readiness operacional.
 
-Estado operacional obrigatório:
+Estado operacional atual, em 27 de julho de 2026:
 
-- nenhuma das quatro migrations de eventos foi aplicada;
-- nenhum backfill foi executado;
-- nenhuma linha foi persistida;
-- `src/lib/database.types.ts` ainda não inclui o schema de eventos;
-- `OFFICIAL_EVENTS_REAL_UI_MODE` permanece `disabled`;
+- as quatro migrations de eventos foram aplicadas ao Supabase real
+  (`vxjrncwfysglinfktifz`), mais duas migrations corretivas — ver "Auditoria
+  transacional e correções" abaixo;
+- `official_asset_events`, `official_event_backfill_runs` e
+  `official_event_backfill_jobs` existem no schema real, com RLS habilitado e
+  0 linhas cada;
+- nenhum backfill real foi executado; nenhum provider (CVM/SEC) foi chamado;
+- nenhuma linha de dado de produto foi persistida;
+- `src/lib/database.types.ts` foi regenerado contra o schema aplicado (PR
+  #90) e inclui as três tabelas e as 12 funções de eventos oficiais;
+- `OFFICIAL_EVENTS_REAL_UI_MODE` permanece `disabled` no código — essa
+  constante não foi tocada; é uma decisão de ativação separada, não uma
+  pendência de schema;
 - nenhuma notícia editorial foi aprovada ou implementada.
 
-Migrations pendentes, nesta ordem:
+Migrations aplicadas, nesta ordem, com os identificadores reais atribuídos
+pelo Supabase (diferentes dos timestamps dos arquivos locais, como já ocorre
+com as migrations mais antigas do projeto):
 
-1. `20260719165850_create_official_asset_events.sql`;
-2. `20260719173416_create_official_asset_events_upsert_rpc_v1.sql`;
-3. `20260719221733_create_official_events_backfill_checkpoint_v1.sql`;
-4. `20260719235049_create_official_asset_events_read_rpcs_v1.sql`.
+1. `20260727185154_create_official_asset_events` (arquivo local
+   `20260719165850_create_official_asset_events.sql`);
+2. `20260727185351_create_official_asset_events_upsert_rpc_v1` (arquivo local
+   `20260719173416_create_official_asset_events_upsert_rpc_v1.sql`);
+3. `20260727185626_create_official_events_backfill_checkpoint_v1` (arquivo
+   local `20260719221733_create_official_events_backfill_checkpoint_v1.sql`);
+4. `20260727185719_create_official_asset_events_read_rpcs_v1` (arquivo local
+   `20260719235049_create_official_asset_events_read_rpcs_v1.sql`);
+5. `fix_official_events_coalesce_schema_qualification` (PR #91);
+6. `fix_official_events_upsert_variable_shadowing` (PR #92).
+
+### Auditoria transacional e correções
+
+Depois de aplicar as quatro migrations originais, uma auditoria transacional
+completa — cada verificação executada dentro de `begin; ... rollback;` contra
+o Supabase real, sem deixar nenhuma linha residual — encontrou dois bugs de
+produção que nenhum dos 2012 testes Vitest detectava, porque nenhum deles
+executa contra Postgres real:
+
+- **`pg_catalog.coalesce` não existe.** `COALESCE` é uma forma especial da
+  gramática SQL, não uma função do catálogo, e não pode ser qualificada por
+  schema. `CREATE FUNCTION` aceitava a referência inválida sem erro; toda
+  chamada que alcançasse a expressão falhava em runtime com
+  `42883: function pg_catalog.coalesce(jsonb, jsonb) does not exist`. Atingia
+  7 pontos em 3 funções: `upsert_official_asset_events_v1` (atualizar um
+  evento existente), `get_official_event_backfill_snapshot_v1` (chamada
+  internamente por quase toda função de orquestração de backfill) e
+  `release_official_event_backfill_jobs_v1`. Corrigido no PR #91.
+- **Colisão de variável PL/pgSQL.** As variáveis `event_id` e
+  `deduplication_key` em `upsert_official_asset_events_v1` tinham o mesmo
+  nome de colunas reais de `official_asset_events`. Dentro de SQL embutido
+  que referencia a tabela, a referência não qualificada é ambígua entre a
+  variável e a coluna; `plpgsql.variable_conflict = error` (padrão do
+  Postgres) rejeita isso em runtime com
+  `42702: column reference "event_id" is ambiguous`. Essa falha ocorria na
+  primeira consulta de busca do registro existente, executada para todo item
+  do lote — **a RPC de escrita nunca processou um único registro com
+  sucesso, nem inserir nem atualizar, desde que foi mergeada no PR #86**.
+  Corrigido no PR #92, renomeando as variáveis para `v_event_id` e
+  `v_deduplication_key`.
+
+Depois das duas correções, um teste transacional completo (inserir evento,
+atualizar o mesmo evento, ciclo de backfill inteiro incluindo
+falha→retry→sucesso→finalize e pause, busca via RPC de leitura) rodou de
+ponta a ponta contra dados reais, dentro de `begin; ... rollback;`, sem deixar
+resíduo. As 12 funções de eventos oficiais foram exercitadas com sucesso. Uma
+varredura do mesmo padrão de qualificação inválida nas 18 migrations do
+projeto não encontrou mais nenhuma ocorrência fora do já corrigido.
+
+A auditoria também executou pela primeira vez
+`supabase/tests/database/rls_user_isolation.test.sql` (pgTAP, 43 asserções)
+contra o Supabase real — esse arquivo existe no repositório, mas não está
+conectado a `npm test` nem ao CI. As 43 asserções passaram, confirmando
+isolamento de RLS correto em `profiles`, `assets`, `purchases`,
+`asset_prices`, `allocation_targets`, `exchange_rates` e na RPC
+`replace_allocation_targets`. Conectar essa suíte a um pipeline automatizado
+continua pendente — exige credencial de banco no ambiente de CI.
+
+**Lição estrutural:** testes em TypeScript não alcançam o corpo de funções
+PL/pgSQL. Nenhuma RPC deve ser considerada pronta para produção só por passar
+na suíte Vitest; requer execução real contra Postgres, idealmente em
+transação com rollback antes de qualquer aplicação real de dados.
 
 Runbooks obrigatórios:
 
@@ -334,8 +403,10 @@ Validador local:
 npm run verify:official-events-deployment
 ```
 
-Não aplicar migrations, regenerar types, executar canário, ativar runtime ou
-mostrar sidebar no mesmo passo. Cada transição exige autorização separada.
+Ativar runtime `read-only`, executar canário de backfill real (chamadas de
+rede a CVM/SEC) e mostrar o item de navegação continuam pendentes e exigem
+autorização separada, distinta da autorização que cobriu a aplicação do
+schema.
 
 ## 9. Supabase, schema e segurança
 
@@ -459,19 +530,39 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 
 ## 13. Riscos e dívidas conhecidas
 
-- série de eventos oficiais mergeada em `main` pelo PR #86 em 27 de julho de 2026. O código está integrado; nada disso implica schema aplicado no Supabase
-  real — ver o próximo item;
+- série de eventos oficiais mergeada em `main` pelo PR #86 em 27 de julho de
+  2026, e as quatro migrations correspondentes aplicadas ao Supabase real no
+  mesmo dia, junto de duas migrations corretivas (PRs #91 e #92) — ver seção
+  8 para os bugs encontrados e a auditoria transacional que os revelou;
 - o repositório não possuía CI até 27 de julho de 2026. O PR #87 adicionou
   `.github/workflows/validate.yml` e foi mergeado nessa data, tornando o gate
   "CI aprovado" do runbook de deployment satisfazível a partir daquele ponto.
   Antes disso, todas as validações desta série foram executadas manualmente e
   documentadas nos PRs correspondentes;
-- as duas branches `automation/*` do contorno de publicação seguem sem decisão.
-  Os PRs #84 e #85 foram fechados; o #86 e o #87 foram mergeados;
-- migrations de eventos não aplicadas e types ainda desatualizados para esse
-  schema. O merge do #86 não aplicou nenhuma migration nem alterou o Supabase
-  real — apenas versionou código e SQL local;
-- runtime e UI de eventos continuam desabilitados por desenho;
+- a suíte pgTAP `supabase/tests/database/rls_user_isolation.test.sql` existe
+  no repositório desde antes desta série, mas não está conectada a `npm test`
+  nem ao CI; precisa de credencial de banco no ambiente de execução, o que o
+  workflow atual não tem. Rodada manualmente contra produção em 27 de julho,
+  passou 43/43 — ver seção 8;
+- as duas branches `automation/*` do contorno de publicação seguem sem
+  decisão, assim como `ops/official-events-deployment-readiness-v1`
+  (evidência do incidente do PR #85). `git push --delete` para as três está
+  bloqueado pelo classificador de modo automático do ambiente local; requer
+  execução manual ou uma regra de permissão específica. Os PRs #84 e #85
+  foram fechados; #86, #87, #88, #89, #90, #91 e #92 foram mergeados;
+- runtime e UI de eventos continuam desabilitados por desenho de produto —
+  `OFFICIAL_EVENTS_REAL_UI_MODE` não foi alterado. Ativar `read-only` e rodar
+  o canário de backfill real (chamadas de rede a CVM/SEC) exigem autorização
+  separada da que cobriu a aplicação do schema;
+- a Edge Function `refresh-market-data` está implantada e `ACTIVE` (versão 4)
+  no projeto real, com código revisado e estruturalmente correto, mas sem
+  nenhuma evidência de execução: zero logs nas últimas 24 horas e nenhum
+  `pg_cron` instalado para dispará-la automaticamente. Não foi invocada nesta
+  auditoria porque isso exigiria uma sessão de usuário autenticado real, fora
+  do escopo de verificação sem tocar em dados de produção;
+- proteção contra senha vazada (leaked password protection) permanece
+  desabilitada no Auth; é configuração de painel, não alterável por ciclo de
+  código;
 - fundamentos permanecem sem ingestão real, scheduler ou UI;
 - notícias editoriais não têm provider aprovado;
 - IA explicativa, comitê, sentimento e score não existem;
@@ -484,20 +575,20 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 
 ## 14. Próxima sequência recomendada
 
-O código está integrado em `main` desde 27 de julho de 2026 (PRs #86 e #87). A
-fase operacional de eventos oficiais, que toca o Supabase real, ainda não foi
-executada:
+O código está integrado em `main` desde 27 de julho de 2026 (PRs #86 e #87). O
+schema de eventos oficiais foi aplicado ao Supabase real no mesmo dia, com
+`database.types.ts` regenerado e dois bugs de produção corrigidos após
+auditoria transacional (seção 8). O que resta da fase operacional, ainda não
+executado:
 
-1. confirmar ambiente, operador, janela e backup;
-2. conferir hashes do manifesto;
-3. aplicar as quatro migrations em ordem;
-4. executar checks read-only de schema, RLS, grants e RPCs;
-5. regenerar e revisar `database.types.ts`;
-6. executar smoke tests sem backfill;
-7. executar canário de um job com runtime ainda `disabled`;
-8. validar dados, conflitos e checkpoint;
-9. autorizar separadamente runtime `read-only`;
-10. ativar navegação pela capability e monitorar.
+1. executar canário de um job de backfill real, com runtime ainda `disabled`
+   (chamadas de rede reais a CVM/SEC — exige autorização separada);
+2. validar dados, conflitos e checkpoint do canário;
+3. autorizar separadamente a ativação do runtime `read-only`;
+4. ativar navegação pela capability e monitorar;
+5. conectar `supabase/tests/database/rls_user_isolation.test.sql` a um
+   pipeline automatizado, se decidido;
+6. decidir o destino das três branches obsoletas do incidente de publicação.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir
@@ -547,16 +638,27 @@ Antes de entregar:
 
 ## 17. Estado que não deve ser inferido
 
-Os PRs #86 e #87 foram mergeados em `main` em 27 de julho de 2026; existe CI
-ativo desde então. Isso é código integrado, não schema aplicado. Este handoff
-não comprova por si só:
+Os PRs #86 a #92 foram mergeados em `main` em 27 de julho de 2026; existe CI
+ativo desde o #87. As quatro migrations originais de eventos oficiais mais duas
+corretivas foram aplicadas ao Supabase real no mesmo dia, comprovado por
+consulta direta ao projeto (`list_migrations`, `list_tables`) e por um teste
+transacional de ponta a ponta contra as 12 funções — ver seção 8. Isso não
+significa que este handoff comprove, por si só, sem verificação adicional no
+sistema correspondente:
 
-- que migrations de eventos foram aplicadas ao Supabase real;
-- que o schema remoto atual coincide com todos os arquivos locais;
-- que a Edge Function está implantada na versão local;
+- que o schema remoto atual, na data em que este documento for lido, ainda
+  coincide com os arquivos locais — migrations futuras podem ter sido
+  aplicadas depois desta atualização;
+- que a Edge Function `refresh-market-data` já foi efetivamente invocada com
+  sucesso alguma vez — está implantada e o código foi revisado, mas nenhuma
+  execução real foi observada (seção 13);
 - que o deployment Vercel atual aponta para este HEAD;
-- que existe backfill, dado fundamentalista ou evento oficial persistido;
-- que a UI de eventos está ativa.
+- que existe backfill real, dado fundamentalista ou evento oficial
+  persistido — as três tabelas de eventos oficiais e `fundamental_snapshots`
+  seguem com 0 linhas;
+- que a UI de eventos está ativa — `OFFICIAL_EVENTS_REAL_UI_MODE` permanece
+  `disabled` no código;
+- que as três branches obsoletas do incidente de publicação foram removidas.
 
 Esses fatos devem ser verificados no sistema correspondente antes de qualquer
 mudança operacional.
