@@ -98,10 +98,21 @@ a feature.
 
 O PR #85 foi fechado e substituído pelo #86. A branch
 `ops/official-events-deployment-readiness-v1` foi preservada como evidência do
-incidente e não deve ser mergeada. O PR #84 e as branches
-`automation/publish-official-events-series` e
-`automation/trigger-official-events-series` continuam abertos, pendentes de
-decisão.
+incidente e não deve ser mergeada.
+
+Houve uma tentativa anterior, o PR #84, que usava um patch gzip e o workflow
+`publish-official-events-series.yml`. Sua base era
+`automation/publish-official-events-series`, nunca a `main`, então ele não podia
+contaminar a branch principal. Ainda assim foi fechado em 27 de julho de 2026,
+por dois motivos: o propósito já estava cumprido pelo #86, e o workflow declarava
+`permissions: contents: write` disparando em `pull_request`. Enquanto o PR
+estivesse aberto, qualquer push na branch head o reexecutaria e sobrescreveria a
+branch de evidência.
+
+As branches `automation/publish-official-events-series` e
+`automation/trigger-official-events-series` foram mantidas e seguem pendentes de
+decisão. A primeira é byte a byte idêntica à `main` e não carrega informação. A
+segunda contém o patch gzip e o workflow da primeira tentativa.
 
 O patch de transporte
 `.chatgpt-upload/official-events-complete-with-deployment-readiness-v1.patch`
@@ -452,8 +463,8 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   obrigatórias está sendo adicionada no PR #87. Enquanto ele não for mergeado, o
   gate "CI aprovado" do runbook de deployment permanece insatisfazível, e as
   validações dependem inteiramente de execução manual;
-- PR #84 e as duas branches `automation/*` do contorno de publicação seguem
-  abertos e sem decisão;
+- as duas branches `automation/*` do contorno de publicação seguem sem decisão;
+  os PRs #84 e #85 já foram fechados;
 - migrations de eventos não aplicadas e types ainda desatualizados para esse
   schema;
 - runtime e UI de eventos continuam desabilitados por desenho;
