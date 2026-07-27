@@ -74,11 +74,12 @@ Leitura obrigatória antes de alterar o projeto:
 - HEAD da série: `fed151be0246146cb076e0cdb555549b9f1a7316`.
 - `origin/main`: `2808fc3cc385613c0f9914c24b8beb238409e7b9`.
 - A série foi publicada em 27 de julho de 2026 na branch
-  `ops/official-events-series-v1` e está em revisão no PR #86, ainda não
-  mergeado.
+  `ops/official-events-series-v1` e mergeada em `main` pelo PR #86 no mesmo dia,
+  como merge commit `e747bd2bbe00920eacc3957243bc62f92592a405`.
 - A publicação usou push de criação, sem force push e sem rebase. A base da
-  série coincide exatamente com `origin/main`, então ela aplica sem reescrita de
-  histórico.
+  série coincidia exatamente com `origin/main` no momento do push, então ela
+  aplicou sem reescrita de histórico. Os 10 SHAs individuais dos commits da
+  série foram preservados: o merge não usou squash nem rebase.
 - `.chatgpt-upload/` está ignorada apenas em `.git/info/exclude` e não deve ser
   adicionada ao Git.
 
@@ -458,15 +459,18 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 
 ## 13. Riscos e dívidas conhecidas
 
-- série de eventos publicada no PR #86, ainda pendente de revisão e merge;
-- o repositório não possuía CI. A validação automatizada das quatro checagens
-  obrigatórias está sendo adicionada no PR #87. Enquanto ele não for mergeado, o
-  gate "CI aprovado" do runbook de deployment permanece insatisfazível, e as
-  validações dependem inteiramente de execução manual;
-- as duas branches `automation/*` do contorno de publicação seguem sem decisão;
-  os PRs #84 e #85 já foram fechados;
+- série de eventos oficiais mergeada em `main` pelo PR #86 em 27 de julho de 2026. O código está integrado; nada disso implica schema aplicado no Supabase
+  real — ver o próximo item;
+- o repositório não possuía CI até 27 de julho de 2026. O PR #87 adicionou
+  `.github/workflows/validate.yml` e foi mergeado nessa data, tornando o gate
+  "CI aprovado" do runbook de deployment satisfazível a partir daquele ponto.
+  Antes disso, todas as validações desta série foram executadas manualmente e
+  documentadas nos PRs correspondentes;
+- as duas branches `automation/*` do contorno de publicação seguem sem decisão.
+  Os PRs #84 e #85 foram fechados; o #86 e o #87 foram mergeados;
 - migrations de eventos não aplicadas e types ainda desatualizados para esse
-  schema;
+  schema. O merge do #86 não aplicou nenhuma migration nem alterou o Supabase
+  real — apenas versionou código e SQL local;
 - runtime e UI de eventos continuam desabilitados por desenho;
 - fundamentos permanecem sem ingestão real, scheduler ou UI;
 - notícias editoriais não têm provider aprovado;
@@ -480,21 +484,20 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 
 ## 14. Próxima sequência recomendada
 
-Fase operacional de eventos oficiais, ainda não executada:
+O código está integrado em `main` desde 27 de julho de 2026 (PRs #86 e #87). A
+fase operacional de eventos oficiais, que toca o Supabase real, ainda não foi
+executada:
 
-1. revisar e mergear o PR #87, que adiciona a validação automatizada e torna o
-   gate de CI satisfazível;
-2. revisar o diff do PR #86 e mergeá-lo com CI aprovado;
-3. confirmar ambiente, operador, janela e backup;
-4. conferir hashes do manifesto;
-5. aplicar as quatro migrations em ordem;
-6. executar checks read-only de schema, RLS, grants e RPCs;
-7. regenerar e revisar `database.types.ts`;
-8. executar smoke tests sem backfill;
-9. executar canário de um job com runtime ainda `disabled`;
-10. validar dados, conflitos e checkpoint;
-11. autorizar separadamente runtime `read-only`;
-12. ativar navegação pela capability e monitorar.
+1. confirmar ambiente, operador, janela e backup;
+2. conferir hashes do manifesto;
+3. aplicar as quatro migrations em ordem;
+4. executar checks read-only de schema, RLS, grants e RPCs;
+5. regenerar e revisar `database.types.ts`;
+6. executar smoke tests sem backfill;
+7. executar canário de um job com runtime ainda `disabled`;
+8. validar dados, conflitos e checkpoint;
+9. autorizar separadamente runtime `read-only`;
+10. ativar navegação pela capability e monitorar.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir
@@ -544,11 +547,11 @@ Antes de entregar:
 
 ## 17. Estado que não deve ser inferido
 
-Este handoff não comprova por si só:
+Os PRs #86 e #87 foram mergeados em `main` em 27 de julho de 2026; existe CI
+ativo desde então. Isso é código integrado, não schema aplicado. Este handoff
+não comprova por si só:
 
-- que o PR #86 foi revisado, aprovado ou mergeado;
-- que o PR #87 foi mergeado e que existe CI ativo na `main`;
-- que migrations de eventos foram aplicadas;
+- que migrations de eventos foram aplicadas ao Supabase real;
 - que o schema remoto atual coincide com todos os arquivos locais;
 - que a Edge Function está implantada na versão local;
 - que o deployment Vercel atual aponta para este HEAD;
