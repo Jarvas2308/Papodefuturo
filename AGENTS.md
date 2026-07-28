@@ -33,6 +33,7 @@ Antes de mudanças relevantes, ler:
 - `docs/ARCHITECTURE.md`;
 - `docs/CHANGELOG-DECISIONS.md`;
 - `docs/ROADMAP.md`;
+- `docs/PROJECT_HANDOFF.md`;
 - migrations relacionadas ao escopo;
 - testes relacionados ao escopo.
 
@@ -45,18 +46,41 @@ Antes de implementar, compare:
 5. documentação;
 6. instrução específica do ciclo atual.
 
-A documentação pode ficar temporariamente defasada em relação ao código integrado.
+A documentação não deve ficar defasada em relação ao código integrado. Atualizar
+os documentos pertinentes é parte do ciclo, não um passo posterior — ver seção
+2.1.
 
-Em caso de divergência operacional:
+Em caso de divergência operacional (por exemplo, dívida documental herdada de
+ciclos anteriores a esta regra):
 
 - código e migrations já integrados na `main` têm precedência sobre descrições antigas de estado;
 - testes existentes são evidência importante do comportamento intencional;
 - o schema real validado em ciclos anteriores deve ser respeitado;
 - documentação desatualizada não deve ser usada para remover funcionalidades reais já integradas;
-- a documentação deve ser corrigida em ciclo apropriado;
+- a divergência encontrada deve ser corrigida no mesmo ciclo que a identificou, não adiada;
 - decisões substituídas devem preservar o histórico em `docs/CHANGELOG-DECISIONS.md`.
 
 Nunca assuma que uma seção antiga dizendo "planejado" significa que a funcionalidade ainda não existe. Confirme no código e no histórico recente.
+
+### 2.1 Atualização documental obrigatória
+
+Nenhum ciclo está concluído com documentação desatualizada em relação ao que ele
+próprio entregou. A tabela abaixo mapeia o tipo de mudança ao(s) documento(s) que
+devem ser atualizados no mesmo ciclo, sempre com fato comprovado — nunca com
+suposição — e distinguindo explicitamente **versionado**, **integrado** e
+**aplicado em produção**:
+
+| Tipo de mudança                              | Documento(s) obrigatório(s)                                                   |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| Decisão de produto, arquitetura ou segurança | `docs/CHANGELOG-DECISIONS.md`                                                 |
+| Feature integrada em `main`                  | `docs/ROADMAP.md`, `docs/PRODUCT.md`                                          |
+| Migration aplicada em produção               | `docs/PROJECT_HANDOFF.md` (seções relevantes), `docs/SUPABASE_SCHEMA_PLAN.md` |
+| Nova rota, fronteira ou diretório            | `docs/ARCHITECTURE.md`, `README.md`                                           |
+| Runbook operacional executado                | runbook correspondente + `docs/PROJECT_HANDOFF.md`                            |
+
+Se um ciclo não gerar nenhuma das mudanças acima, nenhuma atualização documental é
+exigida por esta seção. Se gerar mais de uma, todos os documentos mapeados devem
+ser atualizados.
 
 ## 3. Estado funcional atual
 
@@ -657,7 +681,8 @@ Não alterar regras de produto silenciosamente.
 
 Registrar decisões relevantes em `docs/CHANGELOG-DECISIONS.md`.
 
-Atualizar o roadmap somente após implementação, validação, revisão e integração.
+Atualizar o roadmap somente após implementação, validação, revisão e integração —
+e sempre no mesmo ciclo em que essa integração acontecer (seção 2.1).
 
 ## 16. Fluxo Git obrigatório
 
@@ -708,6 +733,8 @@ Um ciclo de código só está concluído quando:
 - migrations antigas intactas;
 - nenhum secret incluído;
 - comportamento demo preservado quando aplicável;
+- documentação pertinente atualizada conforme a tabela da seção 2.1, com fato
+  comprovado;
 - relatório final descreve fatos, não suposições.
 
 Evitar arquivos excessivamente grandes e responsabilidades misturadas.
@@ -764,7 +791,9 @@ Ao terminar, informar objetivamente:
 11. se o Supabase real foi alterado;
 12. riscos, limitações ou itens fora do escopo;
 13. situação do diretório Git;
-14. situação do push e PR.
+14. situação do push e PR;
+15. quais documentos foram atualizados conforme a seção 2.1, ou por que nenhum
+    se aplicava.
 
 Nunca afirmar que alterou Supabase real quando apenas criou migration local.
 

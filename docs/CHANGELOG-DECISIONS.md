@@ -919,3 +919,36 @@ Este documento registra decisões de produto e arquitetura.
   tabela segue vazia; a decisão sobre o runner de ingestão real de fundamentos
   (item 2 de `docs/ROADMAP.md` § Próximo) é separada e exige autorização
   própria por provider.
+
+## DEC-045 — Atualização documental vira gate obrigatório de conclusão
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: `AGENTS.md` licenciava explicitamente o atraso documental
+  ("a documentação pode ficar temporariamente defasada", "deve ser corrigida em
+  ciclo apropriado") e o critério de conclusão (seção 17, então 11 itens) e o
+  formato do relatório final (seção 20, então 14 itens) não continham nenhum
+  gate sobre documentação. `docs/PROJECT_HANDOFF.md` nunca era citado como
+  leitura obrigatória. Como consequência, README, o início de
+  `docs/ARCHITECTURE.md` e `docs/SUPABASE_SCHEMA_PLAN.md` seguiam descrevendo o
+  app como puramente demonstrativo muito depois de Supabase Auth, compras
+  reais, Motor V2 e RLS estarem integrados — dívida documental já registrada em
+  `docs/PROJECT_HANDOFF.md` seção 2.
+- Decisão: `AGENTS.md` seção 2 passa a incluir `docs/PROJECT_HANDOFF.md` na
+  leitura obrigatória; as duas frases que licenciavam atraso documental foram
+  invertidas; nova seção 2.1 define uma tabela fechada de mapeamento tipo de
+  mudança → documento(s) obrigatório(s) (decisão de produto/arquitetura/
+  segurança → `CHANGELOG-DECISIONS.md`; feature integrada → `ROADMAP.md` +
+  `PRODUCT.md`; migration aplicada em produção → `PROJECT_HANDOFF.md` +
+  `SUPABASE_SCHEMA_PLAN.md`; nova rota/fronteira → `ARCHITECTURE.md` +
+  `README.md`; runbook executado → runbook + `PROJECT_HANDOFF.md`). A seção 17
+  (critério de conclusão) ganhou um item explícito exigindo essa atualização; a
+  seção 20 (relatório final) ganhou um item exigindo declarar quais documentos
+  foram atualizados, ou por que nenhum se aplicava.
+- Consequências: nenhum ciclo futuro pode ser considerado concluído com
+  documentação desatualizada em relação ao que ele próprio entregou. A dívida
+  documental herdada (README, início de `ARCHITECTURE.md`,
+  `SUPABASE_SCHEMA_PLAN.md`) é corrigida nos próximos PRs deste mesmo ciclo
+  (Sprint 1, PRs 1.2 e 1.3), não retroativamente por esta decisão. Esta decisão
+  não altera nenhuma regra de produto, financeira ou de segurança — é
+  exclusivamente processual.
