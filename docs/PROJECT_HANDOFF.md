@@ -112,9 +112,12 @@ estivesse aberto, qualquer push na branch head o reexecutaria e sobrescreveria a
 branch de evidência.
 
 As branches `automation/publish-official-events-series` e
-`automation/trigger-official-events-series` foram mantidas e seguem pendentes de
-decisão. A primeira é byte a byte idêntica à `main` e não carrega informação. A
-segunda contém o patch gzip e o workflow da primeira tentativa.
+`automation/trigger-official-events-series` foram mantidas por algum tempo como
+evidência do incidente. Em 27 de julho de 2026, junto da própria
+`ops/official-events-deployment-readiness-v1`, as três foram excluídas — local e
+remotamente — por decisão explícita do usuário (`DEC-038` em
+`docs/CHANGELOG-DECISIONS.md`), já que o incidente permanece documentado nesta
+seção e nenhuma das três continha trabalho não integrado a `main`.
 
 O patch de transporte
 `.chatgpt-upload/official-events-complete-with-deployment-readiness-v1.patch`
@@ -539,17 +542,23 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   "CI aprovado" do runbook de deployment satisfazível a partir daquele ponto.
   Antes disso, todas as validações desta série foram executadas manualmente e
   documentadas nos PRs correspondentes;
-- a suíte pgTAP `supabase/tests/database/rls_user_isolation.test.sql` existe
-  no repositório desde antes desta série, mas não está conectada a `npm test`
-  nem ao CI; precisa de credencial de banco no ambiente de execução, o que o
-  workflow atual não tem. Rodada manualmente contra produção em 27 de julho,
-  passou 43/43 — ver seção 8;
-- as duas branches `automation/*` do contorno de publicação seguem sem
-  decisão, assim como `ops/official-events-deployment-readiness-v1`
-  (evidência do incidente do PR #85). `git push --delete` para as três está
-  bloqueado pelo classificador de modo automático do ambiente local; requer
-  execução manual ou uma regra de permissão específica. Os PRs #84 e #85
-  foram fechados; #86, #87, #88, #89, #90, #91 e #92 foram mergeados;
+- a suíte pgTAP `supabase/tests/database/rls_user_isolation.test.sql` foi
+  rodada manualmente contra produção em 27 de julho, passou 43/43 — ver seção 8. Nesse mesmo ciclo ela ainda não estava conectada a `npm test` nem ao CI;
+  em um ciclo posterior, no mesmo dia, um job de CI dedicado (`rls-pgtap`) foi
+  adicionado — ver a entrada logo abaixo e `DEC-039`;
+- as três branches do incidente de publicação (`automation/publish-official-events-series`,
+  `automation/trigger-official-events-series` e
+  `ops/official-events-deployment-readiness-v1`) foram excluídas local e
+  remotamente em 27 de julho de 2026, após confirmação explícita do usuário —
+  ver `DEC-038`. Os PRs #84 e #85 foram fechados; #86, #87, #88, #89, #90,
+  #91 e #92 foram mergeados;
+- a suíte pgTAP `supabase/tests/database/rls_user_isolation.test.sql` foi
+  conectada a um novo job de CI (`rls-pgtap` em
+  `.github/workflows/validate.yml`) que sobe um Postgres local efêmero via
+  Supabase CLI, sem tocar produção — ver `DEC-039`. A execução completa desse
+  job ainda não foi confirmada em uma corrida real do GitHub Actions, porque
+  o ambiente deste ciclo não tinha Docker disponível para validação local
+  ponta a ponta;
 - runtime e UI de eventos continuam desabilitados por desenho de produto —
   `OFFICIAL_EVENTS_REAL_UI_MODE` não foi alterado. Ativar `read-only` e rodar
   o canário de backfill real (chamadas de rede a CVM/SEC) exigem autorização
@@ -582,13 +591,15 @@ auditoria transacional (seção 8). O que resta da fase operacional, ainda não
 executado:
 
 1. executar canário de um job de backfill real, com runtime ainda `disabled`
-   (chamadas de rede reais a CVM/SEC — exige autorização separada);
+   (chamadas de rede reais a CVM/SEC — exige autorização separada, ainda não
+   concedida);
 2. validar dados, conflitos e checkpoint do canário;
 3. autorizar separadamente a ativação do runtime `read-only`;
-4. ativar navegação pela capability e monitorar;
-5. conectar `supabase/tests/database/rls_user_isolation.test.sql` a um
-   pipeline automatizado, se decidido;
-6. decidir o destino das três branches obsoletas do incidente de publicação.
+4. ativar navegação pela capability e monitorar.
+
+Concluído neste ciclo, sem tocar produção: a suíte pgTAP foi conectada a um
+job de CI (`DEC-039`) e as três branches obsoletas do incidente de publicação
+foram removidas (`DEC-038`).
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir

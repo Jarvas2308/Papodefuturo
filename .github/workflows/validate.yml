@@ -46,3 +46,27 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  rls-pgtap:
+    name: RLS pgTAP suite (ephemeral local Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Postgres
+        run: supabase db start
+
+      - name: Apply migrations
+        run: supabase db reset --local --no-seed
+
+      - name: Run pgTAP RLS isolation suite
+        run: supabase test db --local supabase/tests/database
