@@ -69,7 +69,7 @@ describe('official events UI boundary', () => {
     expect(source).not.toContain('official-events')
   })
 
-  it('registers one protected route and an explicit disabled composition without env', () => {
+  it('registers one protected route and an explicit UI-mode composition without env', () => {
     const source = Object.values(integrationSources).join('\n')
     expect(source).toContain('path="/eventos-oficiais"')
     expect(source).toContain('createRealOfficialEventsUiDependenciesV1')

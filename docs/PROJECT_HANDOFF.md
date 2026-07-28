@@ -33,8 +33,8 @@ Estado consolidado:
   contratos puros e determinísticos;
 - providers oficiais CVM e SEC implementados para fundamentos e eventos;
 - infraestrutura completa de eventos oficiais aplicada ao Supabase real em 27
-  de julho de 2026 e mantida em modo `disabled` por decisão de produto, não
-  por schema pendente — ver seção 8;
+  de julho de 2026; runtime ativado em `read-only` no mesmo dia após um
+  canário real bem-sucedido, ambos com autorização explícita — ver seção 8;
 - notícias editoriais em `NO-GO`; IA, sentimento e score não foram integrados;
 - modo demo preservado e sem fallback silencioso após erro de consulta real.
 
@@ -193,8 +193,11 @@ Erro real no modo autenticado não deve ser mascarado por mocks.
 - `/estrategia`;
 - `/configuracoes`.
 
-A rota de eventos oficiais existe, mas a composição real está explicitamente
-em `disabled`. O item não aparece na navegação e a rota não consulta Supabase.
+A composição real da rota de eventos oficiais foi ativada em `read-only` em 27
+de julho de 2026 (`DEC-041`). O item de navegação aparece para sessões
+autenticadas reais e a rota consulta o repository de leitura via Supabase.
+Como as tabelas de eventos seguem com 0 linhas, a experiência real é uma
+timeline vazia; nenhum dado de produto foi inserido.
 
 ### Carteira, compras e estratégia
 
@@ -421,9 +424,14 @@ fluxo do app nem pelo CI — é um script manual e pontual, com modo preview por
 padrão e execução real apenas com `--confirm`, usando credenciais lidas de um
 arquivo local nunca versionado.
 
-Ativar runtime `read-only` e mostrar o item de navegação continuam pendentes
-e exigem autorização separada, distinta tanto da autorização que cobriu a
-aplicação do schema quanto da que cobriu este canário.
+O runtime `read-only` foi ativado em 27 de julho de 2026 com autorização
+explícita do usuário — ver `DEC-041`. `OFFICIAL_EVENTS_REAL_UI_MODE`
+(`src/features/official-events/composition.ts`) passou de `'disabled'` para
+`'read-only'`; a fiação real do cliente Supabase e do estado de acesso vive em
+`src/app/AppComposition.tsx`, fora da fronteira que `boundary.test.ts`
+protege. O item de navegação aparece como consequência direta da capability
+do runtime, sem alteração separada na sidebar. Modo demo (sem env
+configurado) continua caindo para `disabled` automaticamente.
 
 ## 9. Supabase, schema e segurança
 
@@ -573,10 +581,10 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   job ainda não foi confirmada em uma corrida real do GitHub Actions, porque
   o ambiente deste ciclo não tinha Docker disponível para validação local
   ponta a ponta;
-- runtime e UI de eventos continuam desabilitados por desenho de produto —
-  `OFFICIAL_EVENTS_REAL_UI_MODE` não foi alterado. O canário de backfill real
-  já foi executado (`DEC-040`, seção 8); ativar `read-only` continua exigindo
-  uma autorização separada e posterior;
+- runtime e UI de eventos foram ativados em `read-only` em 27 de julho de 2026
+  com autorização explícita do usuário (`DEC-041`, seção 8), após o canário de
+  backfill real (`DEC-040`). Como as tabelas seguem com 0 linhas, a timeline
+  real está vazia; nenhum dado de produto foi inserido;
 - a Edge Function `refresh-market-data` está implantada e `ACTIVE` (versão 4)
   no projeto real, com código revisado e estruturalmente correto, mas sem
   nenhuma evidência de execução: zero logs nas últimas 24 horas e nenhum
@@ -604,15 +612,18 @@ schema de eventos oficiais foi aplicado ao Supabase real no mesmo dia, com
 auditoria transacional (seção 8). O que resta da fase operacional, ainda não
 executado:
 
-1. autorizar separadamente a ativação do runtime `read-only`;
-2. ativar navegação pela capability e monitorar.
+1. monitorar o runtime `read-only` real e decidir sobre backfill gradual
+   (runbook, seção 18) em ciclos posteriores, com autorização própria por
+   provider/job.
 
 Concluído neste ciclo, sem tocar produção: a suíte pgTAP foi conectada a um
 job de CI (`DEC-039`) e as três branches obsoletas do incidente de publicação
 foram removidas (`DEC-038`). Concluído neste ciclo, tocando produção com
 autorização explícita: o canário de um job de backfill real (CVM Fund
-Delivery, 2026-07) rodou com sucesso e `fetchedEventCount: 0`, com runtime
-ainda `disabled` — ver `DEC-040` e a seção 8.
+Delivery, 2026-07) rodou com sucesso e `fetchedEventCount: 0` (`DEC-040`), e o
+runtime `read-only` foi ativado (`DEC-041`) — ver a seção 8. A sequência
+operacional original de 4 itens está concluída; o que resta é operação
+contínua, não deployment.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir
@@ -677,12 +688,14 @@ sistema correspondente:
   sucesso alguma vez — está implantada e o código foi revisado, mas nenhuma
   execução real foi observada (seção 13);
 - que o deployment Vercel atual aponta para este HEAD;
-- que existe backfill real, dado fundamentalista ou evento oficial
-  persistido — as três tabelas de eventos oficiais e `fundamental_snapshots`
-  seguem com 0 linhas;
-- que a UI de eventos está ativa — `OFFICIAL_EVENTS_REAL_UI_MODE` permanece
-  `disabled` no código;
-- que as três branches obsoletas do incidente de publicação foram removidas.
+- que existe backfill real além do canário de `DEC-040`, dado fundamentalista
+  ou evento oficial persistido — as três tabelas de eventos oficiais e
+  `fundamental_snapshots` seguem com 0 linhas;
+- que o código com `OFFICIAL_EVENTS_REAL_UI_MODE = 'read-only'` (`DEC-041`) já
+  está implantado em produção — a mudança foi validada localmente
+  (testes, lint, build, verificação manual em dev server) mas depende do PR
+  correspondente ser revisado, mergeado e deployado antes de valer para
+  usuários reais.
 
 Esses fatos devem ser verificados no sistema correspondente antes de qualquer
 mudança operacional.

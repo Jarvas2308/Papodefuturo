@@ -17,7 +17,10 @@ import {
 } from './components/OfficialEventDetailsDialog'
 import { OfficialEventsFilters } from './components/OfficialEventsFilters'
 import { OfficialEventsState } from './components/OfficialEventsState'
-import { createRealOfficialEventsUiDependenciesV1 } from './composition'
+import {
+  OFFICIAL_EVENTS_REAL_UI_MODE,
+  createRealOfficialEventsUiDependenciesV1,
+} from './composition'
 import { EMPTY_OFFICIAL_EVENTS_FILTERS } from './presentation'
 
 function readOnlyRuntime(): OfficialEventsRuntimeV1 {
@@ -46,7 +49,11 @@ function readOnlyRuntime(): OfficialEventsRuntimeV1 {
 }
 
 describe('official events page and feature mode', () => {
-  it('keeps real composition explicitly disabled and renders the direct-route state', () => {
+  it('activates the real UI mode flag to read-only', () => {
+    expect(OFFICIAL_EVENTS_REAL_UI_MODE).toBe('read-only')
+  })
+
+  it('defaults to a disabled runtime when composition receives no explicit runtime, and renders the direct-route state', () => {
     const dependencies = createRealOfficialEventsUiDependenciesV1()
     const markup = renderToStaticMarkup(
       <OfficialEventsPageContent dependencies={dependencies} />
@@ -60,6 +67,13 @@ describe('official events page and feature mode', () => {
     expect(markup).toContain('Eventos oficiais ainda não estão disponíveis')
     expect(markup).toContain('ainda não foi ativado neste ambiente')
     expect(markup).not.toContain('Aplicar filtros')
+  })
+
+  it('wraps an explicitly injected read-only runtime instead of the disabled default', () => {
+    const runtime = readOnlyRuntime()
+    const dependencies = createRealOfficialEventsUiDependenciesV1(runtime)
+    expect(dependencies.runtime).toBe(runtime)
+    expect(dependencies.runtime.getCapability().mode).toBe('read-only')
   })
 
   it('presents the product header copy, official sources and advisory notice', () => {

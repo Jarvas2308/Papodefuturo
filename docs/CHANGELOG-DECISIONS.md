@@ -778,3 +778,51 @@ Este documento registra decisões de produto e arquitetura.
   atual do planner. `OFFICIAL_EVENTS_REAL_UI_MODE` permanece `disabled`; a
   ativação do runtime `read-only` continua exigindo uma autorização separada e
   posterior, agora com um canário real e bem-sucedido como evidência.
+
+## DEC-041 — Runtime de eventos oficiais ativado em `read-only`
+
+- Data: 27 de julho de 2026
+- Status: Aceita
+- Contexto: O usuário autorizou explicitamente a ativação do runtime
+  `read-only` ("faça a fase D"), a última etapa de ativação pendente do
+  runbook `OFFICIAL_EVENTS_DEPLOYMENT_V1.md` (seção 20), já com o canário de
+  `DEC-040` como evidência de que a cadeia de leitura/escrita funciona contra
+  produção. Ao investigar a mudança, ficou claro que trocar
+  `OFFICIAL_EVENTS_REAL_UI_MODE` de `'disabled'` para `'read-only'` sozinho
+  não bastava: `CreateOfficialEventsRuntimeV1Input` é uma union discriminada
+  que, em modo `read-only`, exige também um `repository` real e um
+  `getAccessState`, nenhum dos dois fornecidos por
+  `src/features/official-events/composition.ts`. Além disso,
+  `boundary.test.ts` proíbe literalmente as substrings `supabase` (minúsculo),
+  `/repository/`, `/storage/`, `/server/`, `/providers/` e `/backfill/` em
+  qualquer arquivo sob `src/features/official-events/`, então a fiação real
+  com Supabase não podia viver em `composition.ts`.
+- Decisão: `composition.ts` passou a aceitar um `OfficialEventsRuntimeV1` já
+  construído como parâmetro opcional, retornando um runtime `disabled` padrão
+  quando nenhum é passado (preservando o comportamento dos testes existentes
+  sem alteração). `OFFICIAL_EVENTS_REAL_UI_MODE` mudou de `'disabled' as const`
+  para `: 'disabled' | 'read-only' = 'read-only'` — tipado como union, não
+  como literal único, para permitir comparação em runtime. A fiação real
+  (criação do cliente Supabase via `createSupabaseBrowserClient` +
+  `readCurrentViteSupabaseEnvironment`, e um `getAccessState` que chama
+  `client.auth.getSession()`) foi movida para `src/app/AppComposition.tsx`,
+  fora da fronteira que `boundary.test.ts` protege. Quando o cliente é `null`
+  (modo demo, sem env configurado) ou o modo é `'disabled'`, o runtime
+  construído continua `disabled`, preservando o modo demo intacto.
+- Consequências: `npm test` (2014 testes, incluindo dois novos casos que
+  fixam o comportamento do parâmetro opcional e o valor do flag), `format`,
+  `lint` e `build` aprovados. Verificado manualmente num dev server local sem
+  Supabase configurado: nenhum erro no console, sidebar sem o item "Eventos
+  Oficiais" (modo demo cai para `disabled` como esperado) e a rota direta
+  `/eventos-oficiais` mostra corretamente o estado "ainda não foi ativado
+  neste ambiente". O caminho `read-only` com sessão autenticada real contra
+  produção não foi exercitado manualmente neste ciclo — depende de login real,
+  fora do escopo de uma verificação sem tocar dados de produção — mas está
+  coberto pelos testes já existentes do runtime e do adapter Supabase
+  (`src/application/context/official-events/runtime`), que já validavam esse
+  caminho antes desta ativação. O item de navegação "Eventos Oficiais" passa a
+  aparecer automaticamente para sessões autenticadas reais, como consequência
+  direta da capability do runtime (runbook, seção 21) — não houve mudança
+  separada na sidebar. Nenhuma migration, nenhum dado e nenhum SQL foram
+  tocados neste ciclo; a mudança é só de composição de dependências no
+  frontend.
