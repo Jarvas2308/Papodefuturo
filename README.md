@@ -4,9 +4,10 @@ Inteligência para o seu próximo aporte.
 
 ## Visão geral
 
-O Papo de Futuro é uma plataforma em reconstrução para apoiar o planejamento de
-aportes de longo prazo com clareza visual, estratégia definida e futura base
-determinística para explicações e simulações.
+O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
+um universo fechado de 12 ativos. O produto combina dados financeiros reais por
+usuário, um motor determinístico de alocação e contratos auditáveis para fatos
+fundamentalistas e eventos regulatórios.
 
 ## Missão
 
@@ -14,101 +15,66 @@ Cada aporte deve representar o melhor próximo passo possível para a evolução
 carteira, considerando simultaneamente a estratégia de alocação, o contexto
 disponível e o capital informado pelo usuário.
 
-Essa missão descreve a direção do produto. O repositório atual já possui
-experiências demonstrativas e a primeira fundação tipada do domínio financeiro,
-mas ainda não possui integrações reais, dados persistidos ou motor estratégico
-final para cumpri-la por inteiro.
+O estado consolidado abaixo descreve o que já está integrado e verificado em
+produção. `docs/PROJECT_HANDOFF.md` é a fonte detalhada e mais recente sobre o
+estado real; este README resume.
 
 ## Estado atual
 
-- fundação visual concluída;
-- experiências demonstrativas disponíveis para Dashboard, Minha Carteira, Novo
-  Aporte, Histórico, Estratégia e Configurações;
-- primeira fundação tipada do modelo de dados criada em `src/domain`;
-- preparação inicial de Supabase criada, com factory isolada de cliente;
-- tabelas reais `public.profiles`, `public.assets`, `public.purchases`,
-  `public.asset_prices` e `public.allocation_targets` aplicadas no Supabase,
-  ainda sem consumo pelas telas;
-- advisors de segurança atuais limpos;
-- publicação inicial no Vercel concluída;
-- ajustes iniciais da revisão geral de experiência aplicados;
-- nenhuma tela foi conectada a dados reais;
-- os dados exibidos não representam uma carteira real;
-- não há autenticação frontend real, backend, APIs financeiras ou persistência
-  real no app.
+- autenticação Supabase real, com fallback demo determinístico quando as
+  variáveis públicas não estão configuradas;
+- carteira, compras, histórico, estratégia, cotações e câmbio conectados por
+  repositories reais nos fluxos autenticados, com isolamento por RLS;
+- Motor Estratégico V2 multiativos integrado ao fluxo de Novo Aporte;
+- Dossiê Técnico V1, Fundamental Facts V1 e Fundamental Derived Facts V1 como
+  contratos puros e determinísticos, ainda sem consumidor de UI;
+- providers oficiais CVM e SEC implementados para fundamentos e para eventos
+  regulatórios, com o domínio puro de eventos oficiais e os três providers
+  (CVM IPE, CVM Fund Delivery, SEC EDGAR) aplicados em produção;
+- infraestrutura completa de eventos oficiais aplicada ao Supabase real, com
+  runtime ativado em `read-only` e verificado com sessão autenticada real
+  (`DEC-041`, `DEC-042`);
+- runner gradual de backfill de eventos oficiais e RPC transacional de upsert
+  de fundamentos disponíveis; nenhum backfill amplo nem ingestão real de
+  fundamentos foi executado ainda;
+- notícias editoriais em `NO-GO` (`DEC-036`); IA explicativa, sentimento e
+  score não foram integrados;
+- modo demo preservado, sem fallback silencioso após erro de consulta real.
 
-## Funcionalidades atuais
+Nenhuma ordem financeira é executada automaticamente. O plano de aporte é uma
+simulação e a decisão permanece com o usuário.
 
-- aplicação Vite com React e TypeScript;
-- Tailwind CSS com integração do Vite;
-- roteamento com React Router;
-- layout principal responsivo;
-- sidebar e menu móvel;
-- cabeçalho compartilhado;
-- página visual de login com navegação demonstrativa;
-- Dashboard com composição visual própria e CTA principal para Novo Aporte;
-- cards, gráfico visual, distribuição, movimentações e status no Dashboard;
-- Minha Carteira demonstrativa com resumo, alocação, filtros, tabela desktop e
-  cards mobile;
-- Novo Aporte demonstrativo conectado ao engine local de simulação;
-- Histórico demonstrativo com filtros, resumo, tabela e cards responsivos;
-- Estratégia demonstrativa com metas em pontos-base e edição local sem
-  persistência;
-- Configurações demonstrativas com preferências locais aplicadas somente na
-  sessão;
-- fundação tipada do domínio financeiro com modelos isolados de Asset,
-  PortfolioPosition, Purchase, AssetPrice, AllocationTarget e ContributionPlan;
-- base técnica inicial de Supabase com variáveis públicas tipadas, factory
-  isolada de cliente e migrations versionadas;
-- `public.profiles`, `public.assets`, `public.purchases`,
-  `public.asset_prices` e `public.allocation_targets` criadas no Supabase real
-  com RLS habilitado;
-- policies de `profiles`, `assets`, `purchases`, `asset_prices` e
-  `allocation_targets` usando `(select auth.uid())`;
-- advisors de segurança atuais limpos;
-- primitivos compartilhados para IDs, dinheiro em unidades menores e metas em
-  pontos-base;
-- mocks e dados determinísticos para as experiências visuais;
-- componentes básicos de interface;
-- testes unitários e de componentes com Vitest;
-- validações com Prettier, ESLint e build de produção;
-- deploy inicial em `https://papodefuturo.vercel.app`.
+## O que ainda falta
 
-## Funcionalidades ainda não implementadas
+- backfill amplo dos providers de eventos oficiais e ingestão real de
+  fundamentos (hoje as tabelas seguem vazias);
+- runtime e UI consumindo os contratos de fundamentos já construídos;
+- agendamento automático de atualização de mercado (`pg_cron`);
+- persistência do plano de aporte aceito pelo usuário;
+- IA explicativa consumindo o Dossiê Técnico;
+- notícias editoriais (sem provider aprovado).
 
-- autenticação real;
-- conexão das telas com Supabase;
-- persistência real no app;
-- carteira funcional com dados persistidos;
-- compras reais;
-- cotações reais;
-- cálculos financeiros reais conectados a dados persistidos ou de mercado;
-- motor estratégico final de produto;
-- APIs;
-- IA;
-- auditoria.
+Ver `docs/ROADMAP.md` § Próximo para o detalhe operacional de cada item.
 
 ## Documentação
 
-| Documento                                                    | Conteúdo                               |
-| ------------------------------------------------------------ | -------------------------------------- |
-| [docs/PRODUCT.md](docs/PRODUCT.md)                           | Missão, estratégia e regras de produto |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Arquitetura atual e planejada          |
-| [docs/CHANGELOG-DECISIONS.md](docs/CHANGELOG-DECISIONS.md)   | Registro das decisões                  |
-| [docs/ROADMAP.md](docs/ROADMAP.md)                           | Sequência de evolução                  |
-| [docs/SUPABASE_SCHEMA_PLAN.md](docs/SUPABASE_SCHEMA_PLAN.md) | Estado e plano do schema Supabase      |
+| Documento                                                    | Conteúdo                                     |
+| ------------------------------------------------------------ | -------------------------------------------- |
+| [docs/PRODUCT.md](docs/PRODUCT.md)                           | Missão, estratégia e regras de produto       |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                 | Arquitetura atual                            |
+| [docs/CHANGELOG-DECISIONS.md](docs/CHANGELOG-DECISIONS.md)   | Registro das decisões                        |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                           | Sequência de evolução                        |
+| [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md)           | Estado real detalhado, fonte mais atualizada |
+| [docs/SUPABASE_SCHEMA_PLAN.md](docs/SUPABASE_SCHEMA_PLAN.md) | Estado e histórico do schema Supabase        |
 
 ## Stack atual
 
-- Vite
-- React
-- TypeScript
-- Tailwind CSS
-- React Router
+- Node.js 24+, npm 11+
+- React 19, TypeScript 6, Vite 8
+- Tailwind CSS 4, React Router 7
+- Supabase JS 2 (Auth, Postgres, RLS, Edge Functions)
+- Vitest, ESLint, Prettier
 - Lucide React
-- ESLint
-- Prettier
-- npm
 
 ## Requisitos
 
@@ -144,28 +110,45 @@ npm run build
 - `/carteira`
 - `/novo-aporte`
 - `/historico`
+- `/eventos-oficiais`
 - `/estrategia`
 - `/configuracoes`
+
+A rota `/eventos-oficiais` está ativada em `read-only`; o item de navegação
+aparece para sessões autenticadas reais.
 
 ## Estrutura resumida
 
 ```text
 src/
-├── app/
+├── app/                     composição e roteamento
+├── auth/                    sessão e fronteira demo/real
+├── application/context/     runtime browser-compatible de eventos oficiais
 ├── components/
 │   ├── layout/
 │   └── ui/
+├── data/
+│   ├── repositories/        repositories financeiros e mappers Supabase
+│   ├── fundamentals/        providers e adapters de fundamentos
+│   └── context/             providers, storage e leitura de eventos oficiais
 ├── domain/
-│   └── models/
+│   ├── models/
+│   ├── fundamentals/
+│   ├── technicalDossier/
+│   └── context/
 ├── features/
 │   ├── contribution/
 │   ├── dashboard/
 │   ├── history/
+│   ├── official-events/
 │   ├── portfolio/
 │   ├── settings/
 │   └── strategy/
-├── lib/
-├── mocks/
+├── lib/                     ambiente, client e types Supabase
+├── mocks/                   dados do modo demo
 ├── pages/
+├── server/context/          executor e backfill server-side de eventos oficiais
 └── styles/
 ```
+
+Ver `docs/ARCHITECTURE.md` para o mapa completo de diretórios e fronteiras.
