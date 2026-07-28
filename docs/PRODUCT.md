@@ -293,16 +293,19 @@ SEC fica restrito a contexto server-side com User-Agent identificável e fair
 access. Os fatos pertencem à série; a classe ETF esperada é validada entre todas
 as classes publicadas e serve somente para associar a série ao ticker monitorado.
 
-A tabela global foi aplicada no Supabase real, permanece vazia, usa RLS e não
-possui `user_id` nem relação com `assets.id`. A migration multi-kind integrada
-na PR #76 foi aplicada como
-`20260716203927_generalize_fundamental_snapshots_for_sec_nport`, preservando
-leitura para `authenticated` e escrita privilegiada para `service_role`. Os
-tipos Supabase e os adapters isolados de ações, FIIs e ETFs estão sincronizados;
-os fluxos de FII e SEC foram integrados nas PRs #75 e #77. Ainda não existem
-ingestão real, scheduler ou integração runtime e UI para fundamentos. A tabela
-permanece vazia, e fundamentos não modificam o Motor V2 nem
-`TechnicalDossierV1`.
+A tabela global foi aplicada no Supabase real, usa RLS e não possui `user_id`
+nem relação com `assets.id`. A migration multi-kind integrada na PR #76 foi
+aplicada como `20260716203927_generalize_fundamental_snapshots_for_sec_nport`,
+preservando leitura para `authenticated` e escrita privilegiada para
+`service_role` — desde `DEC-044`, exclusivamente via RPC transacional
+`upsert_fundamental_snapshots_v1`. Os tipos Supabase e os adapters isolados de
+ações, FIIs e ETFs estão sincronizados; os fluxos de FII e SEC foram integrados
+nas PRs #75 e #77. Em 28 de julho de 2026 (`DEC-049`), a primeira ingestão
+real trouxe a tabela de 0 para 9 linhas: 5 ações via `cvm-stocks` e 4 FIIs via
+`cvm-fii`; a ingestão de ETFs internacionais via `sec-nport` segue bloqueada
+por um parser que rejeita um formato real de filing da SEC. Ainda não existem
+scheduler ou integração runtime e UI para fundamentos; fundamentos não
+modificam o Motor V2 nem `TechnicalDossierV1`.
 
 ## Fundamental Derived Facts V1
 

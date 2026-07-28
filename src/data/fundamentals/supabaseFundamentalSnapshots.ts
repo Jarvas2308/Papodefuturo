@@ -158,6 +158,10 @@ function toInsertRow(
     net_assets_minor: null,
     operating_cash_flow_minor:
       record.facts.operatingCashFlow?.amountInMinorUnits ?? null,
+    net_asset_value_minor: null,
+    issued_shares_unscaled: null,
+    issued_shares_scale: null,
+    shareholder_count: null,
     provenance: toJson(record.provenance),
   }
 }

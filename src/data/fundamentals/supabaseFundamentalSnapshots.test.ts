@@ -125,9 +125,76 @@ describe('Supabase fundamental snapshot persistence', () => {
     expect(rpc).toHaveBeenCalledTimes(2)
     expect(rpc).toHaveBeenLastCalledWith('upsert_fundamental_snapshots_v1', {
       records: [
-        expect.objectContaining({ ticker: 'BBAS3', total_revenue_minor: null }),
+        {
+          ticker: 'BBAS3',
+          category: 'brazilian-stock',
+          market: 'BR',
+          kind: 'brazilian-stock',
+          period: 'quarterly',
+          source: 'cvm-itr',
+          reference_date: '2026-03-31',
+          source_document_id: 'itr:archive:001023:2026-03-31:v1',
+          source_archive: 'itr_cia_aberta_2026.zip',
+          filing_version: 1,
+          exercise_order: 'ÚLTIMO',
+          currency: 'BRL',
+          total_revenue_minor: null,
+          net_income_minor: 100,
+          total_assets_minor: 200,
+          total_equity_minor: 50,
+          total_liabilities_minor: null,
+          net_assets_minor: null,
+          operating_cash_flow_minor: -10,
+          net_asset_value_minor: null,
+          issued_shares_unscaled: null,
+          issued_shares_scale: null,
+          shareholder_count: null,
+          provenance: createProvenance(),
+        },
       ],
     })
+  })
+
+  it('sends exactly the 24 canonical fundamental_snapshots columns understood by the upsert RPC', async () => {
+    let sentArgs: { records: [Record<string, unknown>] } | undefined
+    const rpc = vi.fn(async (_functionName: string, args: unknown) => {
+      sentArgs = args as { records: [Record<string, unknown>] }
+      return { data: { attempted: 1, upserted: 1 }, error: null }
+    })
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+
+    await storage.upsertMany([createRecord()])
+
+    const sentKeys = Object.keys(sentArgs!.records[0]).sort()
+    expect(sentKeys).toEqual(
+      [
+        'ticker',
+        'category',
+        'market',
+        'kind',
+        'period',
+        'source',
+        'reference_date',
+        'source_document_id',
+        'source_archive',
+        'filing_version',
+        'exercise_order',
+        'currency',
+        'total_revenue_minor',
+        'net_income_minor',
+        'total_assets_minor',
+        'total_equity_minor',
+        'total_liabilities_minor',
+        'net_assets_minor',
+        'operating_cash_flow_minor',
+        'net_asset_value_minor',
+        'issued_shares_unscaled',
+        'issued_shares_scale',
+        'shareholder_count',
+        'provenance',
+      ].sort()
+    )
   })
 
   it('refuses to persist normalized CVM revenue in provider V1', async () => {

@@ -758,10 +758,16 @@ pendente:
    `persistedAttemptCount: 298`, `rejectedItemCount: 170`. Os três providers
    oficiais já têm pelo menos uma execução real bem-sucedida contra produção.
    Restam: demais competências/anos/janelas de cada provider.
-2. Ingestão real de fundamentos. `fundamental_snapshots` segue com 0 linhas; os
-   três providers (CVM DFP/ITR, CVM Informe Mensal, SEC N-PORT) e os
-   `ingest*.ts` em `src/data/fundamentals/` existem e são testados, mas não há
-   runner executável equivalente ao do canário de eventos.
+2. Ingestão real de fundamentos, um provider por execução (`DEC-049`, 28 de
+   julho de 2026). `cvm-fii --year=2026`: sucesso, 4 registros (um por FII).
+   `cvm-stocks --source=DFP --year=2025`: sucesso após corrigir um bug real no
+   adapter de ações (RPC exigia 24 colunas canônicas; o adapter omitia 4
+   específicas de FII, latente desde `DEC-044`) — 5 registros, um por ação.
+   `sec-nport`: falhou por dado real da SEC não coberto pelo parser
+   (`primaryDocument` vazio/malformado em um filing); correção pendente, item
+   separado. `fundamental_snapshots` sai de 0 para 9 linhas. Restam: demais
+   competências/exercícios de CVM (DFP e ITR) e SEC N-PORT após a correção do
+   parser.
 3. Agendamento automático (`pg_cron` ou equivalente) para `refresh-market-data`
    e, eventualmente, para o backfill de eventos. Hoje não existe `pg_cron`
    instalado; `refresh-market-data` só roda quando um usuário autentica.
@@ -807,4 +813,6 @@ sessão autenticada. Em 28 de julho de 2026, o backfill gradual autorizado
 correção do parser CVM IPE (`DEC-047`) e a reexecução do job (`DEC-048`),
 `official_asset_events` foi de 4 para 302 linhas: os três providers oficiais
 (CVM IPE, CVM Fund Delivery, SEC EDGAR) já têm pelo menos um backfill real
-bem-sucedido. `fundamental_snapshots` segue com 0 linhas.
+bem-sucedido. No mesmo dia, a primeira ingestão real de fundamentos
+(`DEC-049`) trouxe `fundamental_snapshots` de 0 para 9 linhas via `cvm-fii` e
+`cvm-stocks`; `sec-nport` segue bloqueado até a correção do parser.
