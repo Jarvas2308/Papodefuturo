@@ -851,3 +851,37 @@ Este documento registra decisões de produto e arquitetura.
   desenhou. Próximos passos (backfill gradual com mais providers/meses,
   monitoramento contínuo) exigem autorização própria por ciclo, como já
   registrado em `DEC-040` e `DEC-041`.
+
+## DEC-043 — Roadmap sincronizado; correção factual sobre a Edge Function `refresh-market-data`
+
+- Data: 27 de julho de 2026
+- Status: Aceita
+- Contexto: Após o merge das PRs #94 a #97, `docs/ROADMAP.md` ainda descrevia
+  migrations não aplicadas, runtime `disabled` e 12 itens de fase operacional
+  como pendentes — 11 já concluídos. Uma auditoria somente leitura do Supabase
+  real, feita para avaliar o próximo ciclo, também encontrou duas afirmações
+  erradas em `docs/PROJECT_HANDOFF.md` (seções 13 e 17): que a Edge Function
+  `refresh-market-data` não tinha evidência de execução. A consulta encontrou
+  45 linhas em `asset_prices` (`source = 'market-provider'`, cobrindo os 12
+  ativos do universo fechado, entre `2026-07-13 21:00Z` e
+  `2026-07-27 21:00Z`) e 4 em `exchange_rates`, gravadas por
+  `Deno/2.1.4 (variant; SupabaseEdgeRuntime/1.74.2)` nos logs de API. A mesma
+  auditoria confirmou que `pg_cron` não está instalado
+  (`select extname from pg_extension` não retorna `pg_cron` nem `pg_net`), e
+  observou o estado geral de dados: `assets` 12, `purchases` 0,
+  `fundamental_snapshots` 0, `official_asset_events` 0.
+- Decisão: `docs/ROADMAP.md` foi sincronizado — três novas subseções em
+  `## Concluído` (CI pgTAP, canário real, ativação `read-only`), `## Próximo`
+  reescrito para refletir o que de fato resta (backfill gradual, ingestão de
+  fundamentos, agendamento, camadas qualitativas), e `## Fase operacional`
+  renomeada para `— concluída` com os 12 itens marcados. As seções históricas
+  de `## Concluído` não foram reescritas, preservando registro do estado em
+  cada ciclo. `docs/PROJECT_HANDOFF.md` teve as duas afirmações sobre a Edge
+  Function corrigidas nas seções 5, 13 e 17, mantendo a cautela legítima sobre
+  agendamento ausente e sobre execução futura não comprovável sem verificação
+  no momento da leitura.
+- Consequências: Documentação alinhada ao estado real. Nenhum código,
+  migration, SQL, dado ou runtime foi tocado neste ciclo. Ficam explícitas
+  três pendências reais para ciclos futuros, cada uma exigindo autorização
+  própria: backfill gradual de eventos oficiais, ingestão real de fundamentos,
+  e agendamento automático (`pg_cron`) para `refresh-market-data` e backfill.

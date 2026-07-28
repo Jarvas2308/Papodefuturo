@@ -20,6 +20,14 @@ Uma terceira atualização, ainda em 27 de julho, corrigiu as seções 1, 3, 8, 
 completando CI com pgTAP real, o canário de backfill e a ativação do runtime
 `read-only`, verificada em produção com sessão autenticada real.
 
+Uma quarta atualização corrigiu as seções 5, 13 e 17: as duas primeiras
+afirmavam que a Edge Function `refresh-market-data` não tinha evidência de
+execução. Isso estava errado — uma consulta somente leitura ao Supabase real
+encontrou 45 linhas em `asset_prices` (`source = 'market-provider'`, cobrindo
+os 12 ativos, entre 2026-07-13 e 2026-07-27) e 4 em `exchange_rates`,
+gravadas pelo runtime Deno da própria função. `pg_cron` continua ausente, então
+a atualização só ocorre quando um usuário autentica — ver `DEC-043`.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -225,8 +233,10 @@ timeline vazia; nenhum dado de produto foi inserido.
 - a Edge Function `refresh-market-data` possui providers B3 COTAHIST e Twelve
   Data;
 - `TWELVE_DATA_API_KEY` é secret exclusivamente server-side e nunca `VITE_*`;
-- o estado efetivo de publicação da Edge Function deve ser confirmado no
-  ambiente antes de qualquer operação.
+- confirmado em produção (auditoria de 27 de julho, `DEC-043`): a Edge
+  Function está publicada e produzindo dados reais (45 preços, 4 taxas de
+  câmbio); dispara quando um usuário autentica, sem `pg_cron` instalado — sem
+  agendamento automático.
 
 ## 6. Motor Estratégico V2
 
@@ -587,20 +597,24 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 - a suíte pgTAP `supabase/tests/database/rls_user_isolation.test.sql` foi
   conectada a um novo job de CI (`rls-pgtap` em
   `.github/workflows/validate.yml`) que sobe um Postgres local efêmero via
-  Supabase CLI, sem tocar produção — ver `DEC-039`. A execução completa desse
-  job ainda não foi confirmada em uma corrida real do GitHub Actions, porque
-  o ambiente deste ciclo não tinha Docker disponível para validação local
-  ponta a ponta;
+  Supabase CLI, sem tocar produção — ver `DEC-039`. Confirmado rodando com
+  sucesso em execuções reais do GitHub Actions nas PRs #94 a #97;
 - runtime e UI de eventos foram ativados em `read-only` em 27 de julho de 2026
   com autorização explícita do usuário (`DEC-041`, seção 8), após o canário de
   backfill real (`DEC-040`). Como as tabelas seguem com 0 linhas, a timeline
   real está vazia; nenhum dado de produto foi inserido;
 - a Edge Function `refresh-market-data` está implantada e `ACTIVE` (versão 4)
-  no projeto real, com código revisado e estruturalmente correto, mas sem
-  nenhuma evidência de execução: zero logs nas últimas 24 horas e nenhum
-  `pg_cron` instalado para dispará-la automaticamente. Não foi invocada nesta
-  auditoria porque isso exigiria uma sessão de usuário autenticado real, fora
-  do escopo de verificação sem tocar em dados de produção;
+  no projeto real, com código revisado e estruturalmente correto. Correção
+  de uma afirmação anterior: **ela já foi executada com sucesso** — auditoria
+  de 27 de julho (`DEC-043`) encontrou 45 linhas reais em `asset_prices`
+  (`source = 'market-provider'`, 12 ativos, 2026-07-13 a 2026-07-27) e 4 em
+  `exchange_rates`, gravadas por `Deno/SupabaseEdgeRuntime`. Continua sem
+  `pg_cron` instalado, então dispara só quando um usuário autentica, não em
+  agendamento automático;
+- estado de dados real observado nessa mesma auditoria: `assets` com 12
+  linhas (universo completo), `purchases` com **0** (carteira real vazia —
+  Motor V2 e Dossiê Técnico não têm o que calcular em produção hoje),
+  `fundamental_snapshots` com 0, `official_asset_events` com 0;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
@@ -708,9 +722,10 @@ verificação adicional no sistema correspondente:
 - que o schema remoto atual, na data em que este documento for lido, ainda
   coincide com os arquivos locais — migrations futuras podem ter sido
   aplicadas depois desta atualização;
-- que a Edge Function `refresh-market-data` já foi efetivamente invocada com
-  sucesso alguma vez — está implantada e o código foi revisado, mas nenhuma
-  execução real foi observada (seção 13);
+- que a Edge Function `refresh-market-data` tenha sido invocada _recentemente_
+  — a auditoria de 27 de julho (`DEC-043`) comprovou execução real passada,
+  mas sem `pg_cron` não há agendamento; a atualização mais recente pode estar
+  defasada quando este documento for lido;
 - que o deployment Vercel atual, na data em que este documento for lido, ainda
   aponta para o commit `5b05e11` — deployments futuros podem ter substituído
   esse estado;

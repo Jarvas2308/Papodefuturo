@@ -2,6 +2,12 @@
 
 ## Concluído
 
+Cada subseção abaixo é um registro histórico: descreve o estado ao final
+daquele ciclo, incluindo as limitações que valiam naquele momento. Frases como
+"migration ainda não aplicada" ou "runtime permanece `disabled`" continuam
+válidas como história e não devem ser reescritas. O estado atual consolidado
+está nas seções `## Próximo` e `## Fase operacional` ao final deste documento.
+
 ### Fundação técnica e visual
 
 - Vite, React e TypeScript;
@@ -701,46 +707,86 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
 - nenhuma migration aplicada, nenhum backfill executado, nenhum evento em
   produção e nenhuma notícia editorial criada.
 
+### CI de isolamento RLS com pgTAP
+
+- job `rls-pgtap` em `.github/workflows/validate.yml`;
+- Postgres efêmero via Supabase CLI, sem credencial de produção;
+- migrations versionadas aplicadas ao Postgres efêmero e suíte
+  `supabase/tests/database/rls_user_isolation.test.sql` executada nele;
+- confirmado rodando com sucesso em execução real do GitHub Actions (`DEC-039`).
+
+### Canário de backfill real de eventos oficiais
+
+- job único CVM Fund Delivery, competência 2026-07;
+- `maxJobs = 1`, `retryFailed = false`, `failureMode = stop`;
+- runner manual `scripts/run-official-events-backfill-canary.ts`, fora de
+  qualquer fluxo do app ou do CI;
+- execução real: `succeeded`, `fetchedEventCount: 0` (`DEC-040`).
+
+### Ativação do runtime `read-only`
+
+- `OFFICIAL_EVENTS_REAL_UI_MODE` de `'disabled'` para `'read-only'`;
+- fiação real do cliente Supabase e do estado de acesso movida para
+  `src/app/AppComposition.tsx`, fora da fronteira que `boundary.test.ts`
+  protege;
+- item de navegação como consequência direta da capability do runtime, sem
+  alteração separada na sidebar;
+- verificado em produção com sessão autenticada real: chamada `200` a
+  `list_official_asset_events_v1` e item "Eventos Oficiais" visível na sidebar
+  (`DEC-041`, `DEC-042`).
+
 ## Próximo
 
-1. Deployment controlado dos eventos oficiais, somente mediante autorização
-   separada.
+A sequência de deployment de Eventos Oficiais está encerrada (ver "Fase
+operacional" abaixo). O que resta é decisão de produto, não infraestrutura
+pendente:
 
-As futuras camadas qualitativas deverão consumir os contratos factuais e
-derivados sem recalcular ou alterar o plano técnico do motor determinístico.
-A política News & Events V1 está aprovada como Eventos Oficiais Primeiro. CVM e
-SEC são as únicas fontes automatizadas V1; notícias editoriais e Comitê de IA
-permanecem posteriores. O domínio puro e os três providers oficiais — CVM IPE
-para ações, CVM Fund Delivery para FIIs e SEC EDGAR para ETFs — estão
-concluídos; o contrato global de storage e sua migration versionada também estão
-concluídos. O adapter Supabase transacional e o executor server-side também
-estão concluídos localmente, sem aplicação remota. O backfill controlado está
-concluído localmente, sem execução real. O repository global de leitura e o
-runtime opcional e a apresentação UI também estão concluídos localmente. As
-migrations continuam não aplicadas, o modo real permanece `disabled` e nenhum
-backfill foi executado. Os itens 1 a 16 da sequência de eventos oficiais estão
-concluídos localmente. O item 17, auditoria Editorial News Providers V2, também
-está concluído com decisão `NO-GO`; isso não significa provider editorial
-implementado. Nenhum provider editorial foi aprovado. A próxima ação permitida
-é somente o deployment controlado dos eventos oficiais mediante autorização
-separada.
+1. Backfill gradual dos providers ainda não exercitados por um job real — CVM
+   IPE (ações), SEC EDGAR (ETFs) e demais competências de CVM Fund Delivery —
+   um job por execução, autorização própria por provider/job (runbook, seção
+   18). Hoje só existe o canário de `DEC-040`, com `fetchedEventCount: 0`.
+2. Ingestão real de fundamentos. `fundamental_snapshots` segue com 0 linhas; os
+   três providers (CVM DFP/ITR, CVM Informe Mensal, SEC N-PORT) e os
+   `ingest*.ts` em `src/data/fundamentals/` existem e são testados, mas não há
+   runner executável equivalente ao do canário de eventos.
+3. Agendamento automático (`pg_cron` ou equivalente) para `refresh-market-data`
+   e, eventualmente, para o backfill de eventos. Hoje não existe `pg_cron`
+   instalado; `refresh-market-data` só roda quando um usuário autentica.
+4. Camadas qualitativas e IA explicativa seguem posteriores; devem consumir os
+   contratos factuais e derivados já existentes sem recalcular ou alterar o
+   plano técnico do motor determinístico.
+5. Notícias editoriais seguem em `NO-GO` (`DEC-036`). Nenhum provider editorial
+   foi aprovado.
 
-## Fase operacional — ainda não executada
+O domínio puro e os três providers oficiais — CVM IPE para ações, CVM Fund
+Delivery para FIIs e SEC EDGAR para ETFs — estão concluídos e aplicados em
+produção. O contrato global de storage, sua migration, o adapter Supabase
+transacional, o executor server-side e o backfill controlado estão concluídos
+e aplicados. O repository global de leitura, o runtime opcional e a
+apresentação UI estão concluídos, aplicados e ativados em `read-only`. Os itens
+1 a 16 da sequência de eventos oficiais, mais os 12 itens da fase operacional,
+estão concluídos. O item 17, auditoria Editorial News Providers V2, está
+concluído com decisão `NO-GO`; isso não significa provider editorial
+implementado.
 
-1. Publicar a série no GitHub — pendente.
-2. Revisar e aprovar PR — pendente.
-3. Confirmar ambiente, operador, janela e backup — pendente.
-4. Aplicar as quatro migrations na ordem do manifesto — pendente.
-5. Validar schema, RLS, grants e RPCs — pendente.
-6. Regenerar e revisar `database.types.ts` — pendente.
-7. Executar smoke tests sem backfill — pendente.
-8. Executar backfill canário de um job — pendente.
-9. Validar dados, conflitos e checkpoint — pendente.
-10. Autorizar runtime `read-only` — pendente.
-11. Ativar a composição e a sidebar pela capability — pendente.
-12. Monitorar e decidir ampliação gradual — pendente.
+## Fase operacional — concluída
 
-O roadmap de desenvolvimento dos 17 itens está encerrado. Esta fase operacional
-é separada, depende de autorização em cada transição e começa com runtime
-`disabled`. A preparação local não aplicou migration, não acessou Supabase, não
-executou SQL ou backfill e não alterou dados remotos.
+1. Publicar a série no GitHub — concluído (PR #86).
+2. Revisar e aprovar PR — concluído.
+3. Confirmar ambiente, operador, janela e backup — concluído (`DEC-037`).
+4. Aplicar as quatro migrations na ordem do manifesto — concluído (`DEC-037`).
+5. Validar schema, RLS, grants e RPCs — concluído (`DEC-037`).
+6. Regenerar e revisar `database.types.ts` — concluído (PR #90).
+7. Executar smoke tests sem backfill — concluído (`DEC-037`).
+8. Executar backfill canário de um job — concluído (`DEC-040`).
+9. Validar dados, conflitos e checkpoint — concluído (`DEC-040`).
+10. Autorizar runtime `read-only` — concluído (`DEC-041`).
+11. Ativar a composição e a sidebar pela capability — concluído (`DEC-041`,
+    `DEC-042`).
+12. Monitorar e decidir ampliação gradual — em aberto; ver item 1 e 3 de
+    "Próximo" acima.
+
+O roadmap de desenvolvimento dos 17 itens e a fase operacional dos 12 itens
+estão encerrados. Runtime real em `read-only`, verificado em produção com
+sessão autenticada. As tabelas de eventos oficiais seguem com 0 linhas — a
+timeline real está vazia até que um backfill gradual seja autorizado.
