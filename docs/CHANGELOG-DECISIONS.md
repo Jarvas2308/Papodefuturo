@@ -1124,3 +1124,44 @@ invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
   registrada para eventos oficiais em `docs/PROJECT_HANDOFF.md` seção 8).
   `sec-nport` permanece bloqueado até a correção do parser; nenhum evento de
   ETFs internacionais foi ingerido neste ciclo.
+
+## DEC-050 — Runtime opcional e apresentação de fundamentos V1
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: `FundamentalFactsV1` e `FundamentalDerivedFactsV1` são contratos
+  puros e determinísticos sem nenhum consumidor de UI ou runtime, apesar de
+  `fundamental_snapshots` já ter dados reais desde `DEC-049`. O runtime
+  opcional de eventos oficiais (`src/application/context/official-events/runtime`)
+  e sua apresentação (`src/features/official-events`) já são um padrão
+  auditado, testado e validado em produção (`DEC-041`, `DEC-042`).
+- Decisão: espelhar fielmente o mesmo padrão para fundamentos.
+  `src/application/context/fundamentals/runtime`: modos explícitos
+  `disabled`/`read-only`, leitura condicionada a autenticação via
+  `getAccessState()` injetado, falha isolada nunca lançada ao chamador,
+  relógio injetado e monotônico, teste de fronteira idêntico (scan estático
+  via `import.meta.glob`). Única operação `getDossier()` — mais simples que o
+  runtime de eventos porque o universo fechado é pequeno (12 ativos) e não
+  precisa de paginação, cursor ou filtros; lê o catálogo de assets já
+  materializado (sem escrita) mais as três repositories de leitura de
+  fundamentos, monta `FundamentalFactsV1` e deriva `FundamentalDerivedFactsV1`.
+  `src/features/fundamentals`: apresentação autenticada consumindo
+  exclusivamente o runtime (sem acesso a repository, adapter ou Supabase),
+  cards por ativo com fatos e razões derivadas com proveniência, sem score,
+  ranking ou recomendação. Rota `/fundamentos` sempre montada (protegida,
+  informa o estado sem chamar Supabase quando `disabled`). `Sidebar` e
+  `getNavigationItems` (`src/lib/navigation.ts`) passaram a aceitar dois
+  modos de capability independentes (eventos oficiais e fundamentos), com o
+  segundo parâmetro opcional preservando as chamadas de um argumento
+  existentes.
+- Consequências: `FUNDAMENTALS_REAL_UI_MODE`
+  (`src/features/fundamentals/composition.ts`) permanece `disabled` — a
+  ativação em produção é uma decisão separada e posterior, como foi para
+  eventos oficiais em `DEC-041`. Verificado manualmente no app real em modo
+  demo: rota direta sem erro no console, sidebar sem o item (ambos os modos
+  opcionais desabilitados sem Supabase configurado), nenhuma regressão nos
+  fluxos existentes. Diferença documentada do runtime de eventos: as três
+  repositories de leitura de fundamentos lançam `Error`/`RangeError` simples
+  sem preservar o código Postgrest original, então a classificação de erro é
+  mais simples — não distingue `schema-unavailable` de
+  `repository-unavailable`. 125 arquivos de teste, 2086 testes.

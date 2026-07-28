@@ -303,9 +303,12 @@ ações, FIIs e ETFs estão sincronizados; os fluxos de FII e SEC foram integrad
 nas PRs #75 e #77. Em 28 de julho de 2026 (`DEC-049`), a primeira ingestão
 real trouxe a tabela de 0 para 9 linhas: 5 ações via `cvm-stocks` e 4 FIIs via
 `cvm-fii`; a ingestão de ETFs internacionais via `sec-nport` segue bloqueada
-por um parser que rejeita um formato real de filing da SEC. Ainda não existem
-scheduler ou integração runtime e UI para fundamentos; fundamentos não
-modificam o Motor V2 nem `TechnicalDossierV1`.
+por um parser que rejeita um formato real de filing da SEC. Um runtime opcional
+(`disabled`/`read-only`, mesmo padrão do runtime de eventos oficiais) e uma
+apresentação autenticada existem em `src/application/context/fundamentals` e
+`src/features/fundamentals`, rota `/fundamentos`, mas a composição real
+permanece `disabled` — ativação em produção é decisão separada. Ainda não
+existe scheduler; fundamentos não modificam o Motor V2 nem `TechnicalDossierV1`.
 
 ## Fundamental Derived Facts V1
 
