@@ -741,10 +741,20 @@ A sequência de deployment de Eventos Oficiais está encerrada (ver "Fase
 operacional" abaixo). O que resta é decisão de produto, não infraestrutura
 pendente:
 
-1. Backfill gradual dos providers ainda não exercitados por um job real — CVM
-   IPE (ações), SEC EDGAR (ETFs) e demais competências de CVM Fund Delivery —
-   um job por execução, autorização própria por provider/job (runbook, seção
-   18). Hoje só existe o canário de `DEC-040`, com `fetchedEventCount: 0`.
+1. Backfill gradual dos providers, um job por execução, autorização própria por
+   provider/job (runbook, seção 18). Em 28 de julho de 2026 (`DEC-046`), três
+   jobs reais rodaram contra produção via `scripts/run-official-events-backfill.ts`:
+   `sec-edgar` (ETFs, janela 2026-01-01 a 2026-01-31, `succeeded`,
+   `fetchedEventCount: 0` — sem filing qualificável na janela) e
+   `cvm-fund-delivery` (FIIs, competência 2026-06, `succeeded`,
+   `fetchedEventCount: 4`, quatro eventos `periodic-report` persistidos, um por
+   ativo: KNRI11, VISC11, XPLG11 e HGRU11). O job `cvm-ipe` (ações, ano 2026)
+   falhou por dado malformado no CSV oficial da própria CVM (aspa não escapada
+   dentro de campo não cotado, linha 35 do arquivo); o parser rejeitou o
+   arquivo inteiro por design (fail-closed), sem persistir nada e sem risco de
+   segurança ou corrupção — correção do parser está fora deste ciclo, flagada
+   separadamente. Restam: demais competências de CVM Fund Delivery e o
+   provider CVM IPE após a correção do parser.
 2. Ingestão real de fundamentos. `fundamental_snapshots` segue com 0 linhas; os
    três providers (CVM DFP/ITR, CVM Informe Mensal, SEC N-PORT) e os
    `ingest*.ts` em `src/data/fundamentals/` existem e são testados, mas não há
@@ -788,5 +798,7 @@ implementado.
 
 O roadmap de desenvolvimento dos 17 itens e a fase operacional dos 12 itens
 estão encerrados. Runtime real em `read-only`, verificado em produção com
-sessão autenticada. As tabelas de eventos oficiais seguem com 0 linhas — a
-timeline real está vazia até que um backfill gradual seja autorizado.
+sessão autenticada. Em 28 de julho de 2026, o backfill gradual autorizado
+(`DEC-046`) inseriu os quatro primeiros eventos reais em `official_asset_events`
+— a timeline deixou de estar vazia pela primeira vez. `fundamental_snapshots`
+segue com 0 linhas.

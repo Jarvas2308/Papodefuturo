@@ -28,6 +28,13 @@ os 12 ativos, entre 2026-07-13 e 2026-07-27) e 4 em `exchange_rates`,
 gravadas pelo runtime Deno da própria função. `pg_cron` continua ausente, então
 a atualização só ocorre quando um usuário autentica — ver `DEC-043`.
 
+Uma quinta atualização, em 28 de julho de 2026, corrigiu as seções 8, 9, 13 e
+17: o backfill gradual autorizado (`DEC-046`) executou três jobs reais contra
+produção. `official_asset_events` deixou de estar vazia pela primeira vez —
+4 eventos `periodic-report` persistidos via `cvm-fund-delivery`. O job
+`cvm-ipe` falhou por dado malformado no CSV oficial da CVM, sem persistir
+nada; não é bug de segurança. Detalhe na seção 8.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -453,6 +460,18 @@ autenticada real foi verificado em produção — timeline vazia sem erro, item
 Supabase (`200` em `list_official_asset_events_v1`) quanto visualmente pelo
 usuário — ver `DEC-042`.
 
+Em 28 de julho de 2026, o runner gradual `scripts/run-official-events-backfill.ts`
+(PR #99, que generaliza o canário acima para os três providers via CLI)
+executou três jobs reais, um por vez, com autorização explícita do usuário —
+ver `DEC-046`. `sec-edgar` (janela 2026-01-01 a 2026-01-31) e
+`cvm-fund-delivery` (competência 2026-06) tiveram sucesso; o segundo persistiu
+4 eventos `periodic-report`, um por FII (KNRI11, VISC11, XPLG11, HGRU11). O
+job `cvm-ipe` (ano 2026) falhou por um defeito de dado real no CSV oficial da
+própria CVM — aspa não escapada dentro de campo não cotado — que o parser
+estrito rejeita por design, sem persistir nada; não é bug de segurança. A
+timeline real deixou de estar vazia pela primeira vez: `official_asset_events`
+tem 4 linhas. A correção do parser CVM IPE é item separado, ainda pendente.
+
 ## 9. Supabase, schema e segurança
 
 Projeto documentado:
@@ -611,10 +630,13 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   `exchange_rates`, gravadas por `Deno/SupabaseEdgeRuntime`. Continua sem
   `pg_cron` instalado, então dispara só quando um usuário autentica, não em
   agendamento automático;
-- estado de dados real observado nessa mesma auditoria: `assets` com 12
-  linhas (universo completo), `purchases` com **0** (carteira real vazia —
-  Motor V2 e Dossiê Técnico não têm o que calcular em produção hoje),
-  `fundamental_snapshots` com 0, `official_asset_events` com 0;
+- estado de dados real observado nessa mesma auditoria (27 de julho): `assets`
+  com 12 linhas (universo completo), `purchases` com **0** (carteira real
+  vazia — Motor V2 e Dossiê Técnico não têm o que calcular em produção hoje),
+  `fundamental_snapshots` com 0, `official_asset_events` com 0. Atualização
+  posterior: em 28 de julho, o backfill gradual (`DEC-046`) inseriu 4 linhas
+  reais em `official_asset_events`; `fundamental_snapshots` e `purchases`
+  seguem com 0;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
@@ -729,9 +751,14 @@ verificação adicional no sistema correspondente:
 - que o deployment Vercel atual, na data em que este documento for lido, ainda
   aponta para o commit `5b05e11` — deployments futuros podem ter substituído
   esse estado;
-- que existe backfill real além do canário de `DEC-040`, dado fundamentalista
-  ou evento oficial persistido — as três tabelas de eventos oficiais e
-  `fundamental_snapshots` seguem com 0 linhas.
+- que existe dado fundamentalista persistido — `fundamental_snapshots` segue
+  com 0 linhas;
+- que existe backfill real de eventos oficiais além do que está registrado em
+  `DEC-040` (canário, `fetchedEventCount: 0`) e `DEC-046` (28 de julho:
+  `sec-edgar` e `cvm-fund-delivery` com sucesso, 4 eventos persistidos;
+  `cvm-ipe` falhou por dado malformado da própria CVM, sem persistir nada) —
+  `official_asset_events` tinha exatamente 4 linhas no momento desta
+  atualização; contagem futura deve ser verificada, não assumida.
 
 Esses fatos devem ser verificados no sistema correspondente antes de qualquer
 mudança operacional.
