@@ -728,6 +728,10 @@ export type Database = {
         Args: { targets: Json }
         Returns: undefined
       }
+      upsert_fundamental_snapshots_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
       upsert_official_asset_events_v1: {
         Args: { input_batch: Json }
         Returns: Json

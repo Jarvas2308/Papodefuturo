@@ -885,3 +885,37 @@ Este documento registra decisões de produto e arquitetura.
   três pendências reais para ciclos futuros, cada uma exigindo autorização
   própria: backfill gradual de eventos oficiais, ingestão real de fundamentos,
   e agendamento automático (`pg_cron`) para `refresh-market-data` e backfill.
+
+## DEC-044 — RPC transacional de upsert para `fundamental_snapshots` aplicada
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: Os três adapters de fundamentos (ações brasileiras, FIIs, ETFs
+  internacionais) escreviam direto na tabela via `.upsert()` do client, sem
+  camada de validação server-side além das CHECK constraints e do grant de
+  `service_role` — assimetria com eventos oficiais, que já usam a RPC
+  transacional `upsert_official_asset_events_v1`.
+- Decisão: migration `create_fundamental_snapshots_upsert_rpc_v1` aplicada ao
+  Supabase real (`vxjrncwfysglinfktifz`), criando
+  `upsert_fundamental_snapshots_v1` (`SECURITY DEFINER`, `search_path` fixo,
+  lote atômico até 500 registros, `INSERT ... ON CONFLICT DO UPDATE` pela
+  identidade lógica de 8 colunas, execute restrito a `service_role`, escrita
+  direta na tabela revogada de `service_role`). Antes da aplicação, o
+  `apply_migration` criou a função; depois, uma auditoria transacional
+  completa (`begin; ... rollback;`, sem deixar linha residual) exercitou
+  insert, reinsert idêntico, update por identidade divergente e rejeição de
+  record inválido — todos os quatro caminhos se comportaram como esperado, sem
+  duplicar linha e sem escrita parcial na rejeição. `get_advisors` (security)
+  não mostrou achado novo. `fundamental_snapshots` permanece com 0 linhas após
+  a auditoria (`select count(*)` confirmou o rollback). `src/lib/database.types.ts`
+  foi regenerado contra o schema aplicado, incluindo a nova função no union de
+  `Functions`.
+- Consequências: Fundamentos e eventos oficiais agora seguem o mesmo padrão de
+  escrita (RPC transacional, sem escrita direta na tabela por nenhum client).
+  Os três adapters TypeScript (`src/data/fundamentals/supabase*Snapshots.ts`)
+  foram migrados para chamar a RPC via transporte compartilhado
+  (`supabaseSnapshotsRpc.ts`), preservando as assinaturas públicas e o
+  contrato `upsertMany`. Nenhuma ingestão real foi executada neste ciclo — a
+  tabela segue vazia; a decisão sobre o runner de ingestão real de fundamentos
+  (item 2 de `docs/ROADMAP.md` § Próximo) é separada e exige autorização
+  própria por provider.
