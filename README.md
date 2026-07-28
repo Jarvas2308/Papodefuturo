@@ -111,11 +111,14 @@ npm run build
 - `/novo-aporte`
 - `/historico`
 - `/eventos-oficiais`
+- `/fundamentos`
 - `/estrategia`
 - `/configuracoes`
 
 A rota `/eventos-oficiais` está ativada em `read-only`; o item de navegação
-aparece para sessões autenticadas reais.
+aparece para sessões autenticadas reais. A rota `/fundamentos` tem o mesmo
+runtime opcional (`disabled`/`read-only`), mas permanece `disabled` — ativação
+em produção é decisão separada.
 
 ## Estrutura resumida
 
@@ -123,7 +126,7 @@ aparece para sessões autenticadas reais.
 src/
 ├── app/                     composição e roteamento
 ├── auth/                    sessão e fronteira demo/real
-├── application/context/     runtime browser-compatible de eventos oficiais
+├── application/context/     runtime browser-compatible de eventos oficiais e fundamentos
 ├── components/
 │   ├── layout/
 │   └── ui/
@@ -139,6 +142,7 @@ src/
 ├── features/
 │   ├── contribution/
 │   ├── dashboard/
+│   ├── fundamentals/
 │   ├── history/
 │   ├── official-events/
 │   ├── portfolio/

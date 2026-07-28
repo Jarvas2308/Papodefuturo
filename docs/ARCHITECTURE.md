@@ -28,7 +28,8 @@
   fluxos autenticados.
 - `src/data/fundamentals`, `src/data/context/official-events`: providers e
   adapters isolados de fundamentos e eventos oficiais.
-- `src/application/context`: runtime browser-compatible de eventos oficiais.
+- `src/application/context`: runtime browser-compatible de eventos oficiais e
+  de fundamentos, ambos com modos explícitos `disabled`/`read-only`.
 - `src/server/context`: executor e backfill server-side de eventos oficiais,
   fronteira exclusiva de servidor.
 - `src/features`: componentes específicos de domínio visual por área funcional.
@@ -42,8 +43,8 @@ No estado atual:
 - as páginas ficam em `src/pages` e compõem as rotas principais, conectadas a
   dados reais quando o usuário está autenticado;
 - componentes específicos de cada área ficam em `src/features`;
-- Dashboard, Minha Carteira, Histórico, Estratégia, Configurações e Eventos
-  Oficiais possuem componentes de feature próprios;
+- Dashboard, Minha Carteira, Histórico, Estratégia, Configurações, Eventos
+  Oficiais e Fundamentos possuem componentes de feature próprios;
 - Novo Aporte possui o Motor Estratégico V2, estratégias, utilitários e UI em
   `src/features/contribution`, conectado a compras, cotações, metas e câmbio
   reais;
@@ -104,13 +105,20 @@ No estado atual:
   cliente pronto no import;
 - publicação em produção em `https://papodefuturo.vercel.app`, com suporte a
   acesso direto e refresh das rotas;
-- testes automatizados com Vitest (118 arquivos, 2037 testes na baseline atual).
+- testes automatizados com Vitest (125 arquivos, 2086 testes na baseline atual);
+- runtime opcional de fundamentos (`src/application/context/fundamentals/runtime`)
+  e apresentação autenticada (`src/features/fundamentals`, rota `/fundamentos`),
+  espelhando fielmente o runtime e a apresentação de eventos oficiais; ativação
+  em produção (`FUNDAMENTALS_REAL_UI_MODE`) permanece `disabled` até decisão
+  separada.
 
 #### Planejado
 
-- backfill amplo e ingestão real de fundamentos (infraestrutura pronta, tabelas
-  ainda vazias);
-- runtime e UI consumindo os contratos de fundamentos;
+- backfill amplo de eventos oficiais e ingestão real de fundamentos para os
+  providers ainda não exercitados (CVM IPE ações já concluído; SEC N-PORT
+  bloqueado por parser — ver `docs/ROADMAP.md`);
+- ativação em produção do runtime de fundamentos (`read-only`), como ocorreu
+  para eventos oficiais em `DEC-041`;
 - agendamento automático de atualização de mercado;
 - persistência do plano de aporte aceito;
 - IA explicativa consumindo o Dossiê Técnico.
@@ -583,11 +591,26 @@ proveniência sensível e abre somente URLs HTTPS dos hosts oficiais auditados d
 CVM e SEC. Estados `disabled`, autenticação necessária, acesso não resolvido,
 indisponibilidade, falha e vazio permanecem distintos.
 
-A composição real em `src/app/AppComposition.tsx` continua explicitamente
-`disabled`: o item não é criado na sidebar e a rota direta informa que o recurso
-não foi ativado sem executar leitura. A UI pode receber um runtime `read-only`
-em testes, mas não existe ativação de produção, migration aplicada, backfill
-executado ou notícia editorial.
+A composição real em `src/app/AppComposition.tsx` está ativa em `read-only`
+desde `DEC-041`, verificada em produção com sessão autenticada (`DEC-042`): o
+item aparece na sidebar como consequência da capability do runtime e a rota
+consulta o repository de leitura via Supabase. Não existe notícia editorial.
+
+### Apresentação opcional de fundamentos V1
+
+`src/features/fundamentals` espelha fielmente a estrutura acima —
+`src/application/context/fundamentals/runtime` (modos `disabled`/`read-only`,
+única operação `getDossier()`, sem paginação por ser um universo fechado
+pequeno) e uma porta estreita que fornece somente `FundamentalsRuntimeV1`, sem
+acesso a repository, adapter ou Supabase pelos componentes. Estados
+`disabled`, autenticação necessária, acesso não resolvido, falha e vazio
+permanecem distintos; nenhum score, ranking ou recomendação é exibido.
+
+Diferente de eventos oficiais, a composição real permanece explicitamente
+`disabled` (`FUNDAMENTALS_REAL_UI_MODE` em `src/features/fundamentals/composition.ts`):
+o item não é criado na sidebar e a rota direta `/fundamentos` informa que o
+recurso não foi ativado, sem executar leitura. Ativação em produção é decisão
+separada, como foi para eventos oficiais.
 
 ### Infraestrutura
 

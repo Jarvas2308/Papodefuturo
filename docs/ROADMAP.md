@@ -765,9 +765,14 @@ pendente:
    específicas de FII, latente desde `DEC-044`) — 5 registros, um por ação.
    `sec-nport`: falhou por dado real da SEC não coberto pelo parser
    (`primaryDocument` vazio/malformado em um filing); correção pendente, item
-   separado. `fundamental_snapshots` sai de 0 para 9 linhas. Restam: demais
-   competências/exercícios de CVM (DFP e ITR) e SEC N-PORT após a correção do
-   parser.
+   separado. `fundamental_snapshots` sai de 0 para 9 linhas. No mesmo dia
+   (`DEC-050`), um runtime opcional (`disabled`/`read-only`) e uma
+   apresentação autenticada foram implementados em
+   `src/application/context/fundamentals` e `src/features/fundamentals`, rota
+   `/fundamentos`, espelhando fielmente o padrão de eventos oficiais; a
+   composição real permanece `disabled` — ativação em produção é decisão
+   separada. Restam: demais competências/exercícios de CVM (DFP e ITR), SEC
+   N-PORT após a correção do parser, e a ativação `read-only` do runtime.
 3. Agendamento automático (`pg_cron` ou equivalente) para `refresh-market-data`
    e, eventualmente, para o backfill de eventos. Hoje não existe `pg_cron`
    instalado; `refresh-market-data` só roda quando um usuário autentica.
