@@ -4,6 +4,7 @@ export type NavigationIcon =
   | 'contribution'
   | 'history'
   | 'officialEvents'
+  | 'fundamentals'
   | 'strategy'
   | 'settings'
 

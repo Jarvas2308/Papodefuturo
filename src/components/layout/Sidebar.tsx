@@ -6,12 +6,14 @@ import {
   Landmark,
   LayoutDashboard,
   FileClock,
+  LineChart,
   Settings,
   Wallet,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '../../lib/cn'
 import { useOfficialEventsUiDependenciesV1 } from '../../features/official-events/officialEventsUiContext'
+import { useFundamentalsUiDependenciesV1 } from '../../features/fundamentals/fundamentalsUiContext'
 import { getNavigationItems } from '../../lib/navigation'
 import { Button } from '../ui/Button'
 
@@ -31,6 +33,7 @@ const iconMap = {
   contribution: Landmark,
   history: History,
   officialEvents: FileClock,
+  fundamentals: LineChart,
   strategy: Goal,
   settings: Settings,
 }
@@ -77,7 +80,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
 export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
   const { runtime } = useOfficialEventsUiDependenciesV1()
-  const items = getNavigationItems(runtime.getCapability().mode)
+  const { runtime: fundamentalsRuntime } = useFundamentalsUiDependenciesV1()
+  const items = getNavigationItems(
+    runtime.getCapability().mode,
+    fundamentalsRuntime.getCapability().mode
+  )
 
   return (
     <>

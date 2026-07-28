@@ -7,6 +7,7 @@ const featureSources = import.meta.glob(
 
 const criticalFinancialSources = import.meta.glob(
   [
+    '../../domain/contribution/**/*.ts',
     '../contribution/**/*.{ts,tsx}',
     '../portfolio/**/*.{ts,tsx}',
     '../history/**/*.{ts,tsx}',
@@ -24,7 +25,7 @@ const integrationSources = import.meta.glob(
   { eager: true, query: '?raw', import: 'default' }
 ) as Record<string, string>
 
-describe('official events UI boundary', () => {
+describe('fundamentals UI boundary', () => {
   it('depends on the runtime and never imports server, storage, repository or providers', () => {
     const forbidden = [
       '/storage/',
@@ -66,23 +67,16 @@ describe('official events UI boundary', () => {
 
   it('keeps financial features independent from the optional UI', () => {
     const source = Object.values(criticalFinancialSources).join('\n')
-    expect(source).not.toContain('official-events')
+    expect(source).not.toContain('fundamentals')
   })
 
   it('registers one protected route and an explicit UI-mode composition without env', () => {
     const source = Object.values(integrationSources).join('\n')
-    expect(source).toContain('path="/eventos-oficiais"')
-    expect(source).toContain('createRealOfficialEventsUiDependenciesV1')
+    expect(source).toContain('path="/fundamentos"')
+    expect(source).toContain('createRealFundamentalsUiDependenciesV1')
     expect(source).toMatch(
-      /getNavigationItems\(\s*runtime\.getCapability\(\)\.mode\s*,/
+      /getNavigationItems\([\s\S]*fundamentalsRuntime\.getCapability\(\)\.mode/
     )
     expect(source).not.toMatch(/import\.meta\.env|process\.env|SERVICE_ROLE/)
-  })
-
-  it('keeps keyboard and focus behavior explicit in the details dialog', () => {
-    const dialog = featureSources['./components/OfficialEventDetailsDialog.tsx']
-    expect(dialog).toContain("event.key === 'Escape'")
-    expect(dialog).toContain("event.key !== 'Tab'")
-    expect(dialog).toContain('returnFocusTarget?.focus()')
   })
 })

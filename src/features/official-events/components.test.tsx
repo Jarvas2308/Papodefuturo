@@ -5,7 +5,9 @@ import {
   createOfficialEventsRuntimeV1,
   type OfficialEventsRuntimeV1,
 } from '../../application/context/official-events/runtime'
+import { createFundamentalsRuntimeV1 } from '../../application/context/fundamentals/runtime'
 import { SidebarContent } from '../../components/layout/Sidebar'
+import { FundamentalsUiProvider } from '../fundamentals/FundamentalsUiProvider'
 import { createStorageTestEvent } from '../../data/context/official-events/storage/testFixtures'
 import { getNavigationItems, getPageCopyFromPath } from '../../lib/navigation'
 import { OfficialEventsPageContent } from './OfficialEventsPageContent'
@@ -114,9 +116,18 @@ describe('official events page and feature mode', () => {
   it('renders the authenticated sidebar item from one injected runtime capability', () => {
     const markup = renderToStaticMarkup(
       <OfficialEventsUiProvider dependencies={{ runtime: readOnlyRuntime() }}>
-        <MemoryRouter>
-          <SidebarContent collapsed={false} />
-        </MemoryRouter>
+        <FundamentalsUiProvider
+          dependencies={{
+            runtime: createFundamentalsRuntimeV1({
+              mode: 'disabled',
+              now: { now: () => '2026-07-20T12:00:00Z' },
+            }),
+          }}
+        >
+          <MemoryRouter>
+            <SidebarContent collapsed={false} />
+          </MemoryRouter>
+        </FundamentalsUiProvider>
       </OfficialEventsUiProvider>
     )
     expect(markup).toContain('href="/eventos-oficiais"')

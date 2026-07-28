@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '../../auth/RequireAuth'
 import { AppShell } from '../../components/layout/AppShell'
 import { DashboardPage } from '../../pages/DashboardPage'
+import { FundamentalsPage } from '../../pages/FundamentalsPage'
 import { HistoryPage } from '../../pages/HistoryPage'
 import { LoginPage } from '../../pages/LoginPage'
 import { NewContributionPage } from '../../pages/NewContributionPage'
@@ -23,6 +24,7 @@ export function AppRouter() {
           <Route path="/novo-aporte" element={<NewContributionPage />} />
           <Route path="/historico" element={<HistoryPage />} />
           <Route path="/eventos-oficiais" element={<OfficialEventsPage />} />
+          <Route path="/fundamentos" element={<FundamentalsPage />} />
           <Route path="/estrategia" element={<StrategyPage />} />
           <Route path="/configuracoes" element={<SettingsPage />} />
         </Route>
