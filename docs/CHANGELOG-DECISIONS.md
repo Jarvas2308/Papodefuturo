@@ -735,3 +735,46 @@ Este documento registra decisões de produto e arquitetura.
   `db reset` → `test db`) só será comprovada na primeira execução real do
   GitHub Actions após o merge. Este ciclo não alterou o schema real, não
   aplicou migrations em produção e não tocou o Supabase real.
+
+## DEC-040 — Canário de backfill real executado: CVM Fund Delivery, julho/2026, zero eventos
+
+- Data: 27 de julho de 2026
+- Status: Aceita
+- Contexto: `docs/runbooks/OFFICIAL_EVENTS_DEPLOYMENT_V1.md` (seção 17) exigia
+  autorização explícita e separada, escopo mínimo (`maxJobs = 1`) e escolha do
+  job no momento da execução para o canário de backfill real. O usuário
+  autorizou explicitamente essa execução, confirmou aceitar o risco sem
+  verificação formal de backup/PITR (as três tabelas de eventos estavam com 0
+  linhas) e forneceu a `service_role` key real via arquivo local
+  `.env.server.local`, coberto por `.gitignore` e nunca visto em texto por
+  este agente.
+- Decisão: Foi criado `scripts/run-official-events-backfill-canary.ts`, um
+  runner manual e pontual (não integrado a nenhum fluxo do app nem ao CI) que
+  conecta o orquestrador de backfill já testado
+  (`src/server/context/official-events/backfill`) a um cliente Supabase real
+  com `service_role` e ao provider `cvm-fund-delivery` real. O script roda em
+  modo preview por padrão e só executa de verdade com a flag `--confirm`. A
+  verificação inicial usava um User-Agent SEC malformado
+  (`PapoDeFuturo/1.0 (contact: email)`, com o e-mail colado dentro dos
+  parênteses) que falhava a validação de `assertSecUserAgent`; corrigido para
+  `PapoDeFuturo/1.0 (contact) email`, validado offline antes de tentar de
+  novo. O job único (`cvm-fund-delivery`, ano 2026, mês 7 — mês mais recente
+  confirmado publicado pela CVM no momento da execução) rodou com sucesso:
+  plano criado e finalizado no checkpoint real, um job reivindicado e
+  concluído, `fetchedEventCount: 0`. Consulta somente leitura confirmou o
+  estado real após a execução: `official_asset_events` com 0 linhas,
+  `official_event_backfill_runs` com 1 linha, `official_event_backfill_jobs`
+  com 1 linha. `get_advisors` (segurança) não mostrou nenhum achado novo além
+  dos já documentados (RLS sem policy nas tabelas de checkpoint, por desenho;
+  leaked password protection desabilitada, pendência pré-existente e não
+  relacionada).
+- Consequências: O canário provou a cadeia completa ponta a ponta contra
+  produção real — rede real à CVM, RPCs de checkpoint e upsert reais,
+  `service_role` funcionando com os grants esperados — sem inserir nenhum
+  evento, porque o Informe Mensal de julho/2026 não continha, no momento da
+  execução, entregas classificáveis como `INFORM MENSAL` ou `INFO TRIM FII`
+  para os quatro FIIs do universo fechado. O job é por mês, não por ativo: não
+  existe forma de restringir o plano a um único ticker (ex.: só HGRU11) na API
+  atual do planner. `OFFICIAL_EVENTS_REAL_UI_MODE` permanece `disabled`; a
+  ativação do runtime `read-only` continua exigindo uma autorização separada e
+  posterior, agora com um canário real e bem-sucedido como evidência.

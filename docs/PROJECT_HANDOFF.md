@@ -406,10 +406,24 @@ Validador local:
 npm run verify:official-events-deployment
 ```
 
-Ativar runtime `read-only`, executar canário de backfill real (chamadas de
-rede a CVM/SEC) e mostrar o item de navegação continuam pendentes e exigem
-autorização separada, distinta da autorização que cobriu a aplicação do
-schema.
+O canário de backfill real (CVM Fund Delivery, ano 2026, mês 7) foi executado
+em 27 de julho de 2026 com autorização explícita do usuário — ver `DEC-040`.
+Rodou de ponta a ponta contra produção (rede real à CVM, RPCs de checkpoint e
+upsert reais), concluiu com sucesso e `fetchedEventCount: 0`: o Informe
+Mensal de julho/2026 não continha, no momento da execução, nenhuma entrega
+classificável como `INFORM MENSAL`/`INFO TRIM FII` para os quatro FIIs do
+universo. Estado real confirmado por consulta somente leitura logo após:
+`official_asset_events` com 0 linhas, `official_event_backfill_runs` com 1
+linha, `official_event_backfill_jobs` com 1 linha. `get_advisors` não mostrou
+achado novo de segurança. O runner usado,
+`scripts/run-official-events-backfill-canary.ts`, não é chamado por nenhum
+fluxo do app nem pelo CI — é um script manual e pontual, com modo preview por
+padrão e execução real apenas com `--confirm`, usando credenciais lidas de um
+arquivo local nunca versionado.
+
+Ativar runtime `read-only` e mostrar o item de navegação continuam pendentes
+e exigem autorização separada, distinta tanto da autorização que cobriu a
+aplicação do schema quanto da que cobriu este canário.
 
 ## 9. Supabase, schema e segurança
 
@@ -560,9 +574,9 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   o ambiente deste ciclo não tinha Docker disponível para validação local
   ponta a ponta;
 - runtime e UI de eventos continuam desabilitados por desenho de produto —
-  `OFFICIAL_EVENTS_REAL_UI_MODE` não foi alterado. Ativar `read-only` e rodar
-  o canário de backfill real (chamadas de rede a CVM/SEC) exigem autorização
-  separada da que cobriu a aplicação do schema;
+  `OFFICIAL_EVENTS_REAL_UI_MODE` não foi alterado. O canário de backfill real
+  já foi executado (`DEC-040`, seção 8); ativar `read-only` continua exigindo
+  uma autorização separada e posterior;
 - a Edge Function `refresh-market-data` está implantada e `ACTIVE` (versão 4)
   no projeto real, com código revisado e estruturalmente correto, mas sem
   nenhuma evidência de execução: zero logs nas últimas 24 horas e nenhum
@@ -590,16 +604,15 @@ schema de eventos oficiais foi aplicado ao Supabase real no mesmo dia, com
 auditoria transacional (seção 8). O que resta da fase operacional, ainda não
 executado:
 
-1. executar canário de um job de backfill real, com runtime ainda `disabled`
-   (chamadas de rede reais a CVM/SEC — exige autorização separada, ainda não
-   concedida);
-2. validar dados, conflitos e checkpoint do canário;
-3. autorizar separadamente a ativação do runtime `read-only`;
-4. ativar navegação pela capability e monitorar.
+1. autorizar separadamente a ativação do runtime `read-only`;
+2. ativar navegação pela capability e monitorar.
 
 Concluído neste ciclo, sem tocar produção: a suíte pgTAP foi conectada a um
 job de CI (`DEC-039`) e as três branches obsoletas do incidente de publicação
-foram removidas (`DEC-038`).
+foram removidas (`DEC-038`). Concluído neste ciclo, tocando produção com
+autorização explícita: o canário de um job de backfill real (CVM Fund
+Delivery, 2026-07) rodou com sucesso e `fetchedEventCount: 0`, com runtime
+ainda `disabled` — ver `DEC-040` e a seção 8.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir
