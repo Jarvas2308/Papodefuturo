@@ -11,6 +11,15 @@ ciclos próprios.
 
 ## 2. Estado Atual
 
+Esta seção documenta o estado no momento em que as cinco primeiras tabelas
+foram aplicadas. Migrations posteriores (`exchange_rates`,
+`fundamental_snapshots`, `official_asset_events` e as tabelas de checkpoint de
+backfill) estão documentadas em `docs/ROADMAP.md` e `docs/PROJECT_HANDOFF.md`
+seção 9, que são a fonte mais atual. As telas autenticadas hoje consomem dados
+reais destas cinco tabelas — não usam mocks para carteira, compras, cotações
+ou metas; o modo demo continua disponível apenas quando o ambiente Supabase
+não está configurado.
+
 - Projeto Supabase: `Papodefuturo`.
 - Project ref: `vxjrncwfysglinfktifz`.
 - Região informada: `us-east-1`.
@@ -99,14 +108,14 @@ ciclos próprios.
 - Advisors atuais de performance têm somente avisos informativos `unused_index`
   para índices de `assets`, `purchases`, `asset_prices` e `allocation_targets`
   ainda não usados.
-- Sem Edge Functions.
-- Aplicação ainda usa mocks e telas demonstrativas.
-- Factory isolada de cliente Supabase já criada no app.
-- Dependência `@supabase/supabase-js` já instalada.
-- Ainda não existe consumo de Supabase em runtime pelas telas.
-- Ainda não existe conexão de dados reais com telas.
-- Ainda não existem autenticação frontend real, backend, APIs ou dados reais no
-  app.
+- Edge Function `refresh-market-data` publicada e ativa (ver
+  `docs/PROJECT_HANDOFF.md` seção 5).
+- Aplicação consome estas tabelas em runtime através de repositories reais nos
+  fluxos autenticados; o modo demo permanece como fallback determinístico.
+- Factory isolada de cliente Supabase criada no app.
+- Dependência `@supabase/supabase-js` instalada.
+- Autenticação frontend real via Supabase Auth, com fallback demo quando o
+  ambiente não está configurado.
 
 ## 3. Princípios Técnicos
 
@@ -121,12 +130,12 @@ ciclos próprios.
 - Tabelas persistentes devem ter `created_at` e `updated_at` quando fizer
   sentido auditar criação e alteração.
 - Migrations devem ser pequenas, revisáveis e aplicadas em ordem controlada.
-- A integração com o app deve ser gradual, sem substituir todos os mocks de uma
-  vez.
-- Dados demonstrativos devem permanecer disponíveis até a leitura real estar
-  validada.
+- A integração com o app foi gradual, sem substituir todos os mocks de uma vez;
+  hoje as cinco tabelas abaixo estão conectadas e o modo demo segue disponível
+  como fallback quando o ambiente não está configurado, não como etapa
+  intermediária de migração.
 
-## 4. Tabelas Planejadas
+## 4. Tabelas Aplicadas
 
 ### profiles
 
@@ -183,13 +192,13 @@ Observações:
 - existem índices auxiliares por usuário, categoria e status;
 - os advisors de segurança estão limpos;
 - os avisos `unused_index` atuais são informativos, esperados porque a tabela
-  tem 0 linhas e o app ainda não faz consultas reais;
+  a tabela teve poucas linhas ou baixo volume de consulta no momento da
+  auditoria;
 - ativo pertence ao usuário;
 - ticker não é único globalmente, apenas dentro do escopo do usuário;
-- categorias devem permanecer compatíveis com o domínio demonstrativo atual;
-- ainda não há dados reais em `assets`;
-- `assets` ainda não está conectada às telas;
-- o app ainda usa mocks.
+- categorias devem permanecer compatíveis com o domínio atual;
+- `assets` está conectada às telas via repository real; o modo demo continua
+  disponível como fallback quando o ambiente Supabase não está configurado.
 
 ### purchases
 
@@ -224,10 +233,11 @@ Observações:
   e usuário + status;
 - os advisors de segurança estão limpos;
 - os avisos `unused_index` atuais são informativos, esperados porque a tabela
-  tem 0 linhas e o app ainda não faz consultas reais;
-- ainda não há dados reais em `purchases`;
-- `purchases` ainda não está conectada às telas;
-- o app ainda usa mocks;
+  a tabela teve poucas linhas ou baixo volume de consulta no momento da
+  auditoria;
+- `purchases` está conectada ao Histórico e à Carteira via `PurchaseRepository`;
+  o modo demo continua disponível como fallback quando o ambiente Supabase não
+  está configurado;
 - posição da carteira deve ser calculada a partir das compras;
 - não criar tabela `holdings` nesta etapa sem justificativa clara;
 - vendas e eventos de renda podem exigir modelagem própria em ciclos futuros.
@@ -260,15 +270,16 @@ Observações:
   usuário + ativo + data de preço;
 - os advisors de segurança estão limpos;
 - os avisos `unused_index` atuais são informativos, esperados porque a tabela
-  tem 0 linhas e o app ainda não faz consultas reais;
-- ainda não há dados reais em `asset_prices`;
-- `asset_prices` ainda não está conectada às telas;
-- o app ainda usa mocks;
-- inicialmente pode suportar cotação manual;
+  a tabela teve poucas linhas ou baixo volume de consulta no momento da
+  auditoria;
+- `asset_prices` está conectada às telas via `MarketDataRepository`; a Edge
+  Function `refresh-market-data` grava linhas reais com `source =
+'market-provider'`; o modo demo continua disponível como fallback quando o
+  ambiente Supabase não está configurado;
 - source aceita `manual` e `market-provider`;
-- histórico de preços deve ser consultado por ativo e data de preço;
-- no futuro pode receber integração por API;
-- integrações externas não fazem parte deste plano inicial.
+- histórico de preços é consultado por ativo e data de preço;
+- `refresh-market-data` cobre B3 COTAHIST e Twelve Data (mercado internacional);
+  ver `docs/PROJECT_HANDOFF.md` seção 5 para o estado de agendamento.
 
 ### allocation_targets
 
@@ -312,12 +323,13 @@ Observações:
   nulo;
 - os advisors de segurança estão limpos;
 - os avisos `unused_index` atuais são informativos, esperados porque a tabela
-  tem 0 linhas e o app ainda não faz consultas reais;
-- ainda não há dados reais em `allocation_targets`;
-- `allocation_targets` ainda não está conectada às telas;
-- o app ainda usa mocks;
+  a tabela teve poucas linhas ou baixo volume de consulta no momento da
+  auditoria;
+- `allocation_targets` está conectada à tela Estratégia, com escrita via RPC
+  `replace_allocation_targets`; o modo demo continua disponível como fallback
+  quando o ambiente Supabase não está configurado;
 - a soma das metas a 10.000 basis points permanece validada na
-  aplicação/domínio por enquanto.
+  aplicação/domínio.
 
 ### contribution_plans
 
@@ -388,22 +400,24 @@ Observações:
 - `contribution_plans` -> `contribution_plan_items`.
 - `assets` -> `contribution_plan_items`.
 
-## 6. RLS Planejado
+## 6. RLS Aplicado
 
-Estratégia futura:
+Estratégia em vigor, já aplicada às cinco tabelas por usuário:
 
-- habilitar RLS em todas as tabelas com `user_id`;
-- usuário autenticado só deve selecionar, inserir, atualizar e deletar linhas
-  cujo `user_id = auth.uid()`;
-- `profiles.id` deve corresponder a `auth.uid()`;
-- evitar policies públicas;
-- nenhuma tabela deve ficar aberta anonimamente;
-- policies devem ser específicas por operação;
-- revisar advisors de segurança depois das migrations;
-- confirmar grants e exposição pela Data API antes de conectar o frontend.
+- RLS habilitado em todas as tabelas com `user_id`;
+- usuário autenticado só seleciona, insere, atualiza e deleta linhas cujo
+  `user_id = auth.uid()`;
+- `profiles.id` corresponde a `auth.uid()`;
+- nenhuma policy pública; nenhuma tabela aberta anonimamente;
+- policies específicas por operação;
+- advisors de segurança revisados a cada migration;
+- grants e exposição pela Data API confirmados antes de cada conexão real.
 
-Este documento não define SQL final obrigatório. As policies reais devem ser
-criadas e revisadas em ciclo próprio.
+Eventos oficiais e fundamentos seguem estratégia diferente por serem dados
+globais sem `user_id`: leitura para `authenticated`, escrita reservada a
+`service_role` via RPC — ver `docs/PROJECT_HANDOFF.md` seção 9. A suíte pgTAP
+`supabase/tests/database/rls_user_isolation.test.sql` (43 asserções) valida o
+isolamento das tabelas por usuário no CI (`rls-pgtap`, `DEC-039`).
 
 ## 7. Ordem Sugerida de Migrations Futuras
 
@@ -421,7 +435,7 @@ criadas e revisadas em ciclo próprio.
 12. Policies.
 13. Types gerados para TypeScript.
 
-## 8. Índices Planejados
+## 8. Índices Aplicados
 
 - `assets(user_id)` — aplicado, com aviso informativo `unused_index` enquanto
   não houver consultas reais;
@@ -482,20 +496,24 @@ Ordem futura recomendada:
 
 Mocks permanecem como fallback durante a integração gradual.
 
-## 10. Estado Fora do Escopo Atual do App
+## 10. Estado atual desta seção (histórico corrigido)
 
-- Nenhuma tela consome Supabase em runtime.
-- Nenhuma rota foi conectada ao banco real.
-- Nenhum mock foi substituído por dados reais.
-- Nenhuma persistência real foi conectada ao frontend.
-- Nenhum dado real foi inserido ou acessado pelo app.
-- Nenhuma autenticação frontend real foi criada.
-- Nenhum backend foi criado.
-- Nenhuma API foi criada.
-- Nenhuma tabela além de `public.profiles`, `public.assets`, `public.purchases`,
-  `public.asset_prices` e `public.allocation_targets` foi criada no Supabase
-  real.
-- As próximas tabelas planejadas são `contribution_plans` e
-  `contribution_plan_items`, explicitamente adiadas e não canceladas.
-- O próximo passo provável é gerar ou preparar os types do schema Supabase atual,
-  ainda sem conectar telas.
+Este documento descrevia, em ciclos anteriores, um app sem nenhuma tela
+conectada a dados reais. Isso deixou de ser verdade: carteira, compras,
+histórico, estratégia, cotações e câmbio consomem dados reais via
+repositories, com Supabase Auth real e fallback demo apenas quando o ambiente
+não está configurado. Backend real existe na forma de RPCs (`security
+definer`) e da Edge Function `refresh-market-data`; não há um servidor HTTP
+próprio além disso.
+
+Estado real, com detalhe em `docs/PROJECT_HANDOFF.md`:
+
+- as cinco tabelas por usuário (`profiles`, `assets`, `purchases`,
+  `asset_prices`, `allocation_targets`) estão aplicadas, conectadas e recebem
+  dados reais nos fluxos autenticados;
+- `exchange_rates`, `fundamental_snapshots` e `official_asset_events` também
+  estão aplicadas, como tabelas globais sem `user_id`;
+- `contribution_plans` e `contribution_plan_items` seguem explicitamente
+  adiadas, não canceladas — ver seções 4 e 7 acima, ainda vigentes;
+- o próximo passo de schema pendente é a tabela global de preços/câmbio do
+  Sprint 5 do plano de sprints (ver `docs/ROADMAP.md`).
