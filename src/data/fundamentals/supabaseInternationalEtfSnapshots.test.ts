@@ -21,6 +21,7 @@ import {
   type InternationalEtfSnapshotRow,
   type InternationalEtfSnapshotSupabaseClient,
 } from './supabaseInternationalEtfSnapshots'
+import type { FundamentalSnapshotsRpcClientV1 } from './supabaseSnapshotsRpc'
 
 const RAW_FACTS = {
   totalAssets: '1000.00',
@@ -191,6 +192,10 @@ function asClient(value: object): InternationalEtfSnapshotSupabaseClient {
   return value as unknown as InternationalEtfSnapshotSupabaseClient
 }
 
+function asRpcClient(value: object): FundamentalSnapshotsRpcClientV1 {
+  return value as unknown as FundamentalSnapshotsRpcClientV1
+}
+
 function createQueryClient(rows: InternationalEtfSnapshotRow[]) {
   const query = {
     select: vi.fn(),
@@ -211,15 +216,15 @@ describe('Supabase international ETF snapshot storage', () => {
   it.each(['VOO', 'VNQ', 'VEA'] as const)(
     'persists a complete official %s record',
     async (ticker) => {
-      const upsert = vi.fn(async () => ({ error: null }))
+      const rpc = vi.fn(async () => ({ data: null, error: null }))
       const storage = createSupabaseInternationalEtfSnapshotStorage(
-        asClient({ from: vi.fn(() => ({ upsert })) })
+        asRpcClient({ rpc })
       )
 
       await storage.upsertMany([createRecord(ticker)])
 
-      expect(upsert).toHaveBeenCalledWith(
-        [
+      expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+        records: [
           expect.objectContaining({
             ticker,
             kind: 'international-etf',
@@ -231,18 +236,14 @@ describe('Supabase international ETF snapshot storage', () => {
             net_assets_minor: 99_000,
           }),
         ],
-        {
-          onConflict:
-            'ticker,category,market,kind,period,source,reference_date,source_document_id',
-        }
-      )
+      })
     }
   )
 
   it('preserves three absent facts as null and nulls every incompatible column', async () => {
-    const upsert = vi.fn(async () => ({ error: null }))
+    const rpc = vi.fn(async () => ({ data: null, error: null }))
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await storage.upsertMany([
@@ -253,8 +254,8 @@ describe('Supabase international ETF snapshot storage', () => {
       }),
     ])
 
-    expect(upsert).toHaveBeenCalledWith(
-      [
+    expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+      records: [
         expect.objectContaining({
           total_assets_minor: null,
           total_liabilities_minor: null,
@@ -269,8 +270,7 @@ describe('Supabase international ETF snapshot storage', () => {
           shareholder_count: null,
         }),
       ],
-      expect.any(Object)
-    )
+    })
   })
 
   it.each([
@@ -278,38 +278,36 @@ describe('Supabase international ETF snapshot storage', () => {
     ['totalLiabilities', -1_050, '-10.50'],
     ['netAssets', -200, '-2.00'],
   ] as const)('accepts signed safe %s', async (field, value, rawValue) => {
-    const upsert = vi.fn(async () => ({ error: null }))
+    const rpc = vi.fn(async () => ({ data: null, error: null }))
     const record = createRecord()
     record.facts[field] = { amountInMinorUnits: value, currency: 'USD' }
     record.provenance.facts[field].rawValue = rawValue
     record.provenance.facts[field].normalizedAmountInMinorUnits = value
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await storage.upsertMany([record])
-    expect(upsert).toHaveBeenCalledOnce()
+    expect(rpc).toHaveBeenCalledOnce()
   })
 
   it('does not call Supabase for an empty list', async () => {
-    const from = vi.fn()
+    const rpc = vi.fn()
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from })
+      asRpcClient({ rpc })
     )
     await storage.upsertMany([])
-    expect(from).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('preserves contextual upsert errors', async () => {
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({
-        from: vi.fn(() => ({
-          upsert: vi.fn(async () => ({ error: { message: 'denied' } })),
-        })),
+      asRpcClient({
+        rpc: vi.fn(async () => ({ data: null, error: { message: 'denied' } })),
       })
     )
     await expect(storage.upsertMany([createRecord()])).rejects.toThrow(
-      'Failed to upsert international ETF fundamental snapshots: denied'
+      'Failed to upsert fundamental snapshots: denied'
     )
   })
 
@@ -320,7 +318,7 @@ describe('Supabase international ETF snapshot storage', () => {
     const record = createRecord()
     record[field] = value
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert: vi.fn() })) })
+      asRpcClient({ rpc: vi.fn() })
     )
     await expect(storage.upsertMany([record])).rejects.toThrow()
   })
@@ -329,7 +327,7 @@ describe('Supabase international ETF snapshot storage', () => {
     const record = createRecord()
     record.fundIdentity.seriesId = 'S000000000'
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert: vi.fn() })) })
+      asRpcClient({ rpc: vi.fn() })
     )
     await expect(storage.upsertMany([record])).rejects.toThrow(
       'Invalid official SEC identity'
@@ -341,20 +339,20 @@ describe('Supabase international ETF snapshot storage', () => {
     unsafe.facts.totalAssets!.amountInMinorUnits = Number.MAX_SAFE_INTEGER + 1
     const brl = createRecord()
     brl.facts.netAssets!.currency = 'BRL'
-    const upsert = vi.fn()
+    const rpc = vi.fn()
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
     await expect(storage.upsertMany([unsafe])).rejects.toThrow('safe minor')
     await expect(storage.upsertMany([brl])).rejects.toThrow('USD currency')
-    expect(upsert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('rejects non-null filingVersion', async () => {
     const record = createRecord()
     Reflect.set(record, 'filingVersion', 1)
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert: vi.fn() })) })
+      asRpcClient({ rpc: vi.fn() })
     )
     await expect(storage.upsertMany([record])).rejects.toThrow(
       'Invalid international ETF snapshot contract'
@@ -598,21 +596,20 @@ describe('International ETF persisted provenance', () => {
     const acceptedAt = '2026-05-28T16:39:55.123456Z'
     const record = createRecord()
     record.provenance.acceptedAt = acceptedAt
-    const upsert = vi.fn(async () => ({ error: null }))
+    const rpc = vi.fn(async () => ({ data: null, error: null }))
     const storage = createSupabaseInternationalEtfSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await storage.upsertMany([record])
 
-    expect(upsert).toHaveBeenCalledWith(
-      [
+    expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+      records: [
         expect.objectContaining({
           provenance: expect.objectContaining({ acceptedAt }),
         }),
       ],
-      expect.any(Object)
-    )
+    })
   })
 
   it('maps a persisted row with a nine-digit timestamp', () => {

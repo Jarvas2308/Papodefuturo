@@ -29,6 +29,10 @@ import type {
   SecNportFormType,
   SecNportXmlPathName,
 } from './sec/nport/types'
+import {
+  upsertFundamentalSnapshotRowsV1,
+  type FundamentalSnapshotsRpcClientV1,
+} from './supabaseSnapshotsRpc'
 
 export type InternationalEtfSnapshotJson = Json
 export type InternationalEtfSnapshotRow = Tables<'fundamental_snapshots'>
@@ -40,17 +44,6 @@ export type InternationalEtfSnapshotSupabaseClient = SupabaseClient<Database>
 
 const DATASET = 'SEC EDGAR Form N-PORT' as const
 const FACTUAL_SCOPE = 'series' as const
-
-const UPSERT_CONFLICT_COLUMNS = [
-  'ticker',
-  'category',
-  'market',
-  'kind',
-  'period',
-  'source',
-  'reference_date',
-  'source_document_id',
-].join(',')
 
 const INCOMPATIBLE_COLUMNS = [
   'total_revenue_minor',
@@ -715,17 +708,14 @@ export function mapInternationalEtfSnapshotRow(
 }
 
 export function createSupabaseInternationalEtfSnapshotStorage(
-  privilegedClient: InternationalEtfSnapshotSupabaseClient
+  privilegedClient: FundamentalSnapshotsRpcClientV1
 ): InternationalEtfFundamentalSnapshotStorage {
   return {
     async upsertMany(records) {
-      if (records.length === 0) return
-      const { error } = await privilegedClient
-        .from('fundamental_snapshots')
-        .upsert(records.map(toInsertRow), {
-          onConflict: UPSERT_CONFLICT_COLUMNS,
-        })
-      if (error) throw createQueryError('upsert', error)
+      await upsertFundamentalSnapshotRowsV1(
+        privilegedClient,
+        records.map(toInsertRow)
+      )
     },
   }
 }
