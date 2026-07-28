@@ -57,11 +57,22 @@ function requireEnv(name: string): string {
   return value
 }
 
+const SAFE_FETCH_ALLOWED_HEADER_NAMES = new Set(['accept', 'user-agent'])
+
 function toSecNportFetcher(
   safeFetch: ReturnType<typeof createOfficialEventsSafeFetchV1>
 ): SecNportFetcher {
   return async (url, init) => {
-    const response = await safeFetch.sec({ url, headers: init.headers })
+    // safeFetch.sec only forwards `accept`/`user-agent` (shared allowlist from
+    // official-events); the SEC N-PORT module also asks for `Accept-Encoding`,
+    // which is dropped here rather than widening the shared allowlist. This
+    // only disables response compression negotiation, not correctness.
+    const headers = Object.fromEntries(
+      Object.entries(init.headers).filter(([name]) =>
+        SAFE_FETCH_ALLOWED_HEADER_NAMES.has(name.toLowerCase())
+      )
+    )
+    const response = await safeFetch.sec({ url, headers })
     return {
       ok: response.ok,
       status: response.status,
@@ -135,7 +146,7 @@ async function main(): Promise<void> {
     }
     const storage = createSupabaseInternationalEtfSnapshotStorage(client)
     return ingestSecInternationalEtfFundamentals({
-      userAgent: `PapoDeFuturo/1.0 (contact) ${contactEmail}`,
+      userAgent: `PapoDeFuturo/1.0 ${contactEmail}`,
       fetcher: toSecNportFetcher(safeFetch),
       storage,
     })

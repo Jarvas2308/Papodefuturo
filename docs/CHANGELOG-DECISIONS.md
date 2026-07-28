@@ -1060,3 +1060,67 @@ Valores Mobiliários ("CVM"), para alienação...`). O parser estrito de
   têm pelo menos uma execução real bem-sucedida contra produção. Demais
   anos/meses/janelas seguem como trabalho futuro, cada execução exigindo
   autorização própria.
+
+## DEC-049 — Primeira ingestão real de fundamentos; bug de adapter corrigido
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: item 2 de `docs/ROADMAP.md` § Próximo. `fundamental_snapshots`
+  permanecia com 0 linhas desde sua criação; o runner
+  `scripts/run-fundamentals-ingestion.ts` (PR #107) generaliza os três
+  `ingest*.ts` já testados via CLI, mesma disciplina do runner de eventos: um
+  provider por execução, preview sempre primeiro, escrita real só com
+  `--confirm`.
+- Decisão: autorizada e executada a sequência de três providers reais contra
+  produção, do menor universo ao maior, com preview reportado e aprovação
+  explícita antes do primeiro `--confirm`:
+  1. `cvm-fii --year=2026` — **sucesso**. 4 registros extraídos e persistidos,
+     um por FII do universo fechado (KNRI11, VISC11, XPLG11, HGRU11).
+  2. `sec-nport` — **falhou**. A resposta real da SEC Submissions API para os
+     três ETFs contém pelo menos um filing `NPORT-P`/`NPORT-P/A` cujo campo
+     `primaryDocument` está vazio ou tem formato inesperado;
+     `assertValidFiling` em
+     `src/data/fundamentals/sec/nport/submissions.ts:78` rejeita a resposta
+     inteira por design (fail-closed). Nenhuma escrita ocorreu. Não é bug de
+     segurança; é o parser reagindo a um formato de dado real da SEC não
+     coberto pelas fixtures de teste. Correção flagada como item separado
+     (fora deste ciclo).
+  3. `cvm-stocks --source=DFP --year=2025` — **sucesso após duas correções**:
+     - **Não era bug**: `--year=2026` falhava com "No valid CVM filing found"
+       para as 5 ações. Diagnóstico confirmou que o arquivo `dfp_cia_aberta_2026.zip`
+       da CVM é real mas tem apenas 194 KB (praticamente vazio); o ano no
+       nome do arquivo é o **exercício fiscal de referência**, não o ano de
+       publicação — para o exercício 2025 (`referenceDate: 2025-12-31`), já
+       filed e completo, o arquivo correto é `dfp_cia_aberta_2025.zip`
+       (12,7 MB, as 5 empresas confirmadas presentes). Nenhuma mudança de
+       código; só ajuste do argumento `--year`.
+     - **Bug real corrigido**: com `--year=2025`, a RPC
+       `upsert_fundamental_snapshots_v1` (aplicada hoje mais cedo em
+       `DEC-044`) rejeitou o lote com `"fundamental snapshot record has
+invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
+       `fundamental_snapshots` em toda linha (mesmo com valor `null`), mas
+       `toInsertRow` em `src/data/fundamentals/supabaseFundamentalSnapshots.ts`
+       (adapter de ações) omitia as 4 colunas específicas de FII
+       (`net_asset_value_minor`, `issued_shares_unscaled`,
+       `issued_shares_scale`, `shareholder_count`) — os adapters de FII e de
+       ETF internacional já enviavam as 24 colunas corretamente desde o PR
+       #100; só o de ações ficou incompleto. Como a validação por objeto
+       usa `TablesInsert<'fundamental_snapshots'>` (colunas opcionais no tipo
+       gerado), o TypeScript não acusava a omissão. Corrigido adicionando as
+       4 colunas como `null` explícito; teste existente
+       (`"sends an idempotent bulk upsert RPC with the complete row shape"`)
+       foi fortalecido de `objectContaining` (verificava só 2 campos, apesar
+       do nome) para `toEqual` do objeto completo, mais um novo teste que
+       verifica exatamente as 24 chaves. Depois da correção: 5 registros
+       extraídos e persistidos, um por ação (BBAS3, ITSA4, PSSA3, TAEE11,
+       WEGE3).
+- Consequências: `fundamental_snapshots` sai de 0 para 9 linhas — a primeira
+  vez que a tabela deixa de estar vazia. Verificado por consulta somente
+  leitura após cada job e `get_advisors`: nenhum achado novo de segurança. O
+  bug do adapter de ações era **latente desde `DEC-044`** (aplicado no mesmo
+  dia) e só foi descoberto porque esta foi a primeira execução real da RPC
+  com dado de ações — nenhum dos 2050 testes Vitest o alcançava, porque
+  nenhum deles roda a RPC real contra Postgres (mesma lição estrutural já
+  registrada para eventos oficiais em `docs/PROJECT_HANDOFF.md` seção 8).
+  `sec-nport` permanece bloqueado até a correção do parser; nenhum evento de
+  ETFs internacionais foi ingerido neste ciclo.
