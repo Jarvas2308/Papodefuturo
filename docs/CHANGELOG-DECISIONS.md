@@ -995,3 +995,39 @@ para alienação...`). O parser estrito de
   correção do parser; nenhum evento de ações brasileiras foi backfilled neste
   ciclo. Demais competências de `cvm-fund-delivery` e o backfill de `cvm-ipe`
   seguem como trabalho futuro, cada execução exigindo autorização própria.
+
+## DEC-047 — Correção do parser CVM IPE: aspa solta em campo não cotado
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: `DEC-046` registrou a falha do job `cvm-ipe --year=2026` contra o
+  CSV real 2026 da CVM: a linha 35, coluna Assunto, contém uma aspa literal
+  não escapada dentro de um campo que não começa com aspas (`...Comissão de
+Valores Mobiliários ("CVM"), para alienação...`). O parser estrito de
+  `src/data/context/official-events/cvm/ipe/csv.ts` (`parseDelimitedRows`)
+  tratava qualquer `"` fora de um campo cotado como erro fatal para o arquivo
+  inteiro. Três opções foram avaliadas: (1) tratar a aspa solta como caractere
+  literal quando não está no início do campo; (2) rejeitar somente a linha
+  afetada, como já ocorre para outras violações de schema via
+  `rejectedRows` em `provider.ts`; (3) manter rejeição do arquivo inteiro com
+  allowlist de padrões conhecidos.
+- Decisão: adotada a opção (1). O parser só entra em modo cotado quando a
+  aspa é o primeiro caractere do campo (`atFieldStart`); esse gate já existia
+  e não muda. Uma aspa em qualquer outra posição do campo passa a ser
+  acrescentada ao valor do campo como caractere literal, em vez de lançar
+  `CVM IPE CSV contains a quote inside an unquoted field`. Nenhum outro
+  comportamento do parser muda: campos que começam com aspas continuam RFC
+  4180 estrito (aspas duplicadas escapam, conteúdo após o fechamento sem
+  delimitador continua erro fatal, newlines/CR fora de campo cotado continuam
+  rejeitados). O teste `csv.test.ts` que exigia rejeição
+  (`rejects quotes inside an unquoted field`) foi substituído por dois testes
+  que verificam a aceitação literal, incluindo o padrão exato do CSV real de 2026.
+- Consequências: o job `cvm-ipe --year=2026` deixa de falhar por esse motivo
+  específico. A mudança amplia o conjunto de entradas aceitas (estritamente
+  mais permissiva), mas não introduz ambiguidade de parsing nem novo caminho
+  de leitura de delimitador — não há implicação de segurança. Backfill real
+  do provider `cvm-ipe` fica novamente pendente de execução (checkpoint da
+  tentativa anterior, marcada `completed-with-failures`, precisa ser
+  reiniciado manualmente antes do próximo `--confirm`, já que
+  `retryFailed: false` e não existe RPC de reset — por design, ver
+  `official_event_backfill_runs`/`official_event_backfill_jobs`).

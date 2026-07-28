@@ -60,7 +60,7 @@ function parseDelimitedRows(content: string): string[][] {
       quoted = true
       atFieldStart = false
     } else if (character === '"') {
-      throw new Error('CVM IPE CSV contains a quote inside an unquoted field')
+      field += character
     } else if (character === ';') {
       pushField()
     } else if (character === '\n') {

@@ -38,14 +38,22 @@ describe('parseOfficialCvmIpeCsv', () => {
     ).toBe('primeira linha\r\nsegunda linha')
   })
 
-  it('rejects quotes inside an unquoted field', () => {
+  it('treats a stray quote inside an unquoted field as a literal character', () => {
     const values = Object.values(createFixtureRow())
     values[7] = 'Deliberação em "AGO" oficial'
-    expect(() =>
-      parseOfficialCvmIpeCsv(
-        `${CVM_IPE_HEADERS.join(';')}\n${values.join(';')}`
-      )
-    ).toThrow(/quote inside an unquoted field/)
+    const parsed = parseOfficialCvmIpeCsv(
+      `${CVM_IPE_HEADERS.join(';')}\n${values.join(';')}`
+    )
+    expect(parsed[0].subject).toBe('Deliberação em "AGO" oficial')
+  })
+
+  it('treats a stray quote followed by the delimiter as a literal character', () => {
+    const values = Object.values(createFixtureRow())
+    values[7] = 'Autorizar solicitação à CVM ("CVM")'
+    const parsed = parseOfficialCvmIpeCsv(
+      `${CVM_IPE_HEADERS.join(';')}\n${values.join(';')}`
+    )
+    expect(parsed[0].subject).toBe('Autorizar solicitação à CVM ("CVM")')
   })
 
   it('preserves empty fields, including the final field', () => {
