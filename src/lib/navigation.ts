@@ -39,16 +39,30 @@ const officialEventsNavigationItem: NavigationItem = {
   icon: 'officialEvents',
 }
 
+const fundamentalsNavigationItem: NavigationItem = {
+  to: '/fundamentos',
+  label: 'Fundamentos',
+  icon: 'fundamentals',
+}
+
 export function getNavigationItems(
-  officialEventsMode: 'disabled' | 'read-only'
+  officialEventsMode: 'disabled' | 'read-only',
+  fundamentalsMode: 'disabled' | 'read-only' = 'disabled'
 ): NavigationItem[] {
-  if (officialEventsMode === 'disabled') return [...navigationItems]
+  const optionalItems: NavigationItem[] = []
+  if (officialEventsMode !== 'disabled') {
+    optionalItems.push(officialEventsNavigationItem)
+  }
+  if (fundamentalsMode !== 'disabled') {
+    optionalItems.push(fundamentalsNavigationItem)
+  }
+  if (optionalItems.length === 0) return [...navigationItems]
   const historyIndex = navigationItems.findIndex(
     (item) => item.to === '/historico'
   )
   return [
     ...navigationItems.slice(0, historyIndex + 1),
-    officialEventsNavigationItem,
+    ...optionalItems,
     ...navigationItems.slice(historyIndex + 1),
   ]
 }
@@ -74,6 +88,11 @@ export const pageCopyByPath: Record<string, PageCopy> = {
     title: 'Eventos Oficiais',
     description:
       'Acompanhe documentos regulatórios publicados para os ativos monitorados.',
+  },
+  '/fundamentos': {
+    title: 'Fundamentos',
+    description:
+      'Fatos contábeis e razões derivadas dos ativos do universo fechado.',
   },
   '/estrategia': {
     title: 'Estratégia',
