@@ -15,6 +15,11 @@ e 17: as quatro migrations de eventos oficiais foram aplicadas ao Supabase real
 nesse mesmo dia, com duas migrations corretivas adicionais para bugs
 encontrados por auditoria transacional. O detalhe está na seção 8.
 
+Uma terceira atualização, ainda em 27 de julho, corrigiu as seções 1, 3, 8, 13,
+14 e 17: as PRs #94 a #96 foram mergeadas em `main` (commit final `5b05e11`),
+completando CI com pgTAP real, o canário de backfill e a ativação do runtime
+`read-only`, verificada em produção com sessão autenticada real.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -431,7 +436,12 @@ explícita do usuário — ver `DEC-041`. `OFFICIAL_EVENTS_REAL_UI_MODE`
 `src/app/AppComposition.tsx`, fora da fronteira que `boundary.test.ts`
 protege. O item de navegação aparece como consequência direta da capability
 do runtime, sem alteração separada na sidebar. Modo demo (sem env
-configurado) continua caindo para `disabled` automaticamente.
+configurado) continua caindo para `disabled` automaticamente. Após o merge
+(PRs #94, #95 e #96) e o deploy no Vercel, o caminho `read-only` com sessão
+autenticada real foi verificado em produção — timeline vazia sem erro, item
+"Eventos Oficiais" visível na sidebar, confirmado tanto pelos logs de API do
+Supabase (`200` em `list_official_asset_events_v1`) quanto visualmente pelo
+usuário — ver `DEC-042`.
 
 ## 9. Supabase, schema e segurança
 
@@ -606,24 +616,32 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 
 ## 14. Próxima sequência recomendada
 
-O código está integrado em `main` desde 27 de julho de 2026 (PRs #86 e #87). O
-schema de eventos oficiais foi aplicado ao Supabase real no mesmo dia, com
-`database.types.ts` regenerado e dois bugs de produção corrigidos após
-auditoria transacional (seção 8). O que resta da fase operacional, ainda não
-executado:
+O código está integrado em `main` desde 27 de julho de 2026 (PRs #86 a #96,
+commit final `5b05e11`). O schema de eventos oficiais foi aplicado ao Supabase
+real no mesmo dia, com `database.types.ts` regenerado e dois bugs de produção
+corrigidos após auditoria transacional (seção 8). A sequência operacional
+original de deployment — schema, canário real, ativação `read-only`,
+verificação com sessão real — está encerrada (`DEC-037` a `DEC-042`). O que
+resta é operação contínua, não deployment:
 
-1. monitorar o runtime `read-only` real e decidir sobre backfill gradual
-   (runbook, seção 18) em ciclos posteriores, com autorização própria por
-   provider/job.
+1. decidir sobre backfill gradual (runbook, seção 18: um job por execução,
+   confirmação manual entre CVM IPE, CVM Fund Delivery e SEC EDGAR), com
+   autorização própria por provider/job — nenhum foi executado além do
+   canário de `DEC-040`;
+2. monitorar o runtime `read-only` real em produção (falhas por job,
+   conflitos, latência de leitura) conforme a seção 19 do runbook;
+3. conectar `supabase/tests/database/rls_user_isolation.test.sql` a produção
+   real de forma automatizada, se decidido — hoje só roda em CI contra um
+   Postgres local efêmero (`DEC-039`).
 
 Concluído neste ciclo, sem tocar produção: a suíte pgTAP foi conectada a um
-job de CI (`DEC-039`) e as três branches obsoletas do incidente de publicação
-foram removidas (`DEC-038`). Concluído neste ciclo, tocando produção com
-autorização explícita: o canário de um job de backfill real (CVM Fund
-Delivery, 2026-07) rodou com sucesso e `fetchedEventCount: 0` (`DEC-040`), e o
-runtime `read-only` foi ativado (`DEC-041`) — ver a seção 8. A sequência
-operacional original de 4 itens está concluída; o que resta é operação
-contínua, não deployment.
+job de CI (`DEC-039`, confirmado rodando com sucesso em CI real após o merge)
+e as três branches obsoletas do incidente de publicação foram removidas
+(`DEC-038`). Concluído neste ciclo, tocando produção com autorização
+explícita: o canário de um job de backfill real (CVM Fund Delivery, 2026-07)
+rodou com sucesso e `fetchedEventCount: 0` (`DEC-040`), o runtime `read-only`
+foi ativado (`DEC-041`), e a ativação foi verificada em produção com sessão
+autenticada real (`DEC-042`) — ver a seção 8.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir
@@ -673,13 +691,19 @@ Antes de entregar:
 
 ## 17. Estado que não deve ser inferido
 
-Os PRs #86 a #92 foram mergeados em `main` em 27 de julho de 2026; existe CI
-ativo desde o #87. As quatro migrations originais de eventos oficiais mais duas
-corretivas foram aplicadas ao Supabase real no mesmo dia, comprovado por
-consulta direta ao projeto (`list_migrations`, `list_tables`) e por um teste
-transacional de ponta a ponta contra as 12 funções — ver seção 8. Isso não
-significa que este handoff comprove, por si só, sem verificação adicional no
-sistema correspondente:
+Os PRs #86 a #96 foram mergeados em `main` em 27 de julho de 2026; existe CI
+ativo desde o #87, incluindo o job `rls-pgtap` desde o #94. As quatro
+migrations originais de eventos oficiais mais duas corretivas foram aplicadas
+ao Supabase real no mesmo dia, comprovado por consulta direta ao projeto
+(`list_migrations`, `list_tables`) e por um teste transacional de ponta a
+ponta contra as 12 funções — ver seção 8. O canário real de backfill
+(`DEC-040`) e a ativação do runtime `read-only` (`DEC-041`) foram mergeados
+(PRs #95 e #96, commit final `5b05e11`), deployados no Vercel e verificados
+com sessão autenticada real: logs de API do Supabase confirmaram uma chamada
+`200` a `list_official_asset_events_v1`, e o usuário confirmou visualmente a
+timeline vazia sem erros e o item "Eventos Oficiais" na sidebar — ver
+`DEC-042`. Isso não significa que este handoff comprove, por si só, sem
+verificação adicional no sistema correspondente:
 
 - que o schema remoto atual, na data em que este documento for lido, ainda
   coincide com os arquivos locais — migrations futuras podem ter sido
@@ -687,15 +711,12 @@ sistema correspondente:
 - que a Edge Function `refresh-market-data` já foi efetivamente invocada com
   sucesso alguma vez — está implantada e o código foi revisado, mas nenhuma
   execução real foi observada (seção 13);
-- que o deployment Vercel atual aponta para este HEAD;
+- que o deployment Vercel atual, na data em que este documento for lido, ainda
+  aponta para o commit `5b05e11` — deployments futuros podem ter substituído
+  esse estado;
 - que existe backfill real além do canário de `DEC-040`, dado fundamentalista
   ou evento oficial persistido — as três tabelas de eventos oficiais e
-  `fundamental_snapshots` seguem com 0 linhas;
-- que o código com `OFFICIAL_EVENTS_REAL_UI_MODE = 'read-only'` (`DEC-041`) já
-  está implantado em produção — a mudança foi validada localmente
-  (testes, lint, build, verificação manual em dev server) mas depende do PR
-  correspondente ser revisado, mergeado e deployado antes de valer para
-  usuários reais.
+  `fundamental_snapshots` seguem com 0 linhas.
 
 Esses fatos devem ser verificados no sistema correspondente antes de qualquer
 mudança operacional.

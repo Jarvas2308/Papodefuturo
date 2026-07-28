@@ -826,3 +826,28 @@ Este documento registra decisões de produto e arquitetura.
   separada na sidebar. Nenhuma migration, nenhum dado e nenhum SQL foram
   tocados neste ciclo; a mudança é só de composição de dependências no
   frontend.
+
+## DEC-042 — Ativação `read-only` verificada em produção com sessão real
+
+- Data: 27 de julho de 2026
+- Status: Aceita
+- Contexto: `DEC-041` deixou o caminho `read-only` com sessão autenticada real
+  como não verificado manualmente. Após o merge das PRs #94, #95 e #96 em
+  `main` (commit `5b05e11`) e o deploy automático no Vercel, o usuário
+  autenticou-se em `https://papodefuturo.vercel.app` e testou a rota
+  `/eventos-oficiais` diretamente.
+- Decisão: Confirmado por duas fontes independentes que a ativação funciona
+  ponta a ponta em produção: (1) os logs de API do Supabase mostraram, às
+  2026-07-28T02:49:30Z, uma chamada real `POST 200` a
+  `rpc/list_official_asset_events_v1` a partir de um navegador Chrome real,
+  junto de outras leituras normais da sessão autenticada (carteira, câmbio,
+  metas), sem nenhum erro; (2) o usuário confirmou visualmente que a página
+  carregou vazia e sem erros, e que o item "Eventos Oficiais" aparece na
+  sidebar entre Histórico e Estratégia, como o runtime prevê.
+- Consequências: A sequência completa de deployment de eventos oficiais —
+  schema aplicado, canário real, ativação `read-only`, verificação com sessão
+  real — está encerrada e confirmada. Não há uma "Fase E" separada de código:
+  a navegação já é consequência da capability, exatamente como o runbook
+  desenhou. Próximos passos (backfill gradual com mais providers/meses,
+  monitoramento contínuo) exigem autorização própria por ciclo, como já
+  registrado em `DEC-040` e `DEC-041`.
