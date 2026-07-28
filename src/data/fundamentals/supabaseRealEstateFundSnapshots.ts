@@ -32,6 +32,10 @@ import type {
   CvmRealEstateFundFundamentalRecord,
 } from './cvm/fii/types'
 import { normalizeCvmDescription } from './cvm/normalizeDescription'
+import {
+  upsertFundamentalSnapshotRowsV1,
+  type FundamentalSnapshotsRpcClientV1,
+} from './supabaseSnapshotsRpc'
 
 export type RealEstateFundSnapshotJson = Json
 export type RealEstateFundSnapshotRow = Tables<'fundamental_snapshots'>
@@ -40,17 +44,6 @@ export type RealEstateFundSnapshotUpdate = TablesUpdate<'fundamental_snapshots'>
 export type RealEstateFundSnapshotSupabaseClient = SupabaseClient<Database>
 
 const DATASET = 'FII: Documentos: Informe Mensal Estruturado' as const
-
-const UPSERT_CONFLICT_COLUMNS = [
-  'ticker',
-  'category',
-  'market',
-  'kind',
-  'period',
-  'source',
-  'reference_date',
-  'source_document_id',
-].join(',')
 
 const STOCK_FACT_COLUMNS = [
   'total_revenue_minor',
@@ -651,23 +644,14 @@ export function mapRealEstateFundSnapshotRow(
 }
 
 export function createSupabaseRealEstateFundSnapshotStorage(
-  privilegedClient: RealEstateFundSnapshotSupabaseClient
+  privilegedClient: FundamentalSnapshotsRpcClientV1
 ): RealEstateFundFundamentalSnapshotStorage {
   return {
     async upsertMany(records) {
-      if (records.length === 0) {
-        return
-      }
-
-      const { error } = await privilegedClient
-        .from('fundamental_snapshots')
-        .upsert(records.map(toInsertRow), {
-          onConflict: UPSERT_CONFLICT_COLUMNS,
-        })
-
-      if (error) {
-        throw createQueryError('upsert', error)
-      }
+      await upsertFundamentalSnapshotRowsV1(
+        privilegedClient,
+        records.map(toInsertRow)
+      )
     },
   }
 }

@@ -9,6 +9,7 @@ import {
   type FundamentalSnapshotRow,
   type FundamentalSnapshotSupabaseClient,
 } from './supabaseFundamentalSnapshots'
+import type { FundamentalSnapshotsRpcClientV1 } from './supabaseSnapshotsRpc'
 
 function createProvenance() {
   return {
@@ -110,30 +111,28 @@ function createRow(): FundamentalSnapshotRow {
 }
 
 describe('Supabase fundamental snapshot persistence', () => {
-  it('uses an idempotent bulk upsert with the complete logical identity', async () => {
-    const upsert = vi.fn(async () => ({ error: null }))
-    const client = {
-      from: vi.fn(() => ({ upsert })),
-    } as unknown as FundamentalSnapshotSupabaseClient
+  it('sends an idempotent bulk upsert RPC with the complete row shape', async () => {
+    const rpc = vi.fn(async () => ({
+      data: { attempted: 1, upserted: 1 },
+      error: null,
+    }))
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
     const storage = createSupabaseFundamentalSnapshotStorage(client)
 
     await storage.upsertMany([createRecord()])
     await storage.upsertMany([createRecord()])
 
-    expect(upsert).toHaveBeenCalledTimes(2)
-    expect(upsert).toHaveBeenLastCalledWith(
-      [expect.objectContaining({ ticker: 'BBAS3', total_revenue_minor: null })],
-      {
-        onConflict:
-          'ticker,category,market,kind,period,source,reference_date,source_document_id',
-      }
-    )
+    expect(rpc).toHaveBeenCalledTimes(2)
+    expect(rpc).toHaveBeenLastCalledWith('upsert_fundamental_snapshots_v1', {
+      records: [
+        expect.objectContaining({ ticker: 'BBAS3', total_revenue_minor: null }),
+      ],
+    })
   })
 
   it('refuses to persist normalized CVM revenue in provider V1', async () => {
-    const client = {
-      from: vi.fn(() => ({ upsert: vi.fn() })),
-    } as unknown as FundamentalSnapshotSupabaseClient
+    const rpc = vi.fn()
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
     const storage = createSupabaseFundamentalSnapshotStorage(client)
     const record = createRecord()
     record.facts.totalRevenue = {
@@ -147,10 +146,8 @@ describe('Supabase fundamental snapshot persistence', () => {
   })
 
   it('validates BRL currency and safe minor units before upsert', async () => {
-    const upsert = vi.fn()
-    const client = {
-      from: vi.fn(() => ({ upsert })),
-    } as unknown as FundamentalSnapshotSupabaseClient
+    const rpc = vi.fn()
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
     const storage = createSupabaseFundamentalSnapshotStorage(client)
     const wrongCurrency = createRecord()
     wrongCurrency.facts.netIncome!.currency = 'USD'
@@ -164,14 +161,12 @@ describe('Supabase fundamental snapshot persistence', () => {
     await expect(storage.upsertMany([unsafeAmount])).rejects.toThrow(
       'Total assets must use signed safe minor units'
     )
-    expect(upsert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('validates exercise order provenance before upsert', async () => {
-    const upsert = vi.fn()
-    const client = {
-      from: vi.fn(() => ({ upsert })),
-    } as unknown as FundamentalSnapshotSupabaseClient
+    const rpc = vi.fn()
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
     const storage = createSupabaseFundamentalSnapshotStorage(client)
     const record = createRecord()
     record.provenance.totalEquity.exerciseOrder = 'PENÚLTIMO'
@@ -179,7 +174,7 @@ describe('Supabase fundamental snapshot persistence', () => {
     await expect(storage.upsertMany([record])).rejects.toThrow(
       'Fundamental provenance does not match filing identity'
     )
-    expect(upsert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('reconstructs a domain snapshot while preserving totalRevenue null', () => {

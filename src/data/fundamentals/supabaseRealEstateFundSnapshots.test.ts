@@ -18,6 +18,7 @@ import {
   type RealEstateFundSnapshotRow,
   type RealEstateFundSnapshotSupabaseClient,
 } from './supabaseRealEstateFundSnapshots'
+import type { FundamentalSnapshotsRpcClientV1 } from './supabaseSnapshotsRpc'
 
 const SHARES: Record<CvmRealEstateFundTicker, string> = {
   KNRI11: '28204047',
@@ -185,6 +186,10 @@ function asClient(value: object): RealEstateFundSnapshotSupabaseClient {
   return value as unknown as RealEstateFundSnapshotSupabaseClient
 }
 
+function asRpcClient(value: object): FundamentalSnapshotsRpcClientV1 {
+  return value as unknown as FundamentalSnapshotsRpcClientV1
+}
+
 function createQueryClient(rows: RealEstateFundSnapshotRow[]) {
   const query = {
     select: vi.fn(),
@@ -202,16 +207,19 @@ function createQueryClient(rows: RealEstateFundSnapshotRow[]) {
 }
 
 describe('Supabase FII fundamental snapshot storage', () => {
-  it('maps a complete record and uses the complete logical conflict identity', async () => {
-    const upsert = vi.fn(async () => ({ error: null }))
+  it('sends a bulk upsert RPC with the complete row shape', async () => {
+    const rpc = vi.fn(async () => ({
+      data: { attempted: 1, upserted: 1 },
+      error: null,
+    }))
     const storage = createSupabaseRealEstateFundSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await storage.upsertMany([createRecord('KNRI11')])
 
-    expect(upsert).toHaveBeenCalledWith(
-      [
+    expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+      records: [
         expect.objectContaining({
           ticker: 'KNRI11',
           kind: 'real-estate-fund',
@@ -221,11 +229,7 @@ describe('Supabase FII fundamental snapshot storage', () => {
           shareholder_count: 100_000,
         }),
       ],
-      {
-        onConflict:
-          'ticker,category,market,kind,period,source,reference_date,source_document_id',
-      }
-    )
+    })
   })
 
   it.each([
@@ -234,29 +238,28 @@ describe('Supabase FII fundamental snapshot storage', () => {
   ] as const)(
     'persists exact fractional shares for %s',
     async (ticker, value) => {
-      const upsert = vi.fn(async () => ({ error: null }))
+      const rpc = vi.fn(async () => ({ data: null, error: null }))
       const storage = createSupabaseRealEstateFundSnapshotStorage(
-        asClient({ from: vi.fn(() => ({ upsert })) })
+        asRpcClient({ rpc })
       )
 
       await storage.upsertMany([createRecord(ticker)])
 
-      expect(upsert).toHaveBeenCalledWith(
-        [
+      expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+        records: [
           expect.objectContaining({
             issued_shares_unscaled: value,
             issued_shares_scale: 7,
           }),
         ],
-        expect.any(Object)
-      )
+      })
     }
   )
 
   it('keeps absent FII facts and every stock column null', async () => {
-    const upsert = vi.fn(async () => ({ error: null }))
+    const rpc = vi.fn(async () => ({ data: null, error: null }))
     const storage = createSupabaseRealEstateFundSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await storage.upsertMany([
@@ -267,8 +270,8 @@ describe('Supabase FII fundamental snapshot storage', () => {
       }),
     ])
 
-    expect(upsert).toHaveBeenCalledWith(
-      [
+    expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+      records: [
         expect.objectContaining({
           net_asset_value_minor: null,
           issued_shares_unscaled: null,
@@ -281,54 +284,51 @@ describe('Supabase FII fundamental snapshot storage', () => {
           operating_cash_flow_minor: null,
         }),
       ],
-      expect.any(Object)
-    )
+    })
   })
 
   it('does not call Supabase for an empty record list', async () => {
-    const from = vi.fn()
+    const rpc = vi.fn()
     const storage = createSupabaseRealEstateFundSnapshotStorage(
-      asClient({ from })
+      asRpcClient({ rpc })
     )
 
     await storage.upsertMany([])
 
-    expect(from).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('preserves contextual Supabase upsert errors', async () => {
     const storage = createSupabaseRealEstateFundSnapshotStorage(
-      asClient({
-        from: vi.fn(() => ({
-          upsert: vi.fn(async () => ({ error: { message: 'denied' } })),
-        })),
+      asRpcClient({
+        rpc: vi.fn(async () => ({ data: null, error: { message: 'denied' } })),
       })
     )
 
     await expect(storage.upsertMany([createRecord()])).rejects.toThrow(
-      'Failed to upsert real estate fund fundamental snapshots: denied'
+      'Failed to upsert fundamental snapshots: denied'
     )
   })
 
   it.each([0, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid filing version %s before upsert',
     async (version) => {
-      const upsert = vi.fn()
+      const rpc = vi.fn()
       const record = createRecord()
       record.filingVersion = version
       const storage = createSupabaseRealEstateFundSnapshotStorage(
-        asClient({ from: vi.fn(() => ({ upsert })) })
+        asRpcClient({ rpc })
       )
 
       await expect(storage.upsertMany([record])).rejects.toThrow(
         'FII filing version must be a positive safe integer'
       )
-      expect(upsert).not.toHaveBeenCalled()
+      expect(rpc).not.toHaveBeenCalled()
     }
   )
 
   it('rejects invalid write facts and non-null exercise order', async () => {
-    const upsert = vi.fn()
+    const rpc = vi.fn()
     const unsafeMoney = createRecord()
     unsafeMoney.facts.netAssetValue!.amountInMinorUnits =
       Number.MAX_SAFE_INTEGER + 1
@@ -341,7 +341,7 @@ describe('Supabase FII fundamental snapshot storage', () => {
     const stockFacts = createRecord()
     Reflect.set(stockFacts.facts, 'netIncome', null)
     const storage = createSupabaseRealEstateFundSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await expect(storage.upsertMany([unsafeMoney])).rejects.toThrow(
@@ -359,11 +359,11 @@ describe('Supabase FII fundamental snapshot storage', () => {
     await expect(storage.upsertMany([stockFacts])).rejects.toThrow(
       'Brazilian stock facts must be absent'
     )
-    expect(upsert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('rejects non-normalized shares and divergent official provenance', async () => {
-    const upsert = vi.fn()
+    const rpc = vi.fn()
     const shares = createRecord()
     shares.facts.issuedShares = { unscaledValue: 100, scale: 1 }
     const provenance = createRecord()
@@ -371,7 +371,7 @@ describe('Supabase FII fundamental snapshot storage', () => {
     const identity = createRecord()
     identity.provenance.identity.isin.rawValue = 'BRINVALID000'
     const storage = createSupabaseRealEstateFundSnapshotStorage(
-      asClient({ from: vi.fn(() => ({ upsert })) })
+      asRpcClient({ rpc })
     )
 
     await expect(storage.upsertMany([shares])).rejects.toThrow(
@@ -383,7 +383,7 @@ describe('Supabase FII fundamental snapshot storage', () => {
     await expect(storage.upsertMany([identity])).rejects.toThrow(
       'invalid official identity'
     )
-    expect(upsert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 })
 

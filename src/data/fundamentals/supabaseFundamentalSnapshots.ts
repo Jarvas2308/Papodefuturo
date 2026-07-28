@@ -21,23 +21,16 @@ import type {
   CvmFactProvenance,
   CvmStatement,
 } from './cvm/types'
+import {
+  upsertFundamentalSnapshotRowsV1,
+  type FundamentalSnapshotsRpcClientV1,
+} from './supabaseSnapshotsRpc'
 
 export type FundamentalSnapshotJson = Json
 export type FundamentalSnapshotRow = Tables<'fundamental_snapshots'>
 export type FundamentalSnapshotInsert = TablesInsert<'fundamental_snapshots'>
 export type FundamentalSnapshotUpdate = TablesUpdate<'fundamental_snapshots'>
 export type FundamentalSnapshotSupabaseClient = SupabaseClient<Database>
-
-const UPSERT_CONFLICT_COLUMNS = [
-  'ticker',
-  'category',
-  'market',
-  'kind',
-  'period',
-  'source',
-  'reference_date',
-  'source_document_id',
-].join(',')
 
 type QueryError = { message: string }
 
@@ -321,23 +314,14 @@ export function mapFundamentalSnapshotRow(
 }
 
 export function createSupabaseFundamentalSnapshotStorage(
-  privilegedClient: FundamentalSnapshotSupabaseClient
+  privilegedClient: FundamentalSnapshotsRpcClientV1
 ): FundamentalSnapshotStorage {
   return {
     async upsertMany(records) {
-      if (records.length === 0) {
-        return
-      }
-
-      const { error } = await privilegedClient
-        .from('fundamental_snapshots')
-        .upsert(records.map(toInsertRow), {
-          onConflict: UPSERT_CONFLICT_COLUMNS,
-        })
-
-      if (error) {
-        throw createQueryError('upsert', error)
-      }
+      await upsertFundamentalSnapshotRowsV1(
+        privilegedClient,
+        records.map(toInsertRow)
+      )
     },
   }
 }
