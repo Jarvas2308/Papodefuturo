@@ -952,3 +952,46 @@ Este documento registra decisões de produto e arquitetura.
   (Sprint 1, PRs 1.2 e 1.3), não retroativamente por esta decisão. Esta decisão
   não altera nenhuma regra de produto, financeira ou de segurança — é
   exclusivamente processual.
+
+## DEC-046 — Primeiro backfill real de eventos oficiais além do canário
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: item 1 de `docs/ROADMAP.md` § Próximo. Até este ciclo, o único
+  backfill real executado era o canário de `DEC-040` (CVM Fund Delivery,
+  competência 2026-07, `fetchedEventCount: 0`). O runner gradual
+  `scripts/run-official-events-backfill.ts` (PR #99) generaliza esse canário
+  para os três providers via CLI, mantendo a mesma disciplina: um job por
+  execução, preview sempre primeiro, escrita real só com `--confirm`.
+- Decisão: autorizada e executada a sequência de três jobs reais contra
+  produção, um por vez, com preview reportado e aprovação explícita antes de
+  cada `--confirm`:
+  1. `cvm-ipe --year=2026` — **falhou**. O CSV oficial 2026 de IPE da CVM
+     contém, na linha 35 (coluna Assunto), uma aspa literal não escapada dentro
+     de um campo não cotado (`...Comissão de Valores Mobiliários ("CVM"),
+para alienação...`). O parser estrito de
+     `src/data/context/official-events/cvm/ipe/csv.ts` rejeita o arquivo
+     inteiro nesse caso, por design (fail-closed — nunca faz parsing
+     silencioso de dado ambíguo). Resultado: `0` eventos, `failureMode: stop`
+     pausou o plano corretamente, nenhuma escrita ocorreu. Não é bug de
+     segurança nem corrupção de dado; é o parser reagindo corretamente a um
+     defeito de qualidade no dado da própria fonte oficial. A correção do
+     parser (tratar aspa solta como caractere literal ou rejeitar somente a
+     linha afetada) foi identificada como item separado, fora deste ciclo.
+  2. `sec-edgar --from-date=2026-01-01 --to-date=2026-01-31 --window-days=31`
+     — `succeeded`, `fetchedEventCount: 0`: nenhum filing qualificável (dos
+     seis forms fechados) publicado para VOO, VNQ ou VEA nessa janela civil.
+  3. `cvm-fund-delivery --month=2026-06` — `succeeded`,
+     `fetchedEventCount: 4`, `persistedAttemptCount: 4`,
+     `rejectedItemCount: 0`. Quatro eventos `periodic-report` persistidos, um
+     por FII do universo fechado (KNRI11, VISC11, XPLG11, HGRU11),
+     correspondentes ao Informe Mensal da competência 2026-06.
+- Consequências: `official_asset_events` sai de 0 para 4 linhas — a primeira
+  vez que a timeline real deixa de estar vazia. Verificado por consulta
+  somente leitura após cada job e `get_advisors`: nenhum advisor de segurança
+  novo, apenas os já conhecidos (`rls_enabled_no_policy` informativo nas
+  tabelas de checkpoint, e a proteção contra senha vazada desabilitada, que é
+  configuração de painel). O provider `cvm-ipe` permanece bloqueado até a
+  correção do parser; nenhum evento de ações brasileiras foi backfilled neste
+  ciclo. Demais competências de `cvm-fund-delivery` e o backfill de `cvm-ipe`
+  seguem como trabalho futuro, cada execução exigindo autorização própria.
