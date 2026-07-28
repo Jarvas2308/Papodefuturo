@@ -9,32 +9,45 @@
 - TypeScript;
 - Tailwind CSS;
 - React Router;
+- Supabase JS;
 - Lucide React;
+- Vitest;
 - ESLint;
 - Prettier;
 - npm.
 
 ### Organização atual
 
-- `src/app`: configuração de aplicação e roteamento principal.
+- `src/app`: composição de aplicação e roteamento principal.
+- `src/auth`: sessão e fronteira entre modo demo e modo autenticado real.
 - `src/components/layout`: shell compartilhado, sidebar, cabeçalho e menu móvel.
 - `src/components/ui`: componentes básicos reutilizáveis de interface.
-- `src/domain`: primeira fundação tipada do domínio financeiro futuro.
+- `src/domain`: modelos e contratos puros do domínio financeiro (carteira,
+  Dossiê Técnico V1, fundamentos, eventos oficiais).
+- `src/data/repositories`: repositories financeiros e mappers Supabase para os
+  fluxos autenticados.
+- `src/data/fundamentals`, `src/data/context/official-events`: providers e
+  adapters isolados de fundamentos e eventos oficiais.
+- `src/application/context`: runtime browser-compatible de eventos oficiais.
+- `src/server/context`: executor e backfill server-side de eventos oficiais,
+  fronteira exclusiva de servidor.
 - `src/features`: componentes específicos de domínio visual por área funcional.
-- `src/mocks`: dados demonstrativos utilizados pelas telas visuais.
+- `src/mocks`: dados determinísticos usados pelo modo demo.
 - `src/pages`: páginas de rota e composição das telas.
-- `src/lib`: utilidades leves e definições auxiliares.
+- `src/lib`: ambiente, client e types Supabase.
 - `src/styles`: tokens, estilos base e estilos globais.
 
 No estado atual:
 
-- as páginas demonstrativas ficam em `src/pages` e compõem as rotas principais;
+- as páginas ficam em `src/pages` e compõem as rotas principais, conectadas a
+  dados reais quando o usuário está autenticado;
 - componentes específicos de cada área ficam em `src/features`;
-- Dashboard, Minha Carteira, Histórico, Estratégia e Configurações possuem
-  componentes de feature próprios;
-- Novo Aporte possui engine, estratégias, utilitários e UI demonstrativa em
-  `src/features/contribution`;
-- `src/domain/models` possui os primeiros tipos compartilhados do domínio;
+- Dashboard, Minha Carteira, Histórico, Estratégia, Configurações e Eventos
+  Oficiais possuem componentes de feature próprios;
+- Novo Aporte possui o Motor Estratégico V2, estratégias, utilitários e UI em
+  `src/features/contribution`, conectado a compras, cotações, metas e câmbio
+  reais;
+- `src/domain/models` possui os tipos compartilhados do domínio;
 - `src/domain/technicalDossier` contém o contrato derivado e o builder puro do
   Dossiê Técnico V1;
 - `src/domain/fundamentals` contém o contrato normalizado e o builder puro de
@@ -57,45 +70,50 @@ No estado atual:
 - `src/data/fundamentals` contém providers CVM isolados para ações e FIIs e o
   provider SEC N-PORT isolado para ETFs internacionais, com parsing factual,
   ingestão injetável e adapters globais apenas para os fluxos já conectados;
-- dados demonstrativos compartilhados ficam em `src/mocks` quando são usados por
-  mais de uma área;
-- existe preparação inicial de Supabase com factory isolada de cliente e
-  migrations versionadas;
-- o Supabase real já possui `public.profiles`, `public.assets`,
-  `public.purchases`, `public.asset_prices` e `public.allocation_targets`, todas
+- dados do modo demo ficam em `src/mocks` quando usados por mais de uma área;
+  o modo demo é fallback determinístico, não fonte de verdade;
+- factory isolada de cliente Supabase em `src/lib`, com migrations versionadas
+  aplicadas ao projeto real;
+- o Supabase real possui `public.profiles`, `public.assets`,
+  `public.purchases`, `public.asset_prices`, `public.allocation_targets`,
+  `public.exchange_rates`, `public.fundamental_snapshots`,
+  `public.official_asset_events` e as tabelas de checkpoint de backfill, todas
   com RLS habilitado;
-- advisors de segurança estão limpos e os avisos de performance atuais são
-  informativos para índices de `assets`, `purchases`, `asset_prices` e
-  `allocation_targets` ainda não usados;
-- ainda não existe camada runtime de dados conectada às telas, backend,
-  autenticação frontend real, APIs ou persistência no app.
+- advisors de segurança limpos; avisos de performance restantes são
+  informativos para tabelas ainda vazias (`fundamental_snapshots`,
+  `official_asset_events`);
+- as telas autenticadas consomem dados reais via repositories; o modo demo
+  continua disponível sem env configurado.
 
 ### Situação funcional atual
 
 #### Atual
 
-- login visual demonstrativo;
+- login real via Supabase Auth, com fallback demo quando o ambiente não está
+  configurado;
 - layout principal responsivo;
-- rotas demonstrativas para Dashboard, Minha Carteira, Novo Aporte, Histórico,
-  Estratégia e Configurações;
-- telas responsivas com dados determinísticos e mensagens demonstrativas;
-- engine local de simulação do Novo Aporte, sem backend e sem persistência;
-- edição local demonstrativa em Estratégia e Configurações;
-- primeira fundação tipada do domínio financeiro em `src/domain`;
+- rotas para Dashboard, Minha Carteira, Novo Aporte, Histórico, Eventos
+  Oficiais, Estratégia e Configurações, conectadas a dados reais quando
+  autenticado;
+- Motor Estratégico V2 integrado ao Novo Aporte, consumindo compras, cotações,
+  metas e câmbio reais;
+- edição real de metas em Estratégia, persistida via `replace_allocation_targets`;
+- domínio financeiro tipado em `src/domain`, incluindo Dossiê Técnico V1,
+  Fundamental Facts V1 e o domínio puro de eventos oficiais;
 - factory isolada de cliente Supabase em `src/lib`, sem criação automática de
   cliente pronto no import;
-- tabelas reais `public.profiles`, `public.assets`, `public.purchases`,
-  `public.asset_prices` e `public.allocation_targets` aplicadas no Supabase,
-  ainda sem consumo pelas telas;
-- publicação inicial no Vercel com suporte a acesso direto e refresh das rotas;
-- testes automatizados com Vitest para regras e utilitários já extraídos.
+- publicação em produção em `https://papodefuturo.vercel.app`, com suporte a
+  acesso direto e refresh das rotas;
+- testes automatizados com Vitest (118 arquivos, 2037 testes na baseline atual).
 
 #### Planejado
 
-- persistência de dados;
-- autenticação real;
-- motor estratégico final de produto;
-- integrações externas.
+- backfill amplo e ingestão real de fundamentos (infraestrutura pronta, tabelas
+  ainda vazias);
+- runtime e UI consumindo os contratos de fundamentos;
+- agendamento automático de atualização de mercado;
+- persistência do plano de aporte aceito;
+- IA explicativa consumindo o Dossiê Técnico.
 
 #### Em aberto
 
@@ -103,7 +121,10 @@ No estado atual:
 - formato definitivo das futuras entidades persistidas;
 - estratégia operacional para auditoria e histórico financeiro.
 
-## Arquitetura planejada
+## Princípios de arquitetura em vigor
+
+As camadas abaixo descrevem a separação de responsabilidades já aplicada no
+código atual, não um desenho futuro.
 
 ### Apresentação
 
@@ -146,9 +167,9 @@ As funções de domínio devem ser:
 
 ### Domínio atual
 
-A primeira fundação tipada do domínio já existe em `src/domain/models`.
+O domínio tipado existe em `src/domain/models`.
 
-Modelos iniciais:
+Modelos:
 
 - `Asset`;
 - `PortfolioPosition`;
@@ -165,7 +186,7 @@ Primitivos compartilhados:
 - `MoneyAmount` combinando valor inteiro e moeda;
 - `BasisPoints` para metas, com `10.000` pontos-base equivalendo a `100,00%`.
 
-Helpers puros já disponíveis:
+Helpers puros disponíveis:
 
 - validação de IDs não vazios;
 - validação de dinheiro em unidades menores;
@@ -173,8 +194,12 @@ Helpers puros já disponíveis:
 - soma de pontos-base;
 - verificação de alocação completa.
 
-Essa fundação ainda não está conectada às telas, mocks, Supabase, autenticação,
-APIs ou persistência.
+`Asset`, `PortfolioPosition`, `Purchase`, `AssetPrice` e `AllocationTarget` estão
+conectados a repositories Supabase reais nos fluxos autenticados (carteira,
+compras, histórico, estratégia). `ContributionPlan` e `ContributionPlanItem`
+seguem apenas no domínio, sem repository, migration ou persistência — decisão
+explícita e ainda vigente (`docs/CHANGELOG-DECISIONS.md`); ver `docs/ROADMAP.md`
+para o estado desse item.
 
 ### Fronteira do Dossiê Técnico V1
 
@@ -613,9 +638,13 @@ Nunca deve ser a fonte oficial dos cálculos.
 
 Todos devem ser recalculáveis a partir dos fatos.
 
-## Modelo de dados conceitual planejado
+## Modelo de dados conceitual (histórico)
 
-Este modelo é conceitual e não deve ser interpretado como migration definitiva.
+Este modelo foi o esboço conceitual anterior às migrations reais e é preservado
+como registro histórico do raciocínio original. O schema efetivamente aplicado
+está em `docs/SUPABASE_SCHEMA_PLAN.md` e `docs/PROJECT_HANDOFF.md` seção 9; a
+decisão sobre preços de mercado globais está registrada em
+`docs/CHANGELOG-DECISIONS.md`.
 
 ### `assets`
 
@@ -664,78 +693,43 @@ com `user_id` em todas as cotações.
 
 ## Precisão financeira
 
-Princípios planejados:
+Princípios em vigor:
 
 - não usar números de ponto flutuante comuns como fonte de verdade monetária;
-- valores monetários devem usar representação decimal segura ou unidades
-  inteiras adequadas;
-- quantidades fracionárias precisam de precisão explícita;
-- arredondamentos devem ser centralizados no domínio;
+- valores monetários usam representação decimal segura ou unidades inteiras
+  adequadas;
+- quantidades fracionárias têm precisão explícita;
+- arredondamentos são centralizados no domínio;
 - componentes visuais apenas formatam valores já calculados.
 
 ## Moeda e ativos internacionais
 
-- a visualização consolidada da carteira será expressa em reais;
+- a visualização consolidada da carteira é expressa em reais;
 - ativos internacionais mantêm a moeda original da cotação;
-- a conversão deve usar uma taxa USD/BRL identificada por fonte e horário;
-- o valor original e o valor convertido devem ser rastreáveis;
-- a implementação ainda é futura.
+- a conversão usa taxa USD/BRL identificada por fonte e horário, persistida em
+  `public.exchange_rates`;
+- o valor original e o valor convertido são rastreáveis.
 
 ## Supabase
 
-Supabase já existe como base técnica inicial, mas ainda não é consumido pelas
-telas em runtime.
+Estado real do projeto (`vxjrncwfysglinfktifz`) — ver `docs/SUPABASE_SCHEMA_PLAN.md`
+para o histórico completo de cada tabela e `docs/PROJECT_HANDOFF.md` seção 9
+para o estado mais recente auditado:
 
-Estado atual:
+- Supabase Auth real, com fallback demo quando o ambiente não está configurado;
+- `public.profiles`, `public.assets`, `public.purchases`, `public.asset_prices`,
+  `public.allocation_targets`, `public.exchange_rates`,
+  `public.fundamental_snapshots`, `public.official_asset_events` e as tabelas
+  de checkpoint de backfill aplicadas, todas com RLS habilitado;
+- policies de tabelas privadas usando `(select auth.uid())`, com ownership
+  validado nas relações de insert/update;
+- eventos oficiais e fundamentos são dados **globais** (sem `user_id`), com
+  leitura para `authenticated` e escrita reservada a `service_role` via RPC
+  transacional;
+- advisors de segurança limpos; avisos de performance restantes são
+  informativos para tabelas ainda vazias ou de baixo volume.
 
-- dependência `@supabase/supabase-js` instalada;
-- leitura tipada de variáveis públicas preparada;
-- factory isolada de cliente Supabase criada;
-- migrations versionadas iniciais criadas;
-- tabelas reais `public.profiles`, `public.assets`, `public.purchases`,
-  `public.asset_prices`, `public.allocation_targets` e
-  `public.fundamental_snapshots` aplicadas no Supabase;
-- RLS habilitado em `public.profiles`;
-- RLS habilitado em `public.assets`;
-- RLS habilitado em `public.purchases`;
-- RLS habilitado em `public.asset_prices`;
-- RLS habilitado em `public.allocation_targets`;
-- policies de `profiles` usando `(select auth.uid())`;
-- policies de `assets` usando `(select auth.uid())`;
-- policies de `purchases` usando `(select auth.uid())`;
-- policies de insert e update de `purchases` validando que o ativo pertence ao
-  usuário autenticado;
-- policies de `asset_prices` usando `(select auth.uid())`;
-- policies de insert e update de `asset_prices` validando que o ativo pertence
-  ao usuário autenticado;
-- policies de `allocation_targets` usando `(select auth.uid())`;
-- policies de insert e update de `allocation_targets` validando ownership do
-  ativo e coerência entre `assets.category` e `allocation_targets.category`;
-- índice único de `assets` por `user_id + upper(ticker)`;
-- índices de `purchases` por usuário, ativo, usuário + ativo, usuário + data de
-  compra e usuário + status;
-- índices de `asset_prices` por usuário, ativo, usuário + ativo, usuário + data
-  de preço e usuário + ativo + data de preço;
-- índices únicos parciais de `allocation_targets` por usuário + categoria e
-  usuário + ativo, além de índices auxiliares por usuário, tipo de meta e ativo;
-- advisors atuais de segurança limpos;
-- avisos informativos `unused_index` para índices de `assets`, `purchases`,
-  `asset_prices` e `allocation_targets` ainda não usados;
-- nenhuma tela conectada ao banco real;
-- nenhum dado real inserido;
-- mocks continuam como fonte das experiências demonstrativas.
-
-Planejado:
-
-- Supabase Auth;
-- PostgreSQL;
-- Row Level Security;
-- migrations versionadas;
-- políticas por usuário;
-- variáveis de ambiente;
-- separação entre cliente e domínio.
-
-## Segurança planejada
+## Segurança em vigor
 
 - nenhuma chave secreta no frontend;
 - nenhuma credencial no repositório;
