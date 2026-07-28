@@ -752,9 +752,12 @@ pendente:
    falhou por dado malformado no CSV oficial da própria CVM (aspa não escapada
    dentro de campo não cotado, linha 35 do arquivo); o parser rejeitou o
    arquivo inteiro por design (fail-closed), sem persistir nada e sem risco de
-   segurança ou corrupção — correção do parser está fora deste ciclo, flagada
-   separadamente. Restam: demais competências de CVM Fund Delivery e o
-   provider CVM IPE após a correção do parser.
+   segurança ou corrupção. O parser foi corrigido no mesmo dia (`DEC-047`:
+   aspa fora do início do campo passa a ser aceita como caractere literal) e o
+   job foi reexecutado com sucesso (`DEC-048`): `fetchedEventCount: 298`,
+   `persistedAttemptCount: 298`, `rejectedItemCount: 170`. Os três providers
+   oficiais já têm pelo menos uma execução real bem-sucedida contra produção.
+   Restam: demais competências/anos/janelas de cada provider.
 2. Ingestão real de fundamentos. `fundamental_snapshots` segue com 0 linhas; os
    três providers (CVM DFP/ITR, CVM Informe Mensal, SEC N-PORT) e os
    `ingest*.ts` em `src/data/fundamentals/` existem e são testados, mas não há
@@ -800,5 +803,8 @@ O roadmap de desenvolvimento dos 17 itens e a fase operacional dos 12 itens
 estão encerrados. Runtime real em `read-only`, verificado em produção com
 sessão autenticada. Em 28 de julho de 2026, o backfill gradual autorizado
 (`DEC-046`) inseriu os quatro primeiros eventos reais em `official_asset_events`
-— a timeline deixou de estar vazia pela primeira vez. `fundamental_snapshots`
-segue com 0 linhas.
+— a timeline deixou de estar vazia pela primeira vez. No mesmo dia, após a
+correção do parser CVM IPE (`DEC-047`) e a reexecução do job (`DEC-048`),
+`official_asset_events` foi de 4 para 302 linhas: os três providers oficiais
+(CVM IPE, CVM Fund Delivery, SEC EDGAR) já têm pelo menos um backfill real
+bem-sucedido. `fundamental_snapshots` segue com 0 linhas.

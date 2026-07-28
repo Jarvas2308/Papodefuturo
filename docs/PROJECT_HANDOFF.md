@@ -35,6 +35,13 @@ produção. `official_asset_events` deixou de estar vazia pela primeira vez —
 `cvm-ipe` falhou por dado malformado no CSV oficial da CVM, sem persistir
 nada; não é bug de segurança. Detalhe na seção 8.
 
+Uma sexta atualização, no mesmo dia, registra a correção do parser CVM IPE
+(`DEC-047`) e a reexecução bem-sucedida do job `cvm-ipe --year=2026`
+(`DEC-048`): `fetchedEventCount: 298`, `persistedAttemptCount: 298`,
+`rejectedItemCount: 170`. `official_asset_events` foi de 4 para 302 linhas;
+os três providers oficiais já têm pelo menos um backfill real bem-sucedido.
+Detalhe na seção 8.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -470,7 +477,22 @@ job `cvm-ipe` (ano 2026) falhou por um defeito de dado real no CSV oficial da
 própria CVM — aspa não escapada dentro de campo não cotado — que o parser
 estrito rejeita por design, sem persistir nada; não é bug de segurança. A
 timeline real deixou de estar vazia pela primeira vez: `official_asset_events`
-tem 4 linhas. A correção do parser CVM IPE é item separado, ainda pendente.
+tem 4 linhas.
+
+No mesmo dia, o parser foi corrigido (`DEC-047`, PR #105): uma aspa fora do
+início do campo passa a ser aceita como caractere literal em vez de rejeitar
+o arquivo inteiro; o gate que decide entrar em modo cotado (aspa como
+primeiro caractere do campo) não muda, então campos que começam com aspas
+seguem RFC 4180 estrito. O checkpoint da tentativa falha anterior (`plan_id`
+determinístico por provider/ano, sem RPC de reset) foi resetado manualmente
+via `execute_sql` (apagando as linhas correspondentes em
+`official_event_backfill_jobs`/`official_event_backfill_runs`, sem tocar
+`official_asset_events`), e o job `cvm-ipe --year=2026 --confirm` foi
+reexecutado com sucesso (`DEC-048`): `fetchedEventCount: 298`,
+`persistedAttemptCount: 298`, `rejectedItemCount: 170` (rejeições esperadas
+por universo fechado de ativos/tipos de evento). `official_asset_events` foi
+de 4 para 302 linhas. Os três providers oficiais já têm pelo menos um
+backfill real bem-sucedido contra produção.
 
 ## 9. Supabase, schema e segurança
 
@@ -635,8 +657,9 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   vazia — Motor V2 e Dossiê Técnico não têm o que calcular em produção hoje),
   `fundamental_snapshots` com 0, `official_asset_events` com 0. Atualização
   posterior: em 28 de julho, o backfill gradual (`DEC-046`) inseriu 4 linhas
-  reais em `official_asset_events`; `fundamental_snapshots` e `purchases`
-  seguem com 0;
+  reais em `official_asset_events`; no mesmo dia, após a correção do parser
+  CVM IPE (`DEC-047`) e a reexecução do job (`DEC-048`), a tabela foi de 4
+  para 302 linhas. `fundamental_snapshots` e `purchases` seguem com 0;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;

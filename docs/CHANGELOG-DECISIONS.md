@@ -1031,3 +1031,32 @@ Valores Mobiliários ("CVM"), para alienação...`). O parser estrito de
   reiniciado manualmente antes do próximo `--confirm`, já que
   `retryFailed: false` e não existe RPC de reset — por design, ver
   `official_event_backfill_runs`/`official_event_backfill_jobs`).
+
+## DEC-048 — Backfill real de `cvm-ipe` concluído; primeiros eventos de ações brasileiras
+
+- Data: 28 de julho de 2026
+- Status: Aceita
+- Contexto: `DEC-047` corrigiu o parser. O checkpoint da tentativa falha de
+  `DEC-046` (`planId official-events-backfill:v1:6012929e46851660`, status
+  `completed-with-failures`) não tem caminho de retry automático por design
+  (`retryFailed: false`, sem RPC de reset), então foi resetado manualmente:
+  as linhas desse `plan_id` em `official_event_backfill_jobs` e
+  `official_event_backfill_runs` foram apagadas via `execute_sql` (service
+  role/postgres), sem tocar `official_asset_events`. Isso permitiu ao runner
+  recriar o mesmo plano do zero e reclamar o job novamente.
+- Decisão: re-executado `cvm-ipe --year=2026 --confirm` contra produção com o
+  parser corrigido. Resultado: `succeeded`, `fetchedEventCount: 298`,
+  `persistedAttemptCount: 298`, `rejectedItemCount: 170` (linhas fora do
+  universo fechado de ativos ou de tipos de evento não mapeados — rejeição
+  esperada por design, não erro). Distribuição persistida por
+  `event_type`: `regulatory-filing` 118, `market-communication` 101,
+  `shareholder-meeting` 50, `material-fact` 23, `offering-or-issuance` 6.
+- Consequências: `official_asset_events` sai de 4 para 302 linhas — primeira
+  vez que eventos de ações brasileiras (via `cvm-ipe`) entram na timeline
+  real. `get_advisors` (security) verificado após a escrita: nenhum advisor
+  novo, apenas os dois já conhecidos (`rls_enabled_no_policy` nas tabelas de
+  checkpoint, proteção contra senha vazada desabilitada no painel de Auth).
+  Os três providers oficiais (`cvm-ipe`, `cvm-fund-delivery`, `sec-edgar`) já
+  têm pelo menos uma execução real bem-sucedida contra produção. Demais
+  anos/meses/janelas seguem como trabalho futuro, cada execução exigindo
+  autorização própria.
