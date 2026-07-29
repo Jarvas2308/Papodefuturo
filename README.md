@@ -37,8 +37,10 @@ estado real; este README resume.
 - runner gradual de backfill de eventos oficiais e RPC transacional de upsert
   de fundamentos disponíveis; nenhum backfill amplo nem ingestão real de
   fundamentos foi executado ainda;
-- notícias editoriais em `NO-GO` (`DEC-036`); IA explicativa, sentimento e
-  score não foram integrados;
+- notícias editoriais em `NO-GO` (`DEC-036`); sentimento e score não foram
+  integrados;
+- plano de aporte persistido (`ContributionPlan`, `DEC-055`) e IA explicativa
+  interpretando o Dossiê Técnico (`DEC-056`) já integrados;
 - modo demo preservado, sem fallback silencioso após erro de consulta real.
 
 Nenhuma ordem financeira é executada automaticamente. O plano de aporte é uma
@@ -49,8 +51,6 @@ simulação e a decisão permanece com o usuário.
 - backfill amplo dos providers de eventos oficiais e ingestão real de
   fundamentos (hoje as tabelas seguem vazias);
 - runtime e UI consumindo os contratos de fundamentos já construídos;
-- persistência do plano de aporte aceito pelo usuário;
-- IA explicativa consumindo o Dossiê Técnico;
 - notícias editoriais (sem provider aprovado).
 
 Ver `docs/ROADMAP.md` § Próximo para o detalhe operacional de cada item.

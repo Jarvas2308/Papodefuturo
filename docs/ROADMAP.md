@@ -816,9 +816,17 @@ pendente:
    resolvido. O motor continua sem executar ordens e sem persistir plano
    automaticamente — toda transição de status é ação explícita do usuário.
    **Sprint 6 completo.**
-5. Camadas qualitativas e IA explicativa seguem posteriores; devem consumir os
-   contratos factuais e derivados já existentes sem recalcular ou alterar o
-   plano técnico do motor determinístico.
+5. IA explicativa consumindo o Dossiê Técnico. Em 29 de julho de 2026
+   (`DEC-056`), integrada: `TechnicalDossierV1` (montado no cliente a partir
+   dos contratos já existentes — carteira, estratégia, mercado, plano
+   técnico) é enviado à Edge Function `explain-contribution-plan`, que chama
+   a Claude API server-side (`ANTHROPIC_API_KEY`, nunca `VITE_*`) e devolve
+   um `AiExplanationV1` versionado (fatos, interpretação, grau de convicção,
+   reapresentação do plano técnico, explicação comparativa) exibido no Novo
+   Aporte. A IA nunca cria, seleciona ou modifica o plano — só interpreta o
+   que o motor já calculou. Falha em qualquer ponto degrada silenciosamente
+   para `null` (`explainContributionPlanBestEffort`), nunca bloqueando o
+   plano determinístico. **Sprint 7 completo.**
 6. Notícias editoriais seguem em `NO-GO` (`DEC-036`). Nenhum provider editorial
    foi aprovado.
 

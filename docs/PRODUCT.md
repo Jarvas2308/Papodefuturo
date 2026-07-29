@@ -339,12 +339,14 @@ recomendação, não alteram o Motor V2 e não são persistidos. Neste ciclo, o
 builder permanece somente em memória, sem runtime, UI, chamada externa ou
 alteração na tabela global vazia `fundamental_snapshots`.
 
-## Papel futuro da IA
+## Papel da IA
 
-A IA não cria, seleciona nem modifica o plano técnico. Ela recebe o resultado
-produzido pelo motor determinístico e pode interpretá-lo e explicá-lo ao usuário.
+Desde o Sprint 7 (`DEC-056`), a IA interpreta e explica, em texto, o plano
+técnico já calculado pelo motor determinístico do Novo Aporte. Ela **não**
+cria, seleciona nem modifica esse plano — recebe o resultado pronto
+(`TechnicalDossierV1`) e devolve apenas interpretação.
 
-A IA não será responsável por:
+A IA não é responsável por:
 
 - calcular preço médio;
 - calcular participação;
@@ -354,19 +356,24 @@ A IA não será responsável por:
 - recomendar ativos fora do universo;
 - executar operações.
 
-A IA poderá futuramente:
+A IA hoje faz:
 
 - interpretar dados já calculados;
 - contextualizar fatos;
 - apresentar grau de convicção;
 - explicar o plano;
-- comparar alternativas;
-- explicar por que uma alternativa foi escolhida e outras não.
+- explicar por que os ativos do plano foram escolhidos e não outros do
+  universo, com base nos desvios já calculados pelo motor.
 
-Saída prevista:
+Saída (`AiExplanationV1`, `ai-explanation.v1`):
 
 - fatos;
 - interpretação;
-- grau de convicção;
+- grau de convicção (`low`/`medium`/`high`);
 - apresentação do plano técnico calculado pelo motor determinístico;
 - explicação comparativa.
+
+A explicação é gerada server-side (Edge Function `explain-contribution-plan`,
+Claude API), nunca no navegador, e nunca é obrigatória: uma falha da IA
+(rede, resposta malformada, chave ausente) degrada silenciosamente para o
+plano técnico puro — o usuário nunca fica bloqueado pela IA.

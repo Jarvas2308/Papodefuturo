@@ -338,7 +338,7 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
 - o Motor V2 simula uma unidade inteira por iteração e escolhe de forma gulosa somente compras que reduzam o desvio total;
 - o plano técnico seleciona no máximo 3 ativos distintos;
 - o saldo pode permanecer não alocado quando nenhuma nova unidade acessível melhora estritamente a carteira;
-- a IA futura pode interpretar o resultado técnico, mas não modificá-lo;
+- a IA pode interpretar o resultado técnico (`DEC-056`), mas nunca modificá-lo;
 - não persistir automaticamente `ContributionPlan` até o fluxo de apresentação, aceite e confirmação estar arquiteturalmente fechado.
 
 ### Dossiê Técnico V1
@@ -352,8 +352,30 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   e fontes ambientais;
 - `generatedAt` deve ser injetado pelo chamador;
 - não inventar ranking técnico enquanto o Motor V2 não expuser esse fato;
-- não persistir o dossiê nem enviá-lo a IA ou serviço externo sem nova decisão
-  arquitetural explícita.
+- o dossiê passou a ser enviado a um serviço externo (Claude API) desde o
+  Sprint 7 — essa é exatamente a "nova decisão arquitetural explícita" que
+  este bullet exigia, registrada em `DEC-056`; a Edge Function
+  `explain-contribution-plan` é o único ponto de envio, o dossiê nunca sai do
+  navegador diretamente para a IA, e o dossiê continua não sendo persistido.
+
+### IA explicativa (`DEC-056`)
+
+- a IA nunca cria, seleciona ou modifica o plano técnico; recebe um
+  `TechnicalDossierV1` já calculado e devolve só interpretação em texto;
+- nunca recalcular preço médio, participação, rentabilidade ou metas dentro
+  da IA — esses valores já vêm prontos no dossiê;
+- nunca recomendar ativo fora dos que já aparecem no dossiê recebido;
+- nunca declarar execução de ordem;
+- a chamada à Claude API vive exclusivamente na Edge Function
+  `explain-contribution-plan` (server-side); `ANTHROPIC_API_KEY` nunca em
+  `VITE_*`, nunca no navegador;
+- falha da IA (rede, chave ausente, resposta malformada) nunca bloqueia o
+  plano determinístico — degradação silenciosa via
+  `explainContributionPlanBestEffort`, mesmo padrão de
+  `refreshMarketDataBestEffort`;
+- a resposta da IA é validada em runtime contra o contrato `AiExplanationV1`
+  (`ai-explanation.v1`) antes de chegar à UI; uma resposta fora do formato é
+  descartada, nunca repassada como está.
 
 ### Fundamental Facts V1
 

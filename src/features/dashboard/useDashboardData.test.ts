@@ -78,6 +78,7 @@ function createRepositories(rates: ExchangeRate[]) {
       updateStatus: vi.fn(),
       linkItemPurchase: vi.fn(),
     },
+    aiExplanation: { explain: vi.fn() },
   } as AppRepositories
 }
 

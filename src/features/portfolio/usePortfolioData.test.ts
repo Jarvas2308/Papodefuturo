@@ -46,6 +46,7 @@ function createRepositories(): AppRepositories {
       updateStatus: vi.fn(),
       linkItemPurchase: vi.fn(),
     },
+    aiExplanation: { explain: vi.fn() },
   }
 }
 
