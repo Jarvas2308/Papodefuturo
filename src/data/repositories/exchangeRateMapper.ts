@@ -4,10 +4,9 @@ import type {
   ExchangeRateSource,
 } from '../../domain/models'
 import { EXCHANGE_RATE_SCALE, isValidExchangeRate } from '../../domain/models'
-import type { ExchangeRateDatabase } from './exchangeRateSchema'
+import type { Tables } from '../../lib/database.types'
 
-type ExchangeRateRow =
-  ExchangeRateDatabase['public']['Tables']['exchange_rates']['Row']
+type MarketExchangeRateRow = Tables<'market_exchange_rates'>
 
 const CURRENCIES: readonly CurrencyCode[] = ['BRL', 'USD']
 const SOURCES: readonly ExchangeRateSource[] = ['manual', 'market-provider']
@@ -24,9 +23,9 @@ function readAllowedValue<T extends string>(
   return value as T
 }
 
-export function mapExchangeRateRow(row: ExchangeRateRow): ExchangeRate {
+export function mapExchangeRateRow(row: MarketExchangeRateRow): ExchangeRate {
   const rate: ExchangeRate = {
-    id: row.id,
+    id: String(row.id),
     baseCurrency: readAllowedValue(
       row.base_currency,
       CURRENCIES,

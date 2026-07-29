@@ -18,7 +18,7 @@ export {
 } from './supabaseRepositories'
 export {
   mapAllocationTargetRow,
-  mapAssetPriceRow,
   mapAssetRow,
+  mapMarketAssetPriceRow,
   mapPurchaseRow,
 } from './supabaseMappers'

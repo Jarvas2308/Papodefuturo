@@ -3,7 +3,6 @@ import { CheckCircle2, ShoppingCart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
-import { ExchangeRateSetup } from '../../../components/ui/ExchangeRateSetup'
 import type { CreatePurchaseBatchItem } from '../../../data/repositories/contracts'
 import type { Asset, ExchangeRate } from '../../../domain/models'
 import type { ContributionResult } from '../types'
@@ -20,7 +19,6 @@ type ContributionPurchaseConfirmationProps = {
   assets: readonly Asset[]
   exchangeRate: ExchangeRate | null
   onRegister(purchases: readonly CreatePurchaseBatchItem[]): Promise<unknown>
-  onSaveExchangeRate(rateScaled: number): Promise<void>
   positions: readonly ContributionConfirmationPosition[]
   result: ContributionResult
 }
@@ -49,7 +47,6 @@ export function ContributionPurchaseConfirmation({
   assets,
   exchangeRate,
   onRegister,
-  onSaveExchangeRate,
   positions,
   result,
 }: ContributionPurchaseConfirmationProps) {
@@ -109,10 +106,13 @@ export function ContributionPurchaseConfirmation({
 
   if (hasUsdItem && !exchangeRate) {
     return (
-      <ExchangeRateSetup
-        description="Sua simulação inclui ativos em USD. Informe a taxa USD/BRL para comparar os valores realizados com o orçamento sugerido em BRL."
-        onSave={onSaveExchangeRate}
-      />
+      <Card className="space-y-2 p-5 sm:p-6">
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Sua simulação inclui ativos em USD. Aguardando a próxima atualização
+          automática da cotação USD/BRL para comparar os valores realizados com
+          o orçamento sugerido em BRL.
+        </p>
+      </Card>
     )
   }
 

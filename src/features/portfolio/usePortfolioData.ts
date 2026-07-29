@@ -21,7 +21,6 @@ export type PortfolioLoadState = {
 
 export type PortfolioDataState = PortfolioLoadState & {
   isDemo: boolean
-  saveManualUsdBrl(rateScaled: number): Promise<void>
 }
 
 export function createInitialPortfolioLoadState(
@@ -47,7 +46,7 @@ export async function loadRealPortfolioState(
   )
   const [purchases, prices, targets, rates] = await Promise.all([
     repositories.purchases.list(),
-    repositories.assetPrices.list(),
+    repositories.assetPrices.list(assets),
     repositories.allocationTargets.list(),
     repositories.exchangeRates.list(),
   ])
@@ -122,29 +121,8 @@ export function usePortfolioData(): PortfolioDataState {
     }
   }, [authStatus, loadReal])
 
-  async function saveManualUsdBrl(rateScaled: number) {
-    if (authStatus === 'demo') {
-      return
-    }
-
-    if (!client || !user) {
-      throw new Error('Sessão autenticada indisponível.')
-    }
-
-    const repositories = createSupabaseRepositories(client)
-    await repositories.exchangeRates.saveManualUsdBrl(user.id, rateScaled)
-    const nextState = await loadReal()
-
-    if (!nextState) {
-      throw new Error('Não foi possível recarregar a carteira real.')
-    }
-
-    setState(nextState)
-  }
-
   return {
     ...state,
     isDemo: authStatus === 'demo',
-    saveManualUsdBrl,
   }
 }

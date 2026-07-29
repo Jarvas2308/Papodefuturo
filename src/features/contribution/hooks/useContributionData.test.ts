@@ -339,7 +339,6 @@ describe('buildContributionPositions', () => {
       assetPrices: { list: vi.fn().mockResolvedValue([]) },
       exchangeRates: {
         list: vi.fn().mockResolvedValue([]),
-        saveManualUsdBrl: vi.fn(),
       },
       allocationTargets: {
         list: vi.fn().mockResolvedValue([]),

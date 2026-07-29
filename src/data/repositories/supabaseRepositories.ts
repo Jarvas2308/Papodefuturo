@@ -3,7 +3,6 @@ import {
   type AssetIdFactory,
 } from '../assetUniverse'
 import type { AllocationTarget } from '../../domain/models'
-import { EXCHANGE_RATE_SCALE } from '../../domain/models'
 import type { SupabaseBrowserClient } from '../../lib/supabaseClient'
 import type {
   AllocationTargetRepository,
@@ -18,14 +17,11 @@ import type {
   PurchaseRepository,
 } from './contracts'
 import { mapExchangeRateRow } from './exchangeRateMapper'
-import type {
-  ExchangeRateJson,
-  ExchangeRateSupabaseClient,
-} from './exchangeRateSchema'
+import type { RpcJson, RpcSupabaseClient } from './rpcSchema'
 import {
   mapAllocationTargetRow,
-  mapAssetPriceRow,
   mapAssetRow,
+  mapMarketAssetPriceRow,
   mapPurchaseRow,
 } from './supabaseMappers'
 
@@ -268,9 +264,9 @@ export function createSupabaseAssetPriceRepository(
   client: SupabaseBrowserClient
 ): AssetPriceRepository {
   return {
-    async list() {
+    async list(assets) {
       const { data, error } = await client
-        .from('asset_prices')
+        .from('market_asset_prices')
         .select('*')
         .order('priced_at', { ascending: false })
 
@@ -278,7 +274,13 @@ export function createSupabaseAssetPriceRepository(
         throw createRepositoryQueryError('asset prices', error)
       }
 
-      return (data ?? []).map(mapAssetPriceRow)
+      const assetIdByTicker = new Map(
+        assets.map((asset) => [asset.ticker, asset.id])
+      )
+
+      return (data ?? [])
+        .map((row) => mapMarketAssetPriceRow(row, assetIdByTicker))
+        .filter((price) => price !== null)
     },
   }
 }
@@ -286,12 +288,10 @@ export function createSupabaseAssetPriceRepository(
 export function createSupabaseExchangeRateRepository(
   client: SupabaseBrowserClient
 ): ExchangeRateRepository {
-  const exchangeRateClient = client as unknown as ExchangeRateSupabaseClient
-
   return {
     async list() {
-      const { data, error } = await exchangeRateClient
-        .from('exchange_rates')
+      const { data, error } = await client
+        .from('market_exchange_rates')
         .select('*')
         .order('priced_at', { ascending: false })
 
@@ -301,34 +301,12 @@ export function createSupabaseExchangeRateRepository(
 
       return (data ?? []).map(mapExchangeRateRow)
     },
-    async saveManualUsdBrl(userId, rateScaled) {
-      const { data, error } = await exchangeRateClient
-        .from('exchange_rates')
-        .insert({
-          id: crypto.randomUUID(),
-          user_id: userId,
-          base_currency: 'USD',
-          quote_currency: 'BRL',
-          rate_scaled: rateScaled,
-          rate_scale: EXCHANGE_RATE_SCALE,
-          priced_at: new Date().toISOString(),
-          source: 'manual',
-        })
-        .select('*')
-        .single()
-
-      if (error) {
-        throw createRepositoryQueryError('exchange rate', error)
-      }
-
-      return mapExchangeRateRow(data)
-    },
   }
 }
 
 function allocationTargetsToJson(
   targets: readonly AllocationTarget[]
-): ExchangeRateJson {
+): RpcJson {
   return targets.map((target) => ({
     id: target.id,
     target_type: target.scope,
@@ -341,7 +319,7 @@ function allocationTargetsToJson(
 export function createSupabaseAllocationTargetRepository(
   client: SupabaseBrowserClient
 ): AllocationTargetRepository {
-  const rpcClient = client as unknown as ExchangeRateSupabaseClient
+  const rpcClient = client as unknown as RpcSupabaseClient
 
   async function listTargets() {
     const { data, error } = await client

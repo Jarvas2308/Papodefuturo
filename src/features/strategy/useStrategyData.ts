@@ -42,7 +42,7 @@ export async function loadRealStrategyInputs(
   await refreshMarketDataBestEffort(repositories.marketData)
   const [purchases, prices, targets, rates] = await Promise.all([
     repositories.purchases.list(),
-    repositories.assetPrices.list(),
+    repositories.assetPrices.list(assets),
     repositories.allocationTargets.list(),
     repositories.exchangeRates.list(),
   ])
@@ -60,7 +60,6 @@ export type StrategyDataState = {
   latestUsdBrlRate: ExchangeRate | null
   isDemo: boolean
   saveStrategy(strategy: StrategyCategory[]): Promise<void>
-  saveManualUsdBrl(rateScaled: number): Promise<void>
 }
 
 export function useStrategyData(): StrategyDataState {
@@ -159,20 +158,6 @@ export function useStrategyData(): StrategyDataState {
     setStrategy(buildStrategyFromRealData(realInputs.assets, savedTargets))
   }
 
-  async function saveManualUsdBrl(rateScaled: number) {
-    if (authStatus === 'demo') {
-      return
-    }
-
-    if (!client || !user || !realInputs) {
-      throw new Error('Dados reais de câmbio não estão disponíveis.')
-    }
-
-    const repositories = createSupabaseRepositories(client)
-    await repositories.exchangeRates.saveManualUsdBrl(user.id, rateScaled)
-    await loadReal()
-  }
-
   return {
     strategy,
     defaultStrategy,
@@ -183,6 +168,5 @@ export function useStrategyData(): StrategyDataState {
     latestUsdBrlRate,
     isDemo: authStatus === 'demo',
     saveStrategy,
-    saveManualUsdBrl,
   }
 }

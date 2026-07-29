@@ -10,7 +10,6 @@ import { dashboardMock } from '../../mocks/dashboard'
 import {
   createInitialDashboardLoadState,
   loadRealDashboardState,
-  saveDashboardExchangeRateAndReload,
 } from './useDashboardData'
 
 const voo: Asset = {
@@ -62,11 +61,6 @@ function createRepositories(rates: ExchangeRate[]) {
     },
     exchangeRates: {
       list: vi.fn().mockImplementation(async () => rates),
-      saveManualUsdBrl: vi.fn().mockImplementation(async (_userId, value) => {
-        const saved = { ...rate, rateScaled: value }
-        rates.push(saved)
-        return saved
-      }),
     },
     marketData: {
       refresh: vi.fn().mockResolvedValue({
@@ -113,32 +107,6 @@ describe('Dashboard data loading', () => {
     expect(repositories.assets.ensureClosedUniverse).toHaveBeenCalledWith(
       'authenticated-user'
     )
-  })
-
-  it('saves a manual rate with the session user id and reloads real data', async () => {
-    const rates: ExchangeRate[] = []
-    const repositories = createRepositories(rates)
-    const reload = () =>
-      loadRealDashboardState({
-        repositories,
-        userId: 'authenticated-user',
-        userMetadata: { name: 'Clara' },
-        now: new Date('2026-07-14T00:00:00.000Z'),
-      })
-    const state = await saveDashboardExchangeRateAndReload(
-      repositories,
-      'authenticated-user',
-      5_500_000,
-      reload
-    )
-
-    expect(repositories.exchangeRates.saveManualUsdBrl).toHaveBeenCalledWith(
-      'authenticated-user',
-      5_500_000
-    )
-    expect(state.needsExchangeRate).toBe(false)
-    expect(state.data?.welcome.title).toBe('Olá, Clara')
-    expect(state.data?.summary[1].value).toBe('R$\u00a055,00')
   })
 
   it('loads persisted dashboard data when automatic refresh is unavailable', async () => {

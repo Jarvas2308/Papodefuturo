@@ -58,7 +58,7 @@ export async function loadRealContributionInputs(
   await refreshMarketDataBestEffort(repositories.marketData)
   const [purchases, prices, allocationTargets, rates] = await Promise.all([
     repositories.purchases.list(),
-    repositories.assetPrices.list(),
+    repositories.assetPrices.list(assets),
     repositories.allocationTargets.list(),
     repositories.exchangeRates.list(),
   ])
@@ -244,16 +244,6 @@ export function useContributionData() {
     }
   }, [authStatus, loadReal])
 
-  async function saveManualUsdBrl(rateScaled: number) {
-    if (!client || !user || authStatus !== 'authenticated') {
-      throw new Error('Sessão autenticada indisponível.')
-    }
-
-    const repositories = createSupabaseRepositories(client)
-    await repositories.exchangeRates.saveManualUsdBrl(user.id, rateScaled)
-    await loadReal()
-  }
-
   async function registerConfirmedPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
   ) {
@@ -303,7 +293,6 @@ export function useContributionData() {
     needsExchangeRate,
     latestUsdBrlRate,
     isDemo: authStatus === 'demo',
-    saveManualUsdBrl,
     registerConfirmedPurchases,
   }
 }

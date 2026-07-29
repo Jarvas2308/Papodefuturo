@@ -1,5 +1,4 @@
 import { Card } from '../components/ui/Card'
-import { ExchangeRateSetup } from '../components/ui/ExchangeRateSetup'
 import { AllocationOverview } from '../features/dashboard/components/AllocationOverview'
 import { DashboardNextStep } from '../features/dashboard/components/DashboardNextStep'
 import { DashboardWelcome } from '../features/dashboard/components/DashboardWelcome'
@@ -52,14 +51,8 @@ export function DashboardContent({ data }: DashboardContentProps) {
 }
 
 export function DashboardPage() {
-  const {
-    data,
-    status,
-    error,
-    needsExchangeRate,
-    marketDataWarning,
-    saveManualUsdBrl,
-  } = useDashboardData()
+  const { data, status, error, needsExchangeRate, marketDataWarning } =
+    useDashboardData()
 
   if (status === 'error') {
     return (
@@ -86,13 +79,13 @@ export function DashboardPage() {
 
   if (needsExchangeRate) {
     return (
-      <section className="space-y-6">
-        <ExchangeRateSetup
-          description="Seu painel possui posição internacional confirmada. Informe a taxa USD/BRL para calcular patrimônio, rentabilidade, alocação e capital investido em BRL sem somar moedas diferentes."
-          successMessage="Cotação salva. Recalculando o painel em BRL."
-          onSave={saveManualUsdBrl}
-        />
-      </section>
+      <Card>
+        <p role="status" className="text-sm text-[var(--color-text-muted)]">
+          Seu painel possui posição internacional confirmada. Aguardando a
+          próxima atualização automática da cotação USD/BRL para calcular
+          patrimônio, rentabilidade, alocação e capital investido em BRL.
+        </p>
+      </Card>
     )
   }
 
