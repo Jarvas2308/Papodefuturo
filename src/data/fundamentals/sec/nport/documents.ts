@@ -1,3 +1,4 @@
+import { isSafeSecPrimaryDocumentPath } from './path'
 import type { SecNportFetcher, SecNportFiling } from './types'
 
 const SEC_SUBMISSIONS_BASE_URL = 'https://data.sec.gov/submissions'
@@ -78,12 +79,8 @@ export function buildSecPrimaryDocumentUrl(
       `Invalid SEC N-PORT accession number: ${filing.accessionNumber}`
     )
   }
-  if (
-    !filing.primaryDocument.trim() ||
-    filing.primaryDocument.includes('/') ||
-    filing.primaryDocument.includes('\\')
-  ) {
-    throw new Error('SEC N-PORT primaryDocument must be a file name')
+  if (!isSafeSecPrimaryDocumentPath(filing.primaryDocument)) {
+    throw new Error('SEC N-PORT primaryDocument must be a safe relative path')
   }
 
   const cik = registrantCik.replace(/^0+/, '') || '0'

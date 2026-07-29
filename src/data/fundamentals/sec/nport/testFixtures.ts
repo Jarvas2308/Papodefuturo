@@ -15,7 +15,7 @@ export const AUDITED_FILINGS: Record<
     filingDate: '2026-05-28',
     acceptedAt: '2026-05-28T16:39:55.000Z',
     reportDate: '2026-03-31',
-    primaryDocument: 'primary_doc.xml',
+    primaryDocument: 'xslFormNPORT-P_X01/primary_doc.xml',
   },
   VNQ: {
     form: 'NPORT-P',
@@ -23,7 +23,7 @@ export const AUDITED_FILINGS: Record<
     filingDate: '2025-09-25',
     acceptedAt: '2025-09-25T15:40:22.000Z',
     reportDate: '2025-07-31',
-    primaryDocument: 'primary_doc.xml',
+    primaryDocument: 'xslFormNPORT-P_X01/primary_doc.xml',
   },
   VEA: {
     form: 'NPORT-P',
@@ -31,7 +31,7 @@ export const AUDITED_FILINGS: Record<
     filingDate: '2026-05-28',
     acceptedAt: '2026-05-28T16:38:51.000Z',
     reportDate: '2026-03-31',
-    primaryDocument: 'primary_doc.xml',
+    primaryDocument: 'xslFormNPORT-P_X01/primary_doc.xml',
   },
 }
 

@@ -190,7 +190,7 @@ describe('SEC N-PORT provider', () => {
       form: 'NPORT-P',
       accessionNumber: '0000923202-26-000098',
       reportDate: '2026-03-31',
-      primaryDocument: 'primary_doc.xml',
+      primaryDocument: 'xslFormNPORT-P_X01/primary_doc.xml',
       isAmendment: false,
       currency: 'USD',
       xmlPaths: SEC_NPORT_XML_PATHS,

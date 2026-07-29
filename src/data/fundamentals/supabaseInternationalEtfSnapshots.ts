@@ -18,6 +18,7 @@ import type {
 } from './contracts'
 import {
   getSecInternationalEtf,
+  isSafeSecPrimaryDocumentPath,
   isSecInternationalEtfTicker,
   parseNullableSecUsdMoney,
   SEC_NPORT_XML_NAMESPACE,
@@ -141,14 +142,6 @@ function isValidUtcTimestamp(value: string): boolean {
 
 function isValidAccession(value: string): boolean {
   return /^\d{10}-\d{2}-\d{6}$/.test(value)
-}
-
-function isSafePrimaryDocument(value: string): boolean {
-  return (
-    /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value) &&
-    value !== '.' &&
-    value !== '..'
-  )
 }
 
 function readRequiredString(
@@ -519,7 +512,7 @@ function assertProvenanceCoherence(
     !isValidUtcTimestamp(provenance.acceptedAt) ||
     !isValidCivilDate(provenance.reportDate) ||
     provenance.reportDate !== context.referenceDate ||
-    !isSafePrimaryDocument(provenance.primaryDocument) ||
+    !isSafeSecPrimaryDocumentPath(provenance.primaryDocument) ||
     provenance.namespace !== SEC_NPORT_XML_NAMESPACE ||
     provenance.isAmendment !== (provenance.form === 'NPORT-P/A')
   ) {
