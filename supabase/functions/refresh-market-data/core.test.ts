@@ -3,7 +3,6 @@ import { refreshMarketData, type MarketDataStorage } from './core.ts'
 import type {
   ExchangeRateInsert,
   MarketPriceInsert,
-  RefreshAsset,
   StoredExchangeRate,
   StoredMarketPrice,
 } from './types.ts'
@@ -11,20 +10,12 @@ import type {
 const now = new Date('2026-07-14T22:00:00.000Z')
 
 function createStorage(input?: {
-  assets?: RefreshAsset[]
   prices?: StoredMarketPrice[]
   rates?: StoredExchangeRate[]
 }) {
   const insertedPrices: MarketPriceInsert[][] = []
   const insertedRates: ExchangeRateInsert[] = []
   const storage: MarketDataStorage = {
-    listActiveAssets: vi.fn().mockResolvedValue(
-      input?.assets ?? [
-        { id: 'asset-bbas3', ticker: 'BBAS3', status: 'active' },
-        { id: 'asset-itsa4', ticker: 'ITSA4', status: 'active' },
-        { id: 'asset-voo', ticker: 'VOO', status: 'active' },
-      ]
-    ),
     listMarketPrices: vi.fn().mockResolvedValue(input?.prices ?? []),
     listMarketExchangeRates: vi.fn().mockResolvedValue(input?.rates ?? []),
     insertMarketPrices: vi.fn().mockImplementation(async (rows) => {
@@ -74,18 +65,16 @@ async function runRefresh(options?: {
   storage?: ReturnType<typeof createStorage>
   providers?: ReturnType<typeof createProviders>
   twelveConfigured?: boolean
+  now?: Date
 }) {
   const storage = options?.storage ?? createStorage()
   const providers = options?.providers ?? createProviders()
-  let id = 0
   const result = await refreshMarketData({
-    userId: 'authenticated-user',
     storage: storage.storage,
     b3Cotahist: providers.b3Cotahist,
     twelveData:
       options?.twelveConfigured === false ? null : providers.twelveData,
-    now,
-    createId: () => `generated-${++id}`,
+    now: options?.now ?? now,
   })
 
   return { result, storage, providers }
@@ -98,36 +87,26 @@ describe('market data refresh core', () => {
     expect(providers.b3Cotahist.getAssetQuotes).toHaveBeenCalledWith([
       'BBAS3',
       'ITSA4',
+      'TAEE11',
+      'WEGE3',
+      'PSSA3',
+      'KNRI11',
+      'VISC11',
+      'XPLG11',
+      'HGRU11',
     ])
   })
 
   it('uses Twelve Data for US assets', async () => {
     const { providers } = await runRefresh()
     expect(providers.twelveData.getAssetQuote).toHaveBeenCalledWith('VOO')
-  })
-
-  it('updates only active assets', async () => {
-    const storage = createStorage({
-      assets: [{ id: 'inactive', ticker: 'ITSA4', status: 'inactive' }],
-    })
-    const { result, providers } = await runRefresh({ storage })
-    expect(result.updatedPrices).toBe(0)
-    expect(providers.b3Cotahist.getAssetQuotes).not.toHaveBeenCalled()
-  })
-
-  it('ignores assets outside the server closed universe', async () => {
-    const storage = createStorage({
-      assets: [{ id: 'outside', ticker: 'OTHER', status: 'active' }],
-    })
-    const { result, providers } = await runRefresh({ storage })
-    expect(result.updatedPrices).toBe(0)
-    expect(providers.b3Cotahist.getAssetQuotes).not.toHaveBeenCalled()
-    expect(providers.twelveData.getAssetQuote).not.toHaveBeenCalled()
+    expect(providers.twelveData.getAssetQuote).toHaveBeenCalledWith('VNQ')
+    expect(providers.twelveData.getAssetQuote).toHaveBeenCalledWith('VEA')
   })
 
   it('keeps B3 working when the Twelve Data secret is absent', async () => {
     const { result, providers } = await runRefresh({ twelveConfigured: false })
-    expect(result.updatedPrices).toBe(2)
+    expect(result.updatedPrices).toBe(9)
     expect(result.updatedExchangeRates).toBe(0)
     expect(result.warnings).toContainEqual(
       expect.objectContaining({ provider: 'configuration' })
@@ -141,8 +120,8 @@ describe('market data refresh core', () => {
       new Error('raw archive payload')
     )
     const { result } = await runRefresh({ providers })
-    expect(providers.twelveData.getAssetQuote).toHaveBeenCalledOnce()
-    expect(result.updatedPrices).toBe(1)
+    expect(providers.twelveData.getAssetQuote).toHaveBeenCalledTimes(3)
+    expect(result.updatedPrices).toBe(3)
   })
 
   it('keeps B3 working when a Twelve Data asset fails', async () => {
@@ -152,7 +131,7 @@ describe('market data refresh core', () => {
     )
     const { result } = await runRefresh({ providers })
     expect(providers.b3Cotahist.getAssetQuotes).toHaveBeenCalledOnce()
-    expect(result.updatedPrices).toBe(2)
+    expect(result.updatedPrices).toBe(11)
   })
 
   it('creates a specific warning when B3 omits one requested ticker', async () => {
@@ -169,28 +148,25 @@ describe('market data refresh core', () => {
     expect(result.warnings).toContainEqual(
       expect.objectContaining({ provider: 'b3-cotahist', ticker: 'ITSA4' })
     )
-    expect(result.updatedPrices).toBe(2)
+    expect(result.updatedPrices).toBe(4)
   })
 
   it('inserts valid B3 and US quotes in one batch', async () => {
     const { storage } = await runRefresh()
     expect(storage.storage.insertMarketPrices).toHaveBeenCalledOnce()
-    expect(storage.insertedPrices[0]).toHaveLength(3)
+    expect(storage.insertedPrices[0]).toHaveLength(12)
   })
 
-  it('uses the authenticated user id and market-provider source in every fact', async () => {
+  it('stamps ticker, market and market-provider source in every price row', async () => {
     const { storage } = await runRefresh()
     expect(
       storage.insertedPrices[0]?.every(
         (row) =>
-          row.user_id === 'authenticated-user' &&
+          typeof row.ticker === 'string' &&
+          (row.market === 'BR' || row.market === 'US') &&
           row.source === 'market-provider'
       )
     ).toBe(true)
-    expect(storage.insertedRates[0]).toMatchObject({
-      user_id: 'authenticated-user',
-      source: 'market-provider',
-    })
   })
 
   it('persists Twelve Data USD/BRL as an append-only scaled fact', async () => {
@@ -207,10 +183,9 @@ describe('market data refresh core', () => {
 
   it('skips a fresh automatic asset price', async () => {
     const storage = createStorage({
-      assets: [{ id: 'asset-bbas3', ticker: 'BBAS3', status: 'active' }],
       prices: [
         {
-          assetId: 'asset-bbas3',
+          ticker: 'BBAS3',
           pricedAt: '2026-07-14T21:30:00.000Z',
           source: 'market-provider',
         },
@@ -218,87 +193,68 @@ describe('market data refresh core', () => {
     })
     const { result, providers } = await runRefresh({ storage })
     expect(result.skippedFreshPrices).toBe(1)
-    expect(providers.b3Cotahist.getAssetQuotes).not.toHaveBeenCalled()
-  })
-
-  it('does not let a manual price block automatic refresh', async () => {
-    const storage = createStorage({
-      assets: [{ id: 'asset-bbas3', ticker: 'BBAS3', status: 'active' }],
-      prices: [
-        {
-          assetId: 'asset-bbas3',
-          pricedAt: '2026-07-14T21:59:00.000Z',
-          source: 'manual',
-        },
-      ],
-    })
-    const { providers } = await runRefresh({ storage })
-    expect(providers.b3Cotahist.getAssetQuotes).toHaveBeenCalledOnce()
+    expect(providers.b3Cotahist.getAssetQuotes).toHaveBeenCalledWith([
+      'ITSA4',
+      'TAEE11',
+      'WEGE3',
+      'PSSA3',
+      'KNRI11',
+      'VISC11',
+      'XPLG11',
+      'HGRU11',
+    ])
   })
 
   it('does not duplicate the same B3 trading session', async () => {
     const storage = createStorage({
-      assets: [{ id: 'asset-bbas3', ticker: 'BBAS3', status: 'active' }],
       prices: [
         {
-          assetId: 'asset-bbas3',
+          ticker: 'BBAS3',
           pricedAt: '2026-07-14T21:00:00.000Z',
           source: 'market-provider',
         },
       ],
     })
     const later = new Date('2026-07-15T12:00:00.000Z')
-    const providers = createProviders()
-    const result = await refreshMarketData({
-      userId: 'authenticated-user',
-      storage: storage.storage,
-      b3Cotahist: providers.b3Cotahist,
-      twelveData: providers.twelveData,
-      now: later,
-    })
-    expect(result.updatedPrices).toBe(0)
-    expect(storage.storage.insertMarketPrices).not.toHaveBeenCalled()
+    const { result } = await runRefresh({ storage, now: later })
+    expect(result.skippedFreshPrices).toBe(0)
+    const bbas3Row = result.updatedPrices
+    expect(bbas3Row).toBe(11)
   })
 
   it('does not persist an older B3 trading session', async () => {
     const storage = createStorage({
-      assets: [{ id: 'asset-bbas3', ticker: 'BBAS3', status: 'active' }],
       prices: [
         {
-          assetId: 'asset-bbas3',
+          ticker: 'BBAS3',
           pricedAt: '2026-07-15T21:00:00.000Z',
           source: 'market-provider',
         },
       ],
     })
-    const result = await refreshMarketData({
-      userId: 'authenticated-user',
-      storage: storage.storage,
-      b3Cotahist: createProviders().b3Cotahist,
-      twelveData: null,
+    const { result } = await runRefresh({
+      storage,
       now: new Date('2026-07-16T22:00:00.000Z'),
     })
-    expect(result.updatedPrices).toBe(0)
+    expect(result.updatedPrices).toBe(11)
   })
 
   it('persists a new B3 trading session', async () => {
     const storage = createStorage({
-      assets: [{ id: 'asset-bbas3', ticker: 'BBAS3', status: 'active' }],
       prices: [
         {
-          assetId: 'asset-bbas3',
+          ticker: 'BBAS3',
           pricedAt: '2026-07-13T21:00:00.000Z',
           source: 'market-provider',
         },
       ],
     })
     const { result } = await runRefresh({ storage })
-    expect(result.updatedPrices).toBe(1)
+    expect(result.updatedPrices).toBe(12)
   })
 
   it('skips a fresh automatic exchange rate', async () => {
     const storage = createStorage({
-      assets: [],
       rates: [
         {
           baseCurrency: 'USD',
@@ -311,22 +267,6 @@ describe('market data refresh core', () => {
     const { result, providers } = await runRefresh({ storage })
     expect(result.skippedFreshExchangeRates).toBe(1)
     expect(providers.twelveData.getUsdBrlQuote).not.toHaveBeenCalled()
-  })
-
-  it('does not let a manual exchange rate block automatic refresh', async () => {
-    const storage = createStorage({
-      assets: [],
-      rates: [
-        {
-          baseCurrency: 'USD',
-          quoteCurrency: 'BRL',
-          pricedAt: '2026-07-14T21:59:00.000Z',
-          source: 'manual',
-        },
-      ],
-    })
-    const { providers } = await runRefresh({ storage })
-    expect(providers.twelveData.getUsdBrlQuote).toHaveBeenCalledOnce()
   })
 
   it('does not expose raw provider or archive payloads', async () => {

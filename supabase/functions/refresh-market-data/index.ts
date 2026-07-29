@@ -29,6 +29,21 @@ function requireEnvironment(name: string): string {
   return value
 }
 
+// Precos e cambio sao dados globais desde DEC-052 (market_asset_prices,
+// market_exchange_rates) - nao ha mais user_id para escrever, entao quem
+// dispara a atualizacao deixou de precisar ser dono dos dados. Duas formas de
+// chamada continuam autorizadas:
+//   1. sessao de usuario autenticado real (Authorization: Bearer <JWT>) -
+//      mesmo gate de acesso que ja existia, so que agora a identidade do
+//      usuario nao e mais usada para nada alem de confirmar que ha sessao;
+//   2. chamador de confianca server-side (Authorization: Bearer
+//      <SUPABASE_SERVICE_ROLE_KEY>), usado por scheduler (pg_cron via
+//      pg_net) ou scripts operacionais - sem sessao de usuario, entao
+//      auth.getUser() e pulado.
+// Em ambos os casos a escrita real usa um client proprio com service_role,
+// nunca a sessao encaminhada pelo chamador - as duas RPCs
+// (upsert_market_asset_prices_v1/upsert_market_exchange_rates_v1) sao a unica
+// via de escrita, e so aceitam service_role.
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: responseHeaders })
@@ -45,43 +60,46 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const client = createClient(
-      requireEnvironment('SUPABASE_URL'),
-      requireEnvironment('SUPABASE_ANON_KEY'),
-      { global: { headers: { Authorization: authorization } } }
-    )
-    const { data: authData, error: authError } = await client.auth.getUser()
+    const supabaseUrl = requireEnvironment('SUPABASE_URL')
+    const serviceRoleKey = requireEnvironment('SUPABASE_SERVICE_ROLE_KEY')
+    const bearerToken = authorization.replace(/^Bearer\s+/i, '').trim()
+    const isTrustedServiceCaller = bearerToken === serviceRoleKey
 
-    if (authError || !authData.user) {
-      return jsonResponse({ message: 'Sessão autenticada inválida.' }, 401)
+    if (!isTrustedServiceCaller) {
+      const sessionClient = createClient(
+        supabaseUrl,
+        requireEnvironment('SUPABASE_ANON_KEY'),
+        { global: { headers: { Authorization: authorization } } }
+      )
+      const { data: authData, error: authError } =
+        await sessionClient.auth.getUser()
+
+      if (authError || !authData.user) {
+        return jsonResponse({ message: 'Sessão autenticada inválida.' }, 401)
+      }
     }
 
-    const storage: MarketDataStorage = {
-      async listActiveAssets() {
-        const { data, error } = await client
-          .from('assets')
-          .select('id,ticker,status')
-          .eq('status', 'active')
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
 
-        if (error) throw error
-        return data ?? []
-      },
+    const storage: MarketDataStorage = {
       async listMarketPrices() {
-        const { data, error } = await client
-          .from('asset_prices')
-          .select('asset_id,priced_at,source')
+        const { data, error } = await serviceClient
+          .from('market_asset_prices')
+          .select('ticker,priced_at,source')
           .eq('source', 'market-provider')
 
         if (error) throw error
         return (data ?? []).map((row) => ({
-          assetId: row.asset_id,
+          ticker: row.ticker,
           pricedAt: row.priced_at,
           source: row.source,
         }))
       },
       async listMarketExchangeRates() {
-        const { data, error } = await client
-          .from('exchange_rates')
+        const { data, error } = await serviceClient
+          .from('market_exchange_rates')
           .select('base_currency,quote_currency,priced_at,source')
           .eq('source', 'market-provider')
           .or(
@@ -97,17 +115,22 @@ Deno.serve(async (request) => {
         }))
       },
       async insertMarketPrices(rows) {
-        const { error } = await client.from('asset_prices').insert(rows)
+        const { error } = await serviceClient.rpc(
+          'upsert_market_asset_prices_v1',
+          { records: rows }
+        )
         if (error) throw error
       },
       async insertMarketExchangeRate(row) {
-        const { error } = await client.from('exchange_rates').insert(row)
+        const { error } = await serviceClient.rpc(
+          'upsert_market_exchange_rates_v1',
+          { records: [row] }
+        )
         if (error) throw error
       },
     }
     const twelveDataKey = Deno.env.get('TWELVE_DATA_API_KEY')?.trim()
     const result = await refreshMarketData({
-      userId: authData.user.id,
       storage,
       b3Cotahist: createB3CotahistProvider({
         extractText: extractCotahistText,

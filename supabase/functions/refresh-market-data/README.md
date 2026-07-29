@@ -14,13 +14,16 @@ Os arquivos oficiais são ZIP. A extração é isolada em `b3CotahistZip.ts` e u
 
 ## Configuração
 
-O único secret externo esperado é:
+Secrets externos esperados:
 
-- `TWELVE_DATA_API_KEY`
+- `TWELVE_DATA_API_KEY`;
+- `SUPABASE_SERVICE_ROLE_KEY` (desde `DEC-052`) — usado para escrever nas
+  tabelas globais via as RPCs `upsert_market_asset_prices_v1`/
+  `upsert_market_exchange_rates_v1`, nunca exposto ao chamador.
 
-O secret pertence exclusivamente ao ambiente da Edge Function e não deve usar prefixo `VITE_`. A B3 COTAHIST não requer secret. Este diretório não executa deploy nem altera o projeto Supabase real; qualquer publicação continua sendo uma etapa manual e separada.
+Os secrets pertencem exclusivamente ao ambiente da Edge Function e não devem usar prefixo `VITE_`. A B3 COTAHIST não requer secret próprio. Este diretório não executa deploy nem altera o projeto Supabase real; qualquer publicação continua sendo uma etapa manual e separada.
 
-A função está publicada e ativa no projeto Supabase real (`vxjrncwfysglinfktifz`), confirmado por consulta direta ao projeto em 27 de julho de 2026. Isso não implica dados reais: `asset_prices` e `exchange_rates` são tabelas por usuário protegidas por RLS, e permanecem com 0 linhas enquanto não houver usuário real autenticado para gravar cotações.
+A função está publicada e ativa no projeto Supabase real (`vxjrncwfysglinfktifz`). Desde `DEC-052`, preços e câmbio são dados globais (`market_asset_prices`, `market_exchange_rates`, sem `user_id`) — a função aceita duas formas de chamada: sessão de usuário autenticado real (mesmo gate de acesso de antes) ou um chamador de confiança server-side (`Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`, usado por agendamento via `pg_cron`/`pg_net` ou scripts operacionais). Em ambos os casos a escrita real usa um client próprio com `service_role`, nunca a sessão encaminhada pelo chamador. As tabelas antigas por usuário (`asset_prices`, `exchange_rates`) permanecem no schema, mas não recebem mais escrita desta função.
 
 O câmbio usa o timestamp informado pela Twelve Data. Quando o endpoint não fornece um timestamp, a função usa o instante da resposta como `pricedAt`; nenhum horário histórico é inventado.
 

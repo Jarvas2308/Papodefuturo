@@ -11,7 +11,6 @@ import type {
   MarketDataWarning,
   MarketPriceInsert,
   MarketQuote,
-  RefreshAsset,
   StoredExchangeRate,
   StoredMarketPrice,
 } from './types.ts'
@@ -26,7 +25,6 @@ type TwelveDataProvider = {
 }
 
 export type MarketDataStorage = {
-  listActiveAssets(): Promise<RefreshAsset[]>
   listMarketPrices(): Promise<StoredMarketPrice[]>
   listMarketExchangeRates(): Promise<StoredExchangeRate[]>
   insertMarketPrices(rows: readonly MarketPriceInsert[]): Promise<void>
@@ -34,20 +32,11 @@ export type MarketDataStorage = {
 }
 
 export type RefreshMarketDataInput = {
-  userId: string
   storage: MarketDataStorage
   b3Cotahist: B3CotahistProvider
   twelveData: TwelveDataProvider | null
   now?: Date
-  createId?: () => string
 }
-
-const universeByTicker = new Map(
-  SERVER_CLOSED_ASSET_UNIVERSE.map((asset) => [
-    asset.ticker.toUpperCase(),
-    asset,
-  ])
-)
 
 function providerFailureWarning(
   provider: 'b3-cotahist' | 'twelve-data',
@@ -71,48 +60,36 @@ function staleQuoteWarning(
   }
 }
 
-function getLatestPriceByAsset(prices: readonly StoredMarketPrice[]) {
+function getLatestPriceByTicker(prices: readonly StoredMarketPrice[]) {
   const grouped = new Map<string, StoredMarketPrice[]>()
 
   for (const price of prices) {
-    const current = grouped.get(price.assetId) ?? []
+    const current = grouped.get(price.ticker) ?? []
     current.push(price)
-    grouped.set(price.assetId, current)
+    grouped.set(price.ticker, current)
   }
 
   return new Map(
-    Array.from(grouped, ([assetId, facts]) => [
-      assetId,
+    Array.from(grouped, ([ticker, facts]) => [
+      ticker,
       getLatestAutomaticFact(facts),
     ])
   )
 }
 
 export async function refreshMarketData({
-  userId,
   storage,
   b3Cotahist,
   twelveData,
   now = new Date(),
-  createId = () => crypto.randomUUID(),
 }: RefreshMarketDataInput): Promise<MarketDataRefreshResult> {
   const warnings: MarketDataWarning[] = []
-  const [activeAssets, persistedPrices, persistedRates] = await Promise.all([
-    storage.listActiveAssets(),
+  const [persistedPrices, persistedRates] = await Promise.all([
     storage.listMarketPrices(),
     storage.listMarketExchangeRates(),
   ])
-  const latestPriceByAsset = getLatestPriceByAsset(persistedPrices)
+  const latestPriceByTicker = getLatestPriceByTicker(persistedPrices)
   const latestAutomaticRate = getLatestAutomaticFact(persistedRates)
-  const eligibleAssets = activeAssets.flatMap((asset) => {
-    const definition = universeByTicker.get(asset.ticker.trim().toUpperCase())
-
-    if (asset.status !== 'active' || !definition) {
-      return []
-    }
-
-    return [{ asset, definition }]
-  })
 
   if (!twelveData) {
     warnings.push({
@@ -122,8 +99,8 @@ export async function refreshMarketData({
   }
 
   let skippedFreshPrices = 0
-  const staleAssets = eligibleAssets.filter(({ asset }) => {
-    const latest = latestPriceByAsset.get(asset.id) ?? null
+  const staleAssets = SERVER_CLOSED_ASSET_UNIVERSE.filter((definition) => {
+    const latest = latestPriceByTicker.get(definition.ticker) ?? null
 
     if (isAutomaticFactFresh(latest, now)) {
       skippedFreshPrices += 1
@@ -133,25 +110,25 @@ export async function refreshMarketData({
     return true
   })
   const brazilianAssets = staleAssets.filter(
-    ({ definition }) => definition.market === 'BR'
+    (definition) => definition.market === 'BR'
   )
   const usAssets = staleAssets.filter(
-    ({ definition }) => definition.market === 'US'
+    (definition) => definition.market === 'US'
   )
   const priceRows: MarketPriceInsert[] = []
 
   if (brazilianAssets.length > 0) {
     try {
       const quotes = await b3Cotahist.getAssetQuotes(
-        brazilianAssets.map(({ definition }) => definition.ticker)
+        brazilianAssets.map((definition) => definition.ticker)
       )
       const quoteByTicker = new Map(
         quotes.map((quote) => [quote.ticker.toUpperCase(), quote])
       )
 
-      for (const { asset, definition } of brazilianAssets) {
+      for (const definition of brazilianAssets) {
         const quote = quoteByTicker.get(definition.ticker)
-        const latest = latestPriceByAsset.get(asset.id) ?? null
+        const latest = latestPriceByTicker.get(definition.ticker) ?? null
 
         if (!quote) {
           warnings.push(
@@ -166,9 +143,8 @@ export async function refreshMarketData({
         }
 
         priceRows.push({
-          id: createId(),
-          user_id: userId,
-          asset_id: asset.id,
+          ticker: definition.ticker,
+          market: definition.market,
           price_minor: quote.priceInMinorUnits,
           currency: definition.currency,
           priced_at: quote.pricedAt,
@@ -176,15 +152,15 @@ export async function refreshMarketData({
         })
       }
     } catch {
-      for (const { definition } of brazilianAssets) {
+      for (const definition of brazilianAssets) {
         warnings.push(providerFailureWarning('b3-cotahist', definition.ticker))
       }
     }
   }
 
   if (twelveData) {
-    for (const { asset, definition } of usAssets) {
-      const latest = latestPriceByAsset.get(asset.id) ?? null
+    for (const definition of usAssets) {
+      const latest = latestPriceByTicker.get(definition.ticker) ?? null
 
       try {
         const quote = await twelveData.getAssetQuote(definition.ticker)
@@ -195,9 +171,8 @@ export async function refreshMarketData({
         }
 
         priceRows.push({
-          id: createId(),
-          user_id: userId,
-          asset_id: asset.id,
+          ticker: definition.ticker,
+          market: definition.market,
           price_minor: quote.priceInMinorUnits,
           currency: definition.currency,
           priced_at: quote.pricedAt,
@@ -224,8 +199,6 @@ export async function refreshMarketData({
 
       if (isStrictlyNewerTimestamp(quote.pricedAt, latestAutomaticRate)) {
         await storage.insertMarketExchangeRate({
-          id: createId(),
-          user_id: userId,
           base_currency: 'USD',
           quote_currency: 'BRL',
           rate_scaled: quote.rateScaled,
