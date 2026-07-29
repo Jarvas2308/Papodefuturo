@@ -87,6 +87,22 @@ describe('SEC submissions parser', () => {
         createSubmissionsJson([filing({ primaryDocument: '' })])
       )
     ).toThrow('primaryDocument')
+    expect(() =>
+      parseSecSubmissionsJson(
+        createSubmissionsJson([
+          filing({ primaryDocument: '../../../etc/passwd' }),
+        ])
+      )
+    ).toThrow('primaryDocument')
+  })
+
+  it('accepts the real SEC NPORT-P XSLT viewer path shape for primaryDocument', () => {
+    const realShaped = filing({
+      primaryDocument: 'xslFormNPORT-P_X01/primary_doc.xml',
+    })
+    expect(
+      parseSecSubmissionsJson(createSubmissionsJson([realShaped])).filings
+    ).toEqual([realShaped])
   })
 })
 

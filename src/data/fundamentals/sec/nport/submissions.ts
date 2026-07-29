@@ -1,3 +1,4 @@
+import { isSafeSecPrimaryDocumentPath } from './path'
 import type {
   SecNportFiling,
   SecNportFormType,
@@ -70,12 +71,8 @@ function assertValidFiling(filing: SecNportFiling): void {
   ) {
     throw new Error(`Invalid SEC N-PORT acceptedAt: ${filing.acceptedAt}`)
   }
-  if (
-    !filing.primaryDocument.trim() ||
-    filing.primaryDocument.includes('/') ||
-    filing.primaryDocument.includes('\\')
-  ) {
-    throw new Error('SEC N-PORT primaryDocument must be a file name')
+  if (!isSafeSecPrimaryDocumentPath(filing.primaryDocument)) {
+    throw new Error('SEC N-PORT primaryDocument must be a safe relative path')
   }
 }
 
