@@ -4,7 +4,9 @@ import {
   createSupabaseRepositories,
   type AppRepositories,
 } from '../../../data/repositories'
+import { explainContributionPlanBestEffort } from '../../../data/aiExplanationBestEffort'
 import { refreshMarketDataBestEffort } from '../../../data/marketDataRefresh'
+import type { AiExplanationV1 } from '../../../domain/aiExplanation'
 import { getLatestAssetPricesByAsset } from '../../../domain/latestAssetPrices'
 import type {
   CreateContributionPlanInput,
@@ -22,6 +24,12 @@ import type {
 } from '../../../domain/models'
 import { convertMoney, getLatestUsdBrlRate } from '../../../domain/models'
 import {
+  buildPortfolioSnapshot,
+  type PortfolioSnapshot,
+} from '../../../domain/portfolioSnapshot'
+import { buildTechnicalDossierV1 } from '../../../domain/technicalDossier'
+import type { StrategyCategory } from '../../strategy/types'
+import {
   buildRealStrategyPositions,
   buildStrategyFromRealData,
 } from '../../strategy/realStrategy'
@@ -31,6 +39,7 @@ import type {
   ContributionAssetTarget,
   ContributionDistribution,
   ContributionPosition,
+  TargetAllocationContributionResult,
 } from '../types'
 import { buildGlobalAssetTargets } from '../utils/buildGlobalAssetTargets'
 import { getContributionAssetCurrency } from '../utils/confirmedPurchases'
@@ -133,6 +142,7 @@ export function buildContributionTargets(
   const strategy = buildStrategyFromRealData(assets, allocationTargets)
 
   return {
+    strategy,
     categoryTargets: strategy.map((category) => ({
       category: category.id,
       targetPercentage: category.targetInBasisPoints / 100,
@@ -213,6 +223,13 @@ export function useContributionData() {
   )
   const [contributionPlan, setContributionPlan] =
     useState<ContributionPlan | null>(null)
+  const [assetPrices, setAssetPrices] = useState<AssetPrice[]>([])
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([])
+  const [strategyCategories, setStrategyCategories] = useState<
+    StrategyCategory[]
+  >([])
+  const [portfolioSnapshot, setPortfolioSnapshot] =
+    useState<PortfolioSnapshot | null>(null)
 
   const loadReal = useCallback(async () => {
     if (authStatus !== 'authenticated' || !client || !user) {
@@ -254,6 +271,14 @@ export function useContributionData() {
     )
     const nextTargets: AllocationTarget[] = contributionTargets.categoryTargets
     const nextAssetTargets = contributionTargets.assetTargets
+    const snapshotResult = buildPortfolioSnapshot({
+      assets,
+      purchases,
+      prices,
+      targets: allocationTargets,
+      rates,
+      resolveAssetCurrency: getContributionAssetCurrency,
+    })
 
     setPositions(nextPositions)
     setAssets(assets)
@@ -262,6 +287,10 @@ export function useContributionData() {
     setAssetTargets(nextAssetTargets)
     setNeedsExchangeRate(realPositions.needsExchangeRate)
     setLatestUsdBrlRate(realPositions.latestUsdBrlRate)
+    setAssetPrices(prices)
+    setExchangeRates(rates)
+    setStrategyCategories(contributionTargets.strategy)
+    setPortfolioSnapshot(snapshotResult.snapshot)
     setError(null)
     setStatus('ready')
   }, [authStatus, client, user])
@@ -353,6 +382,38 @@ export function useContributionData() {
     setContributionPlan(plan)
   }
 
+  async function explainContributionPlan(
+    technicalPlan: TargetAllocationContributionResult,
+    contributionAmountInCents: number
+  ): Promise<AiExplanationV1 | null> {
+    if (authStatus === 'demo' || !client || !portfolioSnapshot) {
+      return null
+    }
+
+    let dossier
+    try {
+      dossier = buildTechnicalDossierV1({
+        generatedAt: new Date().toISOString(),
+        contributionAmountInCents,
+        assets,
+        portfolioSnapshot,
+        strategy: strategyCategories,
+        globalAssetTargets: assetTargets,
+        assetPrices,
+        exchangeRates,
+        technicalPlan,
+      })
+    } catch {
+      return null
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    return explainContributionPlanBestEffort(
+      repositories.aiExplanation,
+      dossier
+    )
+  }
+
   async function registerConfirmedPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
   ) {
@@ -428,6 +489,7 @@ export function useContributionData() {
     presentContributionPlan,
     acceptContributionPlan,
     rejectContributionPlan,
+    explainContributionPlan,
     registerConfirmedPurchases,
   }
 }

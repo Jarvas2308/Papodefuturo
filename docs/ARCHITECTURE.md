@@ -105,6 +105,11 @@ No estado atual:
 - edição real de metas em Estratégia, persistida via `replace_allocation_targets`;
 - domínio financeiro tipado em `src/domain`, incluindo Dossiê Técnico V1,
   Fundamental Facts V1 e o domínio puro de eventos oficiais;
+- persistência real do plano de aporte (`ContributionPlan`), com fluxo de
+  apresentação, aceite, rejeição e confirmação (`DEC-055`, Sprint 6);
+- IA explicativa (`DEC-056`, Sprint 7) interpretando o Dossiê Técnico via
+  Edge Function `explain-contribution-plan`, com degradação silenciosa em
+  qualquer falha;
 - factory isolada de cliente Supabase em `src/lib`, sem criação automática de
   cliente pronto no import;
 - publicação em produção em `https://papodefuturo.vercel.app`, com suporte a
@@ -122,9 +127,7 @@ No estado atual:
   providers ainda não exercitados (CVM IPE ações já concluído; SEC N-PORT
   bloqueado por parser — ver `docs/ROADMAP.md`);
 - ativação em produção do runtime de fundamentos (`read-only`), como ocorreu
-  para eventos oficiais em `DEC-041`;
-- persistência do plano de aporte aceito;
-- IA explicativa consumindo o Dossiê Técnico.
+  para eventos oficiais em `DEC-041`.
 
 #### Em aberto
 
@@ -224,7 +227,7 @@ PortfolioSnapshot
                 ↓
         TechnicalDossierV1
                 ↓
- futuras camadas qualitativas
+   IA explicativa (Sprint 7)
 ```
 
 `TechnicalDossierV1` é um contrato puro, determinístico, versionado e derivado
@@ -241,9 +244,40 @@ O dossiê:
 - não inventa ranking técnico que o Motor V2 ainda não expõe;
 - não depende de React, Supabase, APIs ou relógio ambiental.
 
-Futuras camadas de fundamentos, notícias, eventos e interpretação qualitativa
-devem consumir esse contrato ou evoluções explicitamente versionadas dele, sem
-alterar a verdade matemática do Motor V2.
+Futuras camadas de fundamentos, notícias e eventos devem consumir esse
+contrato ou evoluções explicitamente versionadas dele, sem alterar a verdade
+matemática do Motor V2. A camada de interpretação qualitativa já existe — ver
+abaixo.
+
+### Fronteira da IA explicativa (Sprint 7, `DEC-056`)
+
+```text
+TechnicalDossierV1 (montado no cliente, em memória)
+                ↓
+client.functions.invoke('explain-contribution-plan')
+                ↓
+Edge Function: valida o dossiê, chama a Claude API, valida a resposta
+                ↓
+        AiExplanationV1 (ai-explanation.v1)
+                ↓
+        explainContributionPlanBestEffort (degrada para null em qualquer falha)
+                ↓
+        AiExplanation (componente de apresentação, só renderiza se houver explicação)
+```
+
+- o dossiê é montado no app (`buildTechnicalDossierV1`) e enviado como está
+  para a Edge Function — nenhum cálculo novo acontece no caminho até a IA;
+- a chamada à Claude API (`ANTHROPIC_API_KEY`) é exclusiva da Edge Function
+  `supabase/functions/explain-contribution-plan`; o navegador nunca vê a
+  chave nem fala diretamente com a Claude API;
+- a resposta da IA é validada contra o contrato `AiExplanationV1` tanto na
+  Edge Function quanto no repository do app — uma resposta fora do formato é
+  descartada;
+- falha em qualquer ponto (rede, chave ausente, resposta malformada) resulta
+  em `null`, nunca em exceção não tratada — o plano técnico determinístico
+  nunca é bloqueado pela IA;
+- a IA nunca recebe dados fora do que já está no dossiê (nenhuma consulta
+  adicional a Supabase, mercado ou fundamentos a partir da Edge Function).
 
 ### Fronteira de Fundamental Facts V1
 
@@ -635,9 +669,11 @@ de dados:
 
 ### IA
 
-Responsável futuramente apenas por interpretação e explicação.
+Desde o Sprint 7 (`DEC-056`), responsável apenas por interpretação e
+explicação em texto do plano já calculado — ver "Fronteira da IA
+explicativa" abaixo.
 
-Nunca deve ser a fonte oficial dos cálculos.
+Nunca é a fonte oficial dos cálculos.
 
 ## Princípio de persistência
 

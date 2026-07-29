@@ -1,0 +1,81 @@
+import { createClient } from 'npm:@supabase/supabase-js@2.110.2'
+import { corsHeaders } from 'npm:@supabase/supabase-js@2.110.2/cors'
+import { createAnthropicClient } from './anthropicClient.ts'
+import { validateTechnicalDossierInput } from './dossierValidator.ts'
+
+declare const Deno: {
+  env: { get(name: string): string | undefined }
+  serve(handler: (request: Request) => Promise<Response> | Response): void
+}
+
+const responseHeaders = {
+  ...corsHeaders,
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return Response.json(body, { status, headers: responseHeaders })
+}
+
+function requireEnvironment(name: string): string {
+  const value = Deno.env.get(name)
+
+  if (!value) {
+    throw new Error(`Missing required function environment: ${name}`)
+  }
+
+  return value
+}
+
+// A IA nunca cria, seleciona ou modifica o plano tecnico (docs/PRODUCT.md
+// "Papel futuro da IA", DEC-056). Esta funcao recebe um TechnicalDossierV1
+// ja calculado pelo motor deterministico e devolve apenas interpretacao em
+// texto - nunca numeros novos, nunca ordens executadas. Exige sessao de
+// usuario autenticado real: nao ha caminho service_role/agendado aqui, o
+// dossie pertence a uma simulacao pontual do usuario que a solicitou.
+Deno.serve(async (request) => {
+  if (request.method === 'OPTIONS') {
+    return new Response('ok', { headers: responseHeaders })
+  }
+
+  if (request.method !== 'POST') {
+    return jsonResponse({ message: 'Método não permitido.' }, 405)
+  }
+
+  const authorization = request.headers.get('Authorization')
+
+  if (!authorization) {
+    return jsonResponse({ message: 'Autenticação obrigatória.' }, 401)
+  }
+
+  try {
+    const supabaseUrl = requireEnvironment('SUPABASE_URL')
+    const sessionClient = createClient(
+      supabaseUrl,
+      requireEnvironment('SUPABASE_ANON_KEY'),
+      { global: { headers: { Authorization: authorization } } }
+    )
+    const { data: authData, error: authError } =
+      await sessionClient.auth.getUser()
+
+    if (authError || !authData.user) {
+      return jsonResponse({ message: 'Sessão autenticada inválida.' }, 401)
+    }
+
+    const body = await request.json()
+    const dossier = validateTechnicalDossierInput(
+      (body as { dossier?: unknown } | null)?.dossier
+    )
+
+    const apiKey = requireEnvironment('ANTHROPIC_API_KEY')
+    const anthropicClient = createAnthropicClient({ apiKey })
+    const explanation = await anthropicClient.explain(dossier)
+
+    return jsonResponse(explanation)
+  } catch {
+    return jsonResponse(
+      { message: 'Não foi possível gerar a explicação do plano.' },
+      500
+    )
+  }
+})

@@ -3,8 +3,11 @@ import {
   type AssetIdFactory,
 } from '../assetUniverse'
 import type { AllocationTarget, EntityId, Purchase } from '../../domain/models'
+import { AI_EXPLANATION_V1_SCHEMA_VERSION } from '../../domain/aiExplanation'
+import type { AiExplanationV1 } from '../../domain/aiExplanation'
 import type { SupabaseBrowserClient } from '../../lib/supabaseClient'
 import type {
+  AiExplanationRepository,
   AllocationTargetRepository,
   AppRepositories,
   AssetPriceRepository,
@@ -79,6 +82,38 @@ function parseMarketDataRefreshResult(value: unknown): MarketDataRefreshResult {
   }
 
   return result as MarketDataRefreshResult
+}
+
+const AI_EXPLANATION_CONVICTION_LEVELS = ['low', 'medium', 'high'] as const
+
+function parseAiExplanationV1(value: unknown): AiExplanationV1 {
+  if (!value || typeof value !== 'object') {
+    throw new Error('Invalid AI explanation response')
+  }
+
+  const result = value as Partial<AiExplanationV1>
+
+  if (
+    result.schemaVersion !== AI_EXPLANATION_V1_SCHEMA_VERSION ||
+    typeof result.generatedAt !== 'string' ||
+    Number.isNaN(Date.parse(result.generatedAt)) ||
+    !Array.isArray(result.facts) ||
+    result.facts.length === 0 ||
+    !result.facts.every((fact) => typeof fact === 'string' && fact.trim()) ||
+    typeof result.interpretation !== 'string' ||
+    !result.interpretation.trim() ||
+    !AI_EXPLANATION_CONVICTION_LEVELS.includes(
+      result.convictionLevel as (typeof AI_EXPLANATION_CONVICTION_LEVELS)[number]
+    ) ||
+    typeof result.technicalPlanSummary !== 'string' ||
+    !result.technicalPlanSummary.trim() ||
+    typeof result.comparativeExplanation !== 'string' ||
+    !result.comparativeExplanation.trim()
+  ) {
+    throw new Error('Invalid AI explanation response')
+  }
+
+  return result as AiExplanationV1
 }
 
 type PurchaseIdFactory = () => string
@@ -375,6 +410,25 @@ export function createSupabaseMarketDataRepository(
   }
 }
 
+export function createSupabaseAiExplanationRepository(
+  client: SupabaseBrowserClient
+): AiExplanationRepository {
+  return {
+    async explain(dossier) {
+      const { data, error } = await client.functions.invoke(
+        'explain-contribution-plan',
+        { body: { dossier } }
+      )
+
+      if (error) {
+        throw createRepositoryQueryError('contribution plan explanation', error)
+      }
+
+      return parseAiExplanationV1(data)
+    },
+  }
+}
+
 const CONTRIBUTION_PLAN_WITH_ITEMS_SELECT = '*, contribution_plan_items(*)'
 
 export function createSupabaseContributionPlanRepository(
@@ -491,5 +545,6 @@ export function createSupabaseRepositories(
     allocationTargets: createSupabaseAllocationTargetRepository(client),
     marketData: createSupabaseMarketDataRepository(client),
     contributionPlans: createSupabaseContributionPlanRepository(client),
+    aiExplanation: createSupabaseAiExplanationRepository(client),
   }
 }

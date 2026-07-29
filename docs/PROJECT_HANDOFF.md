@@ -81,6 +81,25 @@ o job `refresh-market-data-hourly` agendado a cada hora, autenticado como
 `service_role` via segredo lido do Supabase Vault (nunca versionado em
 migration). Sprint 5 completo. Detalhe na seção 9.
 
+Uma décima segunda atualização, ainda em 29 de julho de 2026, registra o
+encerramento do Sprint 6 (`DEC-055`): `contribution_plans` e
+`contribution_plan_items` saíram de "planejada e adiada" para aplicadas, por
+usuário, mesmo padrão de `purchases`/`allocation_targets`. Fluxo real:
+simular aporte persiste um plano `presented`; usuário aceita ou rejeita;
+confirmar compras registradas para um plano aceito liga cada item à compra
+real (`purchase_id`) e leva o plano a `confirmed`. Sprint 6 completo.
+Detalhe na seção 7.
+
+Uma décima terceira atualização, ainda em 29 de julho de 2026, registra o
+encerramento do Sprint 7 (`DEC-056`): IA explicativa integrada. O
+`TechnicalDossierV1`, já existente e sem consumidor, passou a ser montado no
+Novo Aporte e enviado à Edge Function `explain-contribution-plan`
+(server-side, `ANTHROPIC_API_KEY`), que devolve um `AiExplanationV1`
+validado — fatos, interpretação, grau de convicção, reapresentação do plano
+técnico e explicação comparativa. A IA nunca cria, seleciona ou modifica o
+plano; falha em qualquer ponto degrada silenciosamente para `null`, nunca
+bloqueando o plano determinístico. Sprint 7 completo. Detalhe na seção 7.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -101,7 +120,8 @@ Estado consolidado:
 - infraestrutura completa de eventos oficiais aplicada ao Supabase real em 27
   de julho de 2026; runtime ativado em `read-only` no mesmo dia após um
   canário real bem-sucedido, ambos com autorização explícita — ver seção 8;
-- notícias editoriais em `NO-GO`; IA, sentimento e score não foram integrados;
+- notícias editoriais em `NO-GO`; sentimento e score não foram integrados;
+  IA explicativa integrada desde `DEC-056` (Sprint 7);
 - modo demo preservado e sem fallback silencioso após erro de consulta real.
 
 Nenhuma ordem financeira é executada automaticamente. O plano de aporte é uma
@@ -207,7 +227,7 @@ Princípios ativos:
 - dados acima de achismos;
 - motor determinístico como verdade matemática;
 - APIs e providers como fontes de fatos;
-- IA futura apenas como interpretação;
+- IA apenas como interpretação (`DEC-056`), nunca como fonte de cálculo;
 - nenhum ativo fora do universo fechado entra silenciosamente;
 - nenhum valor derivado é persistido como fato primário sem decisão explícita.
 
@@ -274,9 +294,10 @@ timeline vazia; nenhum dado de produto foi inserido.
 - preço médio, quantidade, valor investido e resultado são derivados dos fatos;
 - metas são persistidas em basis points por repository;
 - `replace_allocation_targets(jsonb)` substitui metas atomicamente;
-- `ContributionPlan` existe no domínio, mas sua persistência foi adiada;
-- não existem tabelas `holdings`, `contribution_plans` ou
-  `contribution_plan_items`.
+- `ContributionPlan` é persistido desde `DEC-055` (Sprint 6): tabelas
+  `contribution_plans` e `contribution_plan_items`, por usuário, RLS com
+  `(select auth.uid())`, ownership validado nas relações;
+- não existe tabela `holdings` — posição continua derivada das compras.
 
 ### Mercado e câmbio
 
@@ -317,8 +338,23 @@ arquitetural e suíte de regressão financeira.
 
 Contrato puro `technical-dossier.v1`, derivado em memória. Consolida snapshot da
 carteira, estratégia, fatos de mercado e resultado já calculado do Motor V2.
-Não recalcula o plano, não persiste dados, não chama IA e declara limitações de
-forma explícita.
+Não recalcula o plano, não persiste dados e declara limitações de forma
+explícita. Desde `DEC-056` (Sprint 7), é montado no Novo Aporte e enviado à
+Edge Function `explain-contribution-plan`, que o entrega à Claude API
+server-side e devolve um `AiExplanationV1` — o dossiê em si continua puro e
+não persistido; só o envio para interpretação foi autorizado.
+
+### AiExplanationV1 (`DEC-056`, Sprint 7)
+
+Contrato de saída versionado (`ai-explanation.v1`) devolvido pela IA
+explicativa: `facts` (fatos extraídos do dossiê), `interpretation`,
+`convictionLevel` (`low`/`medium`/`high`), `technicalPlanSummary`
+(reapresentação do plano técnico) e `comparativeExplanation`. Validado tanto
+na Edge Function quanto no repository do app antes de chegar à UI; uma
+resposta fora do formato é descartada. A geração falha para `null` (nunca
+para exceção) em qualquer erro — a UI (`AiExplanation.tsx`) só renderiza
+quando há explicação disponível, e o plano técnico determinístico é sempre
+exibido independentemente dela.
 
 ### FundamentalFactsV1
 
@@ -558,7 +594,10 @@ Tabelas privadas documentadas como aplicadas:
 - `asset_prices` (por usuário; intocada no schema, sem consumidor no app
   desde `DEC-053` — mantida até um ciclo futuro confirmar remoção);
 - `allocation_targets`;
-- `exchange_rates` (por usuário; mesma nota de `asset_prices`).
+- `exchange_rates` (por usuário; mesma nota de `asset_prices`);
+- `contribution_plans` e `contribution_plan_items` (`DEC-055`, Sprint 6),
+  conectadas ao fluxo real de apresentação, aceite, rejeição e confirmação
+  do Novo Aporte.
 
 Tabelas globais documentadas como aplicadas:
 
@@ -737,8 +776,7 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   código;
 - fundamentos permanecem sem ingestão real, scheduler ou UI;
 - notícias editoriais não têm provider aprovado;
-- IA explicativa, comitê, sentimento e score não existem;
-- `ContributionPlan` não é persistido;
+- comitê, sentimento e score não existem;
 - documentação histórica possui trechos contraditórios com o estado integrado;
 - bundle possui aviso preexistente acima de 500 kB;
 - o runner Codex no Windows já apresentou falha de HTTPS/Git Credential Manager

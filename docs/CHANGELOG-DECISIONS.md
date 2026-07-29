@@ -1430,3 +1430,76 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   futuro"), `docs/ARCHITECTURE.md`, `docs/SUPABASE_SCHEMA_PLAN.md`
   (`contribution_plans`/`contribution_plan_items` deixam de ser "planejada e
   adiada"), `docs/ROADMAP.md`.
+
+## DEC-056 — IA explicativa consumindo o Dossiê Técnico; primeiro envio de dados a serviço externo
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: `TechnicalDossierV1` existe desde um ciclo anterior — contrato
+  puro, determinístico, versionado, derivado em memória a partir de
+  `PortfolioSnapshot`, estratégia, fatos de mercado e
+  `TargetAllocationContributionResult` — mas nunca teve consumidor (zero
+  referências fora de `src/domain/technicalDossier/`). `AGENTS.md`
+  (subseção "Dossiê Técnico V1") registrava explicitamente: "não persistir o
+  dossiê nem enviá-lo a IA ou serviço externo sem nova decisão arquitetural
+  explícita." Esta é essa decisão. Contrato de produto inegociável
+  (`docs/PRODUCT.md`, então "§Papel futuro da IA"): a IA nunca cria,
+  seleciona ou modifica o plano técnico — só pode interpretá-lo.
+- Decisão: nova Edge Function `explain-contribution-plan`
+  (`supabase/functions/explain-contribution-plan/`), autenticada por sessão
+  de usuário real (sem caminho `service_role`/agendado — o dossiê pertence a
+  uma simulação pontual do usuário que a solicitou). Recebe
+  `{ dossier: TechnicalDossierV1 }`, valida a forma do dossiê
+  estruturalmente antes de qualquer chamada externa
+  (`dossierValidator.ts`), monta um prompt determinístico
+  (`promptBuilder.ts`) com um system prompt que reafirma as regras
+  inegociáveis do produto (nunca cria/seleciona/modifica o plano, nunca
+  recomenda ativo fora do dossiê, nunca inventa números, sempre responde em
+  JSON estrito), chama a Claude API (`ANTHROPIC_API_KEY`, secret exclusivo
+  do ambiente da função, nunca `VITE_*`) e valida a resposta contra o
+  contrato de saída (`responseSchema.ts`) antes de devolvê-la — uma resposta
+  fora do formato é rejeitada, nunca repassada como está.
+  - Contrato de saída novo, `AiExplanationV1` (`ai-explanation.v1`,
+    `src/domain/aiExplanation/`): `facts: string[]`, `interpretation`,
+    `convictionLevel: 'low' | 'medium' | 'high'`, `technicalPlanSummary`,
+    `comparativeExplanation` — exatamente os cinco itens da "saída prevista"
+    já documentada em `docs/PRODUCT.md`.
+  - Lado app: `AiExplanationRepository` (`src/data/repositories/contracts.ts`)
+    chama a Edge Function via `client.functions.invoke`, com o mesmo padrão
+    de validação em runtime de `parseMarketDataRefreshResult` (`DEC-*`
+    anteriores). `explainContributionPlanBestEffort`
+    (`src/data/aiExplanationBestEffort.ts`) degrada qualquer falha (rede,
+    chave ausente, resposta malformada) para `null`, nunca para exceção —
+    mesmo padrão de `refreshMarketDataBestEffort`. **A falha da IA nunca
+    bloqueia o plano determinístico.**
+  - `useContributionData` ganhou os estados necessários para montar o
+    dossiê (`portfolioSnapshot` via `buildPortfolioSnapshot`, já existente
+    mas não usado neste hook; `strategyCategories`, o `StrategyCategory[]`
+    bruto que `buildContributionTargets` já calculava mas não expunha;
+    `assetPrices`/`exchangeRates` brutos) e a ação `explainContributionPlan`,
+    que monta o dossiê e chama o repository best-effort.
+  - UI: ao simular um aporte com estratégia `target-allocation` e sugestões
+    positivas, o Novo Aporte dispara a explicação em paralelo à apresentação
+    do plano (`ContributionPlan` status `presented`, `DEC-055`); o
+    componente `AiExplanation` só renderiza quando há explicação disponível
+    — nenhuma UI de carregamento bloqueante, nenhum erro visível ao usuário
+    quando a IA falha.
+- Verificado: `npm test` (135 arquivos, 2160 testes — cobertura nova para
+  `dossierValidator`, `promptBuilder`, `responseSchema`, `anthropicClient`
+  com fetch mockado, e `explainContributionPlanBestEffort`), `format:check`,
+  `lint`, `build` e `git diff --check` limpos. Sanidade em browser (modo
+  demo, sem crash — demo nunca exercita o novo caminho).
+  - **Não verificado neste PR**: chamada real à Claude API em produção. A
+    Edge Function foi escrita e testada com fetch mockado, mas o deploy real
+    e o primeiro disparo com `ANTHROPIC_API_KEY` real exigem autorização
+    explícita separada (envio de dados a serviço externo,
+    `AGENTS.md`), registrada quando essa etapa acontecer.
+- Consequências: primeira integração de IA do projeto. O dossiê nunca é
+  persistido — só a explicação passa a existir, e apenas em memória do
+  componente React, descartada ao simular de novo. Nenhum dado sai do
+  navegador além do dossiê já calculado (nenhuma consulta adicional a
+  Supabase, mercado ou fundamentos a partir da Edge Function). Docs
+  atualizados: `AGENTS.md` (subseção "Dossiê Técnico V1" cross-referenciada
+  - nova subseção "IA explicativa"), `docs/PRODUCT.md` ("Papel futuro da
+    IA" vira "Papel da IA"), `docs/ARCHITECTURE.md` (nova fronteira),
+    `docs/PROJECT_HANDOFF.md`, `docs/ROADMAP.md`, `README.md`.

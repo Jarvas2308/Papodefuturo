@@ -10,6 +10,8 @@ import type {
   ExchangeRate,
   Purchase,
 } from '../../domain/models'
+import type { AiExplanationV1 } from '../../domain/aiExplanation'
+import type { TechnicalDossierV1 } from '../../domain/technicalDossier'
 
 export type AssetRepository = {
   list(): Promise<Asset[]>
@@ -110,6 +112,10 @@ export type MarketDataRepository = {
   refresh(): Promise<MarketDataRefreshResult>
 }
 
+export type AiExplanationRepository = {
+  explain(dossier: TechnicalDossierV1): Promise<AiExplanationV1>
+}
+
 export type AppRepositories = {
   assets: AssetRepository
   purchases: PurchaseRepository
@@ -118,4 +124,5 @@ export type AppRepositories = {
   allocationTargets: AllocationTargetRepository
   marketData: MarketDataRepository
   contributionPlans: ContributionPlanRepository
+  aiExplanation: AiExplanationRepository
 }

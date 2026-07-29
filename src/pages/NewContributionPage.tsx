@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AiExplanation } from '../features/contribution/components/AiExplanation'
 import { ContributionForm } from '../features/contribution/components/ContributionForm'
 import { ContributionPurchaseConfirmation } from '../features/contribution/components/ContributionPurchaseConfirmation'
 import { ContributionPreview } from '../features/contribution/components/ContributionPreview'
@@ -8,11 +9,13 @@ import { useContributionData } from '../features/contribution/hooks/useContribut
 import { contributionMock } from '../features/contribution/mocks/contributionMock'
 import type { CreatePurchaseBatchItem } from '../data/repositories/contracts'
 import type { Asset, ContributionPlan, ExchangeRate } from '../domain/models'
+import type { AiExplanationV1 } from '../domain/aiExplanation'
 import type {
   AllocationTarget,
   ContributionAssetTarget,
   ContributionDistribution,
   ContributionPosition,
+  TargetAllocationContributionResult,
 } from '../features/contribution/types'
 import { shouldOfferContributionPurchaseConfirmation } from '../features/contribution/utils/confirmedPurchases'
 
@@ -38,6 +41,10 @@ type ContributionWorkspaceProps = {
   ): Promise<void>
   onAcceptPlan(): Promise<void>
   onRejectPlan(): Promise<void>
+  onExplainPlan(
+    technicalPlan: TargetAllocationContributionResult,
+    contributionAmountInCents: number
+  ): Promise<AiExplanationV1 | null>
   onRegisterPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
   ): Promise<unknown>
@@ -55,6 +62,7 @@ function ContributionWorkspace({
   onPresentPlan,
   onAcceptPlan,
   onRejectPlan,
+  onExplainPlan,
   onRegisterPurchases,
 }: ContributionWorkspaceProps) {
   const {
@@ -73,10 +81,14 @@ function ContributionWorkspace({
     metasGlobaisPorAtivo: assetTargets,
   })
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
+  const [aiExplanation, setAiExplanation] = useState<AiExplanationV1 | null>(
+    null
+  )
 
   function handleSimulation() {
     const simulation = simulateContribution()
     setIsConfirmationOpen(false)
+    setAiExplanation(null)
 
     if (
       !isDemo &&
@@ -88,6 +100,15 @@ function ContributionWorkspace({
         simulation.result.distribuicao,
         simulation.valorAporteEmCentavos
       )
+
+      if (simulation.result.strategy === 'target-allocation') {
+        const technicalPlan = simulation.result
+        const contributionAmountInCents = simulation.valorAporteEmCentavos
+
+        void onExplainPlan(technicalPlan, contributionAmountInCents).then(
+          setAiExplanation
+        )
+      }
     }
   }
 
@@ -125,6 +146,8 @@ function ContributionWorkspace({
           }
         />
       ) : null}
+
+      {aiExplanation ? <AiExplanation explanation={aiExplanation} /> : null}
 
       {result && isConfirmationOpen && !isDemo ? (
         <ContributionPurchaseConfirmation
@@ -213,6 +236,7 @@ export function NewContributionPage() {
         onPresentPlan={contributionData.presentContributionPlan}
         onAcceptPlan={contributionData.acceptContributionPlan}
         onRejectPlan={contributionData.rejectContributionPlan}
+        onExplainPlan={contributionData.explainContributionPlan}
         onRegisterPurchases={contributionData.registerConfirmedPurchases}
       />
     </section>

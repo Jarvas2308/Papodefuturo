@@ -356,6 +356,7 @@ describe('buildContributionPositions', () => {
         updateStatus: vi.fn(),
         linkItemPurchase: vi.fn(),
       },
+      aiExplanation: { explain: vi.fn() },
     }
 
     await expect(
