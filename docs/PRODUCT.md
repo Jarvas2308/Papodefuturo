@@ -302,8 +302,10 @@ preservando leitura para `authenticated` e escrita privilegiada para
 ações, FIIs e ETFs estão sincronizados; os fluxos de FII e SEC foram integrados
 nas PRs #75 e #77. Em 28 de julho de 2026 (`DEC-049`), a primeira ingestão
 real trouxe a tabela de 0 para 9 linhas: 5 ações via `cvm-stocks` e 4 FIIs via
-`cvm-fii`; a ingestão de ETFs internacionais via `sec-nport` segue bloqueada
-por um parser que rejeita um formato real de filing da SEC. Um runtime opcional
+`cvm-fii`. Em 29 de julho de 2026 (`DEC-051`), corrigidos três bugs reais
+independentes no provider `sec-nport`, a ingestão dos 3 ETFs internacionais
+(VOO, VNQ, VEA) também teve sucesso — a tabela chega a 12 linhas, cobrindo as
+três categorias do universo fechado pela primeira vez. Um runtime opcional
 (`disabled`/`read-only`, mesmo padrão do runtime de eventos oficiais) e uma
 apresentação autenticada existem em `src/application/context/fundamentals` e
 `src/features/fundamentals`, rota `/fundamentos`, mas a composição real

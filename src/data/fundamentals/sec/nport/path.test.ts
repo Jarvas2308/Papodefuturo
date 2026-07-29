@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { isSafeSecPrimaryDocumentPath } from './path'
+import {
+  extractSecPrimaryDocumentFileName,
+  isSafeSecPrimaryDocumentPath,
+} from './path'
 
 describe('isSafeSecPrimaryDocumentPath', () => {
   it('accepts the real SEC NPORT-P XSLT viewer path shape', () => {
@@ -46,5 +49,19 @@ describe('isSafeSecPrimaryDocumentPath', () => {
     expect(isSafeSecPrimaryDocumentPath('a?b.xml')).toBe(false)
     expect(isSafeSecPrimaryDocumentPath('a#b.xml')).toBe(false)
     expect(isSafeSecPrimaryDocumentPath('https://evil.example/x')).toBe(false)
+  })
+})
+
+describe('extractSecPrimaryDocumentFileName', () => {
+  it('strips the XSLT viewer subfolder, keeping the raw XML file name', () => {
+    expect(
+      extractSecPrimaryDocumentFileName('xslFormNPORT-P_X01/primary_doc.xml')
+    ).toBe('primary_doc.xml')
+  })
+
+  it('returns a bare file name unchanged', () => {
+    expect(extractSecPrimaryDocumentFileName('primary_doc.xml')).toBe(
+      'primary_doc.xml'
+    )
   })
 })

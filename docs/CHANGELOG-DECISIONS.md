@@ -1165,3 +1165,52 @@ invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
   sem preservar o código Postgrest original, então a classificação de erro é
   mais simples — não distingue `schema-unavailable` de
   `repository-unavailable`. 125 arquivos de teste, 2086 testes.
+
+## DEC-051 — Correção completa do provider SEC N-PORT; primeira ingestão real de ETFs internacionais
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: `DEC-049` deixou `sec-nport` bloqueado por um erro de validação de
+  `primaryDocument`. Corrigido isoladamente no PR #112 (validador único
+  `isSafeSecPrimaryDocumentPath`), a reexecução real revelou que o provider
+  nunca havia sido validado contra um download real da SEC: mais dois bugs
+  reais e independentes surgiram em sequência, cada um só visível depois do
+  anterior ser corrigido.
+- Decisão: corrigir os dois bugs adicionais, cada um confirmado por
+  diagnóstico contra dado real antes da correção:
+  1. **URL errada para o XML estruturado.** `primaryDocument` da Submissions
+     API (ex.: `xslFormNPORT-P_X01/primary_doc.xml`) aponta para o
+     visualizador HTML com XSLT aplicado (`<!DOCTYPE html>` real, confirmado
+     por download), não para o XML bruto. O documento estruturado
+     (`<?xml ...?><edgarSubmission ...>`) fica na raiz da pasta da accession,
+     sob o nome do último segmento do caminho. Nova função
+     `extractSecPrimaryDocumentFileName` (`src/data/fundamentals/sec/nport/path.ts`)
+     extrai o nome de arquivo correto; usada tanto para montar a URL de
+     download (`buildSecPrimaryDocumentUrl`) quanto para validar a
+     proveniência persistida (`assertOfficialDocumentUrl`, storage de ETFs).
+  2. **Caminho XML incorreto para `seriesId`/`classId` do cabeçalho.** O
+     código esperava `filerInfo/filer/seriesClassInfo/...`
+     (`seriesClassInfo` aninhado dentro de `filer`); o XML real tem
+     `seriesClassInfo` como irmão de `filer`, ambos filhos diretos de
+     `filerInfo`. Corrigido em `SEC_NPORT_XML_PATHS` (`xml.ts`).
+  3. **`seriesName` divergente por maiúsculas/minúsculas.** A SEC publica
+     `regName`/`seriesName` em maiúsculas no XML real (ex.:
+     `"VANGUARD 500 INDEX FUND"`); `SEC_INTERNATIONAL_ETFS`
+     (`src/data/fundamentals/sec/nport/etfs.ts`) usava capitalização estilo
+     título (`"Vanguard 500 Index Fund"`), reprovando a checagem estrita de
+     identidade oficial (`assertProvenanceCoherence`) para os três ETFs.
+     Corrigido para o texto verbatim da SEC, com comentário explícito contra
+     "arrumar" a capitalização de novo.
+     Nenhum dos três bugs era visível nos 2099 testes Vitest porque as fixtures
+     (`AUDITED_FILINGS`, `createMinimalNportXml`, `SEC_INTERNATIONAL_ETFS`) foram
+     construídas por suposição sobre o formato da SEC, não a partir de um
+     payload real — terceira ocorrência da mesma lição estrutural desta semana
+     (CVM IPE em `DEC-047`, adapter de fundamentos em `DEC-049`). Todas as
+     fixtures foram corrigidas para os valores reais confirmados.
+- Consequências: `sec-nport --confirm` executado com sucesso — 3 registros
+  extraídos e persistidos (VOO, VNQ, VEA). `fundamental_snapshots` chega a 12
+  linhas, cobrindo pela primeira vez as três categorias do universo fechado
+  (5 ações, 4 FIIs, 3 ETFs internacionais). Confirmado por consulta somente
+  leitura e `get_advisors`: nenhum achado novo de segurança. Item de ROADMAP
+  do Sprint 3/`DEC-049` fica totalmente concluído. 126 arquivos de teste,
+  2099 testes.

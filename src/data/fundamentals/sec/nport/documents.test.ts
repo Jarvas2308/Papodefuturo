@@ -21,7 +21,7 @@ describe('SEC N-PORT documents', () => {
       'https://data.sec.gov/submissions/CIK0000036405-submissions-001.json'
     )
     expect(buildSecPrimaryDocumentUrl('0000036405', AUDITED_FILINGS.VOO!)).toBe(
-      'https://www.sec.gov/Archives/edgar/data/36405/000003640526000325/xslFormNPORT-P_X01/primary_doc.xml'
+      'https://www.sec.gov/Archives/edgar/data/36405/000003640526000325/primary_doc.xml'
     )
   })
 

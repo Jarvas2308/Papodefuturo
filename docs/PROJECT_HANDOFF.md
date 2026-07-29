@@ -48,6 +48,14 @@ adapter, latente desde `DEC-044`) tiveram sucesso, trazendo
 `fundamental_snapshots` de 0 para 9 linhas; `sec-nport` falhou por dado real da
 SEC não coberto pelo parser, sem persistir nada. Detalhe na seção 7.
 
+Uma oitava atualização, em 29 de julho de 2026, registra a correção completa
+do provider `sec-nport` (`DEC-051`): três bugs reais independentes,
+revelados em sequência (URL do documento primário, caminho XML do
+cabeçalho, capitalização de `seriesName`), e a reexecução bem-sucedida —
+3 registros persistidos (VOO, VNQ, VEA). `fundamental_snapshots` chega a 12
+linhas, cobrindo as três categorias do universo fechado pela primeira vez.
+Detalhe na seção 7.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -318,10 +326,14 @@ RLS habilitado, leitura autenticada e escrita privilegiada via RPC transacional
 (`DEC-049`), a primeira ingestão real trouxe a tabela de 0 para 9 linhas:
 `cvm-fii --year=2026` (4 registros, um por FII) e `cvm-stocks --source=DFP
 --year=2025` (5 registros, um por ação, após corrigir um bug real de adapter
-que omitia 4 das 24 colunas exigidas pela RPC). `sec-nport` segue bloqueado —
-falhou por um filing real da SEC com `primaryDocument` vazio/malformado, sem
-persistir nada. Antes de operar, confirmar contagens reais no ambiente
-autorizado; não inferir aplicação remota apenas pelos arquivos locais.
+que omitia 4 das 24 colunas exigidas pela RPC). Em 29 de julho de 2026
+(`DEC-051`), corrigidos três bugs reais independentes no provider `sec-nport`
+(URL do documento primário apontando para o visualizador HTML em vez do XML
+bruto; caminho XML incorreto para o cabeçalho; `seriesName` divergente por
+maiúsculas/minúsculas) e reexecutado com sucesso — 3 registros (VOO, VNQ,
+VEA). A tabela chega a 12 linhas, cobrindo as três categorias do universo
+fechado. Antes de operar, confirmar contagens reais no ambiente autorizado;
+não inferir aplicação remota apenas pelos arquivos locais.
 
 ## 8. Eventos oficiais e notícias
 
@@ -672,7 +684,8 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   CVM IPE (`DEC-047`) e a reexecução do job (`DEC-048`), a tabela foi de 4
   para 302 linhas. No mesmo dia, a primeira ingestão real de fundamentos
   (`DEC-049`) trouxe `fundamental_snapshots` de 0 para 9 linhas (`cvm-fii` e
-  `cvm-stocks`; `sec-nport` bloqueado). `purchases` segue com 0;
+  `cvm-stocks`); em 29 de julho, após corrigir o provider `sec-nport`
+  (`DEC-051`), a tabela chegou a 12 linhas. `purchases` segue com 0;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
@@ -787,9 +800,10 @@ verificação adicional no sistema correspondente:
 - que o deployment Vercel atual, na data em que este documento for lido, ainda
   aponta para o commit `5b05e11` — deployments futuros podem ter substituído
   esse estado;
-- que existe dado fundamentalista além do registrado em `DEC-049` (28 de
-  julho: `cvm-fii` e `cvm-stocks` bem-sucedidos, 9 linhas; `sec-nport`
-  bloqueado) — contagem futura deve ser verificada, não assumida;
+- que existe dado fundamentalista além do registrado em `DEC-049` e `DEC-051`
+  (29 de julho: `cvm-fii`, `cvm-stocks` e `sec-nport` bem-sucedidos, 12
+  linhas, cobrindo as três categorias) — contagem futura deve ser verificada,
+  não assumida;
 - que existe backfill real de eventos oficiais além do que está registrado em
   `DEC-040` (canário, `fetchedEventCount: 0`) e `DEC-046` (28 de julho:
   `sec-edgar` e `cvm-fund-delivery` com sucesso, 4 eventos persistidos;
