@@ -782,16 +782,26 @@ pendente:
    competências/exercícios de CVM (DFP e ITR) e a ativação `read-only` do
    runtime de fundamentos.
 3. Agendamento automático de `refresh-market-data`. Em 29 de julho de 2026
-   (`DEC-052`), primeiro passo aplicado: dados de mercado passam a ser
-   globais — `market_asset_prices` e `market_exchange_rates`, tabelas novas
-   e independentes, sem `user_id`, leitura `authenticated`, escrita exclusiva
-   de `service_role` via RPC transacional, mesmo padrão de
-   `fundamental_snapshots`. Ainda sem dado real (schema aplicado, 0 linhas).
-   As tabelas antigas por usuário (`asset_prices`, `exchange_rates`)
-   permanecem intocadas e em uso. Restam, neste mesmo sprint: migrar o
-   consumo (repository, os quatro hooks, Edge Function para caminho
-   `service_role`, remoção da edição manual de câmbio) e aplicar
-   `pg_cron`/`pg_net`.
+   (`DEC-052`), dados de mercado passaram a ser globais —
+   `market_asset_prices` e `market_exchange_rates`, tabelas novas e
+   independentes, sem `user_id`, leitura `authenticated`, escrita exclusiva de
+   `service_role` via RPC transacional, mesmo padrão de
+   `fundamental_snapshots`. Aplicado e com dado real: 12 preços e 1 câmbio
+   persistidos via disparo real da Edge Function em produção. Em seguida
+   (`DEC-053`), o consumo migrou por completo: `refresh-market-data` passou a
+   ler/escrever exclusivamente nas tabelas globais via `service_role`
+   (aceitando sessão de usuário real ou o próprio `service_role` como
+   chamador de confiança, para uso futuro por `pg_cron`); `AssetPriceRepository`
+   e `ExchangeRateRepository` (app) migraram para as tabelas globais; os
+   quatro hooks (Dashboard, Carteira, Estratégia, Novo Aporte) passaram a
+   resolver `ticker` → `Asset.id` localmente; a edição manual de câmbio
+   (`saveManualUsdBrl`, componente `ExchangeRateSetup`) foi **removida por
+   completo** — câmbio global não tem dono individual para sobrescrever, e a
+   atualização automática já roda de verdade. As tabelas antigas por usuário
+   (`asset_prices`, `exchange_rates`) permanecem intocadas no schema, sem mais
+   nenhum consumidor no app. Resta apenas, neste mesmo sprint: aplicar
+   `pg_cron`/`pg_net` para agendamento automático (hoje o refresh só roda por
+   disparo direto).
 4. Camadas qualitativas e IA explicativa seguem posteriores; devem consumir os
    contratos factuais e derivados já existentes sem recalcular ou alterar o
    plano técnico do motor determinístico.

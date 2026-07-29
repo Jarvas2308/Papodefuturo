@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ExchangeRateSetup } from '../components/ui/ExchangeRateSetup'
 import { ContributionForm } from '../features/contribution/components/ContributionForm'
 import { ContributionPurchaseConfirmation } from '../features/contribution/components/ContributionPurchaseConfirmation'
 import { ContributionPreview } from '../features/contribution/components/ContributionPreview'
@@ -34,7 +33,6 @@ type ContributionWorkspaceProps = {
   onRegisterPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
   ): Promise<unknown>
-  onSaveExchangeRate(rateScaled: number): Promise<void>
 }
 
 function ContributionWorkspace({
@@ -46,7 +44,6 @@ function ContributionWorkspace({
   assetTargets,
   isDemo,
   onRegisterPurchases,
-  onSaveExchangeRate,
 }: ContributionWorkspaceProps) {
   const {
     error,
@@ -112,7 +109,6 @@ function ContributionWorkspace({
           positions={resultPositions}
           result={result}
           onRegister={onRegisterPurchases}
-          onSaveExchangeRate={onSaveExchangeRate}
         />
       ) : null}
 
@@ -153,7 +149,11 @@ export function NewContributionPage() {
   if (contributionData.needsExchangeRate) {
     return (
       <section className="space-y-6">
-        <ExchangeRateSetup onSave={contributionData.saveManualUsdBrl} />
+        <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-5 text-sm text-[var(--color-text-muted)]">
+          Sua simulação inclui posição internacional confirmada. Aguardando a
+          próxima atualização automática da cotação USD/BRL para calcular
+          valores em BRL.
+        </p>
       </section>
     )
   }
@@ -183,7 +183,6 @@ export function NewContributionPage() {
         assetTargets={contributionData.assetTargets}
         isDemo={contributionData.isDemo}
         onRegisterPurchases={contributionData.registerConfirmedPurchases}
-        onSaveExchangeRate={contributionData.saveManualUsdBrl}
       />
     </section>
   )

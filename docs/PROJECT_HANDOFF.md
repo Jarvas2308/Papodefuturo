@@ -63,6 +63,18 @@ independentes no mesmo padrão de `fundamental_snapshots`, foram aplicadas ao
 Supabase real e auditadas transacionalmente; ainda sem dado real. As tabelas
 antigas por usuário permanecem intocadas. Detalhe na seção 9.
 
+Uma décima atualização, ainda em 29 de julho de 2026, registra a conclusão do
+cutover de consumo (`DEC-053`): a Edge Function `refresh-market-data` foi
+migrada para ler/escrever exclusivamente `market_asset_prices`/
+`market_exchange_rates` via `service_role`, verificada em produção (deploy
+real versão 7, disparo real com 12 preços e 1 câmbio persistidos). Em
+seguida, o app migrou por completo: `AssetPriceRepository`,
+`ExchangeRateRepository` e os quatro hooks (Dashboard, Carteira, Estratégia,
+Novo Aporte) passaram a ler as tabelas globais, e a edição manual de câmbio
+USD/BRL (`saveManualUsdBrl`, componente `ExchangeRateSetup`) foi **removida
+por completo** do código — não é mais uma feature do produto. Detalhe na
+seção 9.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -537,8 +549,8 @@ Tabelas privadas documentadas como aplicadas:
 - `profiles`;
 - `assets`;
 - `purchases`;
-- `asset_prices` (por usuário; intocada, mantida em uso até um ciclo futuro
-  confirmar que nada mais depende dela — ver `DEC-052`);
+- `asset_prices` (por usuário; intocada no schema, sem consumidor no app
+  desde `DEC-053` — mantida até um ciclo futuro confirmar remoção);
 - `allocation_targets`;
 - `exchange_rates` (por usuário; mesma nota de `asset_prices`).
 
@@ -547,8 +559,9 @@ Tabelas globais documentadas como aplicadas:
 - `fundamental_snapshots`;
 - `official_asset_events` e as tabelas de checkpoint de backfill;
 - `market_asset_prices` e `market_exchange_rates` (`DEC-052`, 29 de julho de
-  2026): schema aplicado, RPCs auditadas transacionalmente, ainda com 0
-  linhas — nenhum dado real gravado.
+  2026): schema aplicado, RPCs auditadas transacionalmente. Desde `DEC-053`,
+  com dado real (12 preços, 1 câmbio) e único destino de leitura/escrita da
+  Edge Function `refresh-market-data` e do app (repository, quatro hooks).
 
 Regras inegociáveis:
 

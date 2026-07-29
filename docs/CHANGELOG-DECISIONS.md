@@ -1263,3 +1263,61 @@ invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
   hooks, a Edge Function `refresh-market-data` para um caminho
   `service_role`) e o agendamento `pg_cron`/`pg_net` ficam para os próximos
   PRs deste mesmo Sprint 5, cada aplicação real com autorização própria.
+
+## DEC-053 — Cutover completo do consumo para dados de mercado globais; remoção da edição manual de câmbio
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: sequência de `DEC-052` (PR 5.1, tabelas globais aplicadas). Faltava
+  migrar quem lê e escreve esses dados: a Edge Function `refresh-market-data`
+  ainda rodava sob a sessão do usuário chamador (`SUPABASE_ANON_KEY` + JWT),
+  e o app ainda lia/escrevia nas tabelas antigas por usuário (`asset_prices`,
+  `exchange_rates`), incluindo a edição manual de câmbio USD/BRL exposta em
+  quatro telas.
+- Decisão, parte 1 (Edge Function, PR #115): `refresh-market-data` passa a
+  ler `market_asset_prices`/`market_exchange_rates` e a escrever
+  exclusivamente via `upsert_market_asset_prices_v1`/
+  `upsert_market_exchange_rates_v1`, usando um client próprio construído com
+  `SUPABASE_SERVICE_ROLE_KEY` (nunca a sessão encaminhada pelo chamador). A
+  função aceita duas formas de chamada: sessão de usuário autenticado real
+  (gate já existente) ou chamador de confiança server-side
+  (`Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`), preparando o caminho
+  para o agendamento `pg_cron`/`pg_net` do próximo PR. O universo fechado de
+  ativos (`SERVER_CLOSED_ASSET_UNIVERSE`) passou a ser a fonte direta da
+  iteração, em vez de cruzar com a tabela `assets` de um usuário específico.
+  Verificado em produção: deploy real (versão 7, ativa), disparo real via
+  `service_role`, 12 preços e 1 câmbio persistidos em
+  `market_asset_prices`/`market_exchange_rates` (confirmado por consulta
+  somente leitura), execuções subsequentes reconhecendo corretamente
+  freshness (skip/stale), `get_advisors` sem achado novo.
+- Decisão, parte 2 (app, PR 5.2 conclusão): `AssetPriceRepository.list` passa
+  a receber a lista de `Asset[]` já carregada e resolve `ticker` → `Asset.id`
+  localmente (a tabela global não tem `asset_id`); `ExchangeRateRepository`
+  passa a ler `market_exchange_rates` diretamente. Os quatro hooks
+  (`useDashboardData`, `usePortfolioData`, `useStrategyData`,
+  `useContributionData`) passam `assets` para `assetPrices.list`, sem
+  qualquer outra mudança de lógica.
+  - **Edição manual de câmbio removida por completo**: `saveManualUsdBrl`
+    (contrato, repository e os quatro hooks) e o componente
+    `ExchangeRateSetup` foram apagados; os cinco pontos de uso (Dashboard,
+    Carteira, Estratégia, Novo Aporte, `ContributionPurchaseConfirmation`)
+    passam a exibir uma mensagem informativa de espera pela próxima
+    atualização automática, sem formulário de entrada — câmbio global não
+    tem dono individual para sobrescrever, e a atualização automática via
+    `refresh-market-data` já roda de verdade (`DEC-043`, confirmado nesta
+    mesma decisão).
+  - Mapeadores reescritos: `mapMarketAssetPriceRow` (substitui
+    `mapAssetPriceRow`) e `mapExchangeRateRow` (agora contra
+    `Tables<'market_exchange_rates'>` gerado, não mais um schema paralelo
+    escrito à mão). O arquivo `exchangeRateSchema.ts` foi substituído por
+    `rpcSchema.ts`, genérico, usado apenas para tipar a RPC
+    `replace_allocation_targets` de metas de alocação (não relacionado a
+    câmbio).
+  - As tabelas antigas por usuário (`asset_prices`, `exchange_rates`)
+    permanecem intocadas no schema; nenhum código do app ainda as lê ou
+    escreve.
+- Consequências: `npm test` (128 arquivos, 2119 testes), lint, build e
+  `git diff --check` limpos. Verificação de UI feita em modo demo (sem
+  crash, sem erro de console); o caminho autenticado real é coberto pelos
+  testes unitários dos quatro hooks. Resta apenas o agendamento
+  `pg_cron`/`pg_net` (PR 5.3) para fechar o Sprint 5.

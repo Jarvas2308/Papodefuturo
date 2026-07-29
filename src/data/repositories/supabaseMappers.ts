@@ -19,7 +19,7 @@ import type { Tables } from '../../lib/database.types'
 
 type AssetRow = Tables<'assets'>
 type PurchaseRow = Tables<'purchases'>
-type AssetPriceRow = Tables<'asset_prices'>
+type MarketAssetPriceRow = Tables<'market_asset_prices'>
 type AllocationTargetRow = Tables<'allocation_targets'>
 
 const ASSET_CATEGORIES: readonly AssetCategory[] = [
@@ -108,10 +108,19 @@ export function mapPurchaseRow(row: PurchaseRow): Purchase {
   }
 }
 
-export function mapAssetPriceRow(row: AssetPriceRow): AssetPrice {
+export function mapMarketAssetPriceRow(
+  row: MarketAssetPriceRow,
+  assetIdByTicker: ReadonlyMap<string, string>
+): AssetPrice | null {
+  const assetId = assetIdByTicker.get(row.ticker)
+
+  if (!assetId) {
+    return null
+  }
+
   return {
-    id: row.id,
-    assetId: row.asset_id,
+    id: String(row.id),
+    assetId,
     price: {
       amountInMinorUnits: readMoneyInMinorUnits(row.price_minor, 'asset price'),
       currency: readAllowedValue(row.currency, CURRENCIES, 'currency'),

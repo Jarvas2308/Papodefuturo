@@ -1,4 +1,3 @@
-import { ExchangeRateSetup } from '../components/ui/ExchangeRateSetup'
 import { StrategyEditor } from '../features/strategy/components/StrategyEditor'
 import { useStrategyData } from '../features/strategy/useStrategyData'
 
@@ -28,7 +27,11 @@ export function StrategyPage() {
   if (strategyData.needsExchangeRate) {
     return (
       <section className="space-y-6">
-        <ExchangeRateSetup onSave={strategyData.saveManualUsdBrl} />
+        <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-5 text-sm text-[var(--color-text-muted)]">
+          Sua estratégia possui posição internacional confirmada. Aguardando a
+          próxima atualização automática da cotação USD/BRL para calcular
+          posições em BRL.
+        </p>
       </section>
     )
   }
