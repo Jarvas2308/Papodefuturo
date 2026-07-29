@@ -56,6 +56,13 @@ cabeçalho, capitalização de `seriesName`), e a reexecução bem-sucedida —
 linhas, cobrindo as três categorias do universo fechado pela primeira vez.
 Detalhe na seção 7.
 
+Uma nona atualização, ainda em 29 de julho de 2026, registra o início do
+Sprint 5 (`DEC-052`): dados de mercado passam a ser globais.
+`market_asset_prices` e `market_exchange_rates`, tabelas novas e
+independentes no mesmo padrão de `fundamental_snapshots`, foram aplicadas ao
+Supabase real e auditadas transacionalmente; ainda sem dado real. As tabelas
+antigas por usuário permanecem intocadas. Detalhe na seção 9.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -530,9 +537,18 @@ Tabelas privadas documentadas como aplicadas:
 - `profiles`;
 - `assets`;
 - `purchases`;
-- `asset_prices`;
+- `asset_prices` (por usuário; intocada, mantida em uso até um ciclo futuro
+  confirmar que nada mais depende dela — ver `DEC-052`);
 - `allocation_targets`;
-- `exchange_rates`.
+- `exchange_rates` (por usuário; mesma nota de `asset_prices`).
+
+Tabelas globais documentadas como aplicadas:
+
+- `fundamental_snapshots`;
+- `official_asset_events` e as tabelas de checkpoint de backfill;
+- `market_asset_prices` e `market_exchange_rates` (`DEC-052`, 29 de julho de
+  2026): schema aplicado, RPCs auditadas transacionalmente, ainda com 0
+  linhas — nenhum dado real gravado.
 
 Regras inegociáveis:
 
@@ -548,9 +564,10 @@ Regras inegociáveis:
 - mudanças de schema exigem nova migration; migrations aplicadas não são
   reescritas.
 
-Eventos e fundamentos são dados globais, não dados por usuário. As policies e
-grants desses recursos seguem contratos próprios e não devem receber
-`auth.uid()` ou FK para `assets` por conveniência.
+Eventos, fundamentos e, desde `DEC-052`, dados de mercado são dados globais,
+não dados por usuário. As policies e grants desses recursos seguem contratos
+próprios e não devem receber `auth.uid()` ou FK para `assets` por
+conveniência.
 
 ## 10. Arquitetura e mapa de diretórios
 

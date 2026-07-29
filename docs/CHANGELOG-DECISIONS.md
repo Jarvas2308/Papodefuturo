@@ -1214,3 +1214,52 @@ invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
   leitura e `get_advisors`: nenhum achado novo de segurança. Item de ROADMAP
   do Sprint 3/`DEC-049` fica totalmente concluído. 126 arquivos de teste,
   2099 testes.
+
+## DEC-052 — Dados de mercado passam a ser globais; tabelas aplicadas
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: item 3 de `docs/ROADMAP.md` § Próximo. `refresh-market-data` exige
+  header `Authorization`, cria o client com a chave anônima mais o JWT do
+  usuário e chama `auth.getUser()` — todo acesso a banco roda sob RLS do
+  usuário, e `asset_prices`/`exchange_rates` são tabelas por usuário
+  (`user_id` obrigatório, FK para `auth.users`). Um agendamento `pg_cron` não
+  tem usuário autenticado: chamar a função sob `service_role` falha em
+  `getUser()`, e mesmo contornando isso não há `user_id` de sessão para
+  gravar. A auditoria de `DEC-043` já havia constatado o efeito colateral
+  desse desenho: cada usuário que autentica grava sua própria cópia das
+  mesmas cotações públicas.
+- Decisão: dados de mercado (preços e câmbio) passam a ser **globais**, no
+  mesmo padrão já usado por `fundamental_snapshots` e
+  `official_asset_events` — sem `user_id`, identidade por `ticker` (não FK
+  para `assets`, que é por usuário), leitura `authenticated` via RLS
+  (`using (true)`), escrita exclusiva de `service_role` via RPC transacional.
+  Duas tabelas novas e independentes aplicadas ao Supabase real:
+  - `market_asset_prices` — identidade `(ticker, source, priced_at)`, RPC
+    `upsert_market_asset_prices_v1`, lote de até 100 registros.
+  - `market_exchange_rates` — identidade
+    `(base_currency, quote_currency, source, priced_at)`, RPC
+    `upsert_market_exchange_rates_v1`, mesmo limite de lote.
+    Ambas as RPCs seguem a lição estrutural dos bugs reais de
+    `upsert_official_asset_events_v1` (`docs/PROJECT_HANDOFF.md` seção 8): toda
+    variável PL/pgSQL usa prefixo `v_`, `COALESCE` nunca é qualificado por
+    schema. Auditadas transacionalmente (`begin; … rollback;`) contra o
+    Supabase real: inserção, reinserção idêntica (idempotente) e atualização
+    por conflito de identidade confirmadas para as duas tabelas, sem resíduo;
+    rejeição de shape inválido confirmada. `get_advisors` não mostrou achado
+    novo. `src/lib/database.types.ts` regenerado.
+  - **Consequência de produto explícita**: a edição manual de câmbio
+    USD/BRL (`saveManualUsdBrl`, hoje exposta nas telas Dashboard, Carteira,
+    Estratégia e Novo Aporte) será removida quando o consumo migrar para a
+    fonte global (próximo ciclo deste sprint) — câmbio global não tem dono
+    individual para sobrescrever, e o valor automático via
+    `refresh-market-data` já roda de verdade (`DEC-043`).
+  - As tabelas antigas por usuário (`asset_prices`, `exchange_rates`)
+    permanecem **intocadas e em uso** até um ciclo futuro confirmar que nada
+    mais depende delas; não fazem parte desta migration e não foram
+    alteradas.
+- Consequências: schema aplicado, sem dado real ainda (0 linhas nas duas
+  tabelas novas). A migração do consumo (`MarketDataRepository`, os quatro
+  hooks, a Edge Function `refresh-market-data` para um caminho
+  `service_role`) e o agendamento `pg_cron`/`pg_net` ficam para os próximos
+  PRs deste mesmo Sprint 5, cada aplicação real com autorização própria.

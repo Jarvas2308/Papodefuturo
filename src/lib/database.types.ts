@@ -261,6 +261,72 @@ export type Database = {
         }
         Relationships: []
       }
+      market_asset_prices: {
+        Row: {
+          created_at: string
+          currency: string
+          id: number
+          market: string
+          price_minor: number
+          priced_at: string
+          source: string
+          ticker: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: number
+          market: string
+          price_minor: number
+          priced_at: string
+          source: string
+          ticker: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: number
+          market?: string
+          price_minor?: number
+          priced_at?: string
+          source?: string
+          ticker?: string
+        }
+        Relationships: []
+      }
+      market_exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          id: number
+          priced_at: string
+          quote_currency: string
+          rate_scale: number
+          rate_scaled: number
+          source: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string
+          id?: number
+          priced_at: string
+          quote_currency: string
+          rate_scale?: number
+          rate_scaled: number
+          source: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          id?: number
+          priced_at?: string
+          quote_currency?: string
+          rate_scale?: number
+          rate_scaled?: number
+          source?: string
+        }
+        Relationships: []
+      }
       official_asset_events: {
         Row: {
           accession_number: string | null
@@ -729,6 +795,11 @@ export type Database = {
         Returns: undefined
       }
       upsert_fundamental_snapshots_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
+      upsert_market_asset_prices_v1: { Args: { records: Json }; Returns: Json }
+      upsert_market_exchange_rates_v1: {
         Args: { records: Json }
         Returns: Json
       }
