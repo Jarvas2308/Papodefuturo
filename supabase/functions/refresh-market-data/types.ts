@@ -31,14 +31,8 @@ export type ExchangeRateQuote = {
   pricedAt: string
 }
 
-export type RefreshAsset = {
-  id: string
-  ticker: string
-  status: string
-}
-
 export type StoredMarketPrice = {
-  assetId: string
+  ticker: string
   pricedAt: string
   source: string
 }
@@ -51,18 +45,15 @@ export type StoredExchangeRate = {
 }
 
 export type MarketPriceInsert = {
-  id: string
-  user_id: string
-  asset_id: string
-  price_minor: number
+  ticker: string
+  market: 'BR' | 'US'
   currency: 'BRL' | 'USD'
+  price_minor: number
   priced_at: string
   source: 'market-provider'
 }
 
 export type ExchangeRateInsert = {
-  id: string
-  user_id: string
   base_currency: 'USD'
   quote_currency: 'BRL'
   rate_scaled: number
