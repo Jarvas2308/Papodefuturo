@@ -803,10 +803,23 @@ pendente:
    foi aplicado: `pg_cron`/`pg_net` disparam `refresh-market-data-hourly` a
    cada hora, autenticado como `service_role` via segredo lido do Supabase
    Vault (nunca versionado). **Sprint 5 completo.**
-4. Camadas qualitativas e IA explicativa seguem posteriores; devem consumir os
+4. Persistência do plano de aporte. Em 29 de julho de 2026 (`DEC-055`),
+   `contribution_plans` e `contribution_plan_items` saíram de "planejada e
+   adiada" para aplicadas — por usuário, RLS com `(select auth.uid())`,
+   ownership validado nas relações, mesmo padrão de
+   `purchases`/`allocation_targets`. O fluxo real: simular aporte persiste um
+   `ContributionPlan` (status `presented`); o usuário aceita ou rejeita
+   explicitamente; ao registrar as compras realizadas para um plano aceito,
+   cada `ContributionPlanItem` é ligado à `Purchase` real via `purchase_id`
+   e o plano vai para `confirmed`. `ContributionPlanItem.plannedPurchase`
+   (dependência que motivava o adiamento original, `AGENTS.md` seção 14) fica
+   resolvido. O motor continua sem executar ordens e sem persistir plano
+   automaticamente — toda transição de status é ação explícita do usuário.
+   **Sprint 6 completo.**
+5. Camadas qualitativas e IA explicativa seguem posteriores; devem consumir os
    contratos factuais e derivados já existentes sem recalcular ou alterar o
    plano técnico do motor determinístico.
-5. Notícias editoriais seguem em `NO-GO` (`DEC-036`). Nenhum provider editorial
+6. Notícias editoriais seguem em `NO-GO` (`DEC-036`). Nenhum provider editorial
    foi aprovado.
 
 O domínio puro e os três providers oficiais — CVM IPE para ações, CVM Fund

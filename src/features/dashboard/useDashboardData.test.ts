@@ -72,6 +72,12 @@ function createRepositories(rates: ExchangeRate[]) {
         warnings: [],
       }),
     },
+    contributionPlans: {
+      list: vi.fn().mockResolvedValue([]),
+      create: vi.fn(),
+      updateStatus: vi.fn(),
+      linkItemPurchase: vi.fn(),
+    },
   } as AppRepositories
 }
 

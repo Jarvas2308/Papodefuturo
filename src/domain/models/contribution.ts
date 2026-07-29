@@ -2,7 +2,7 @@ import type { Purchase } from './purchase'
 import type { EntityId, MoneyAmount } from './shared'
 
 export type ContributionPlanStatus =
-  'draft' | 'presented' | 'accepted' | 'rejected'
+  'draft' | 'presented' | 'accepted' | 'rejected' | 'confirmed'
 
 export type ContributionPlanItem = {
   id: EntityId

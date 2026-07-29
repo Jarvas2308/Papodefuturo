@@ -1,6 +1,7 @@
 import { Check, CheckCircle2 } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Card } from '../../../components/ui/Card'
+import type { ContributionPlanStatus } from '../../../domain/models'
 import type { PortfolioPosition } from '../../portfolio/types'
 import type {
   ContributionResult as ContributionResultData,
@@ -14,6 +15,9 @@ type ResultPosition = Pick<
 
 type ContributionResultProps = {
   onConfirmPurchases?: () => void
+  onAcceptPlan?: () => void
+  onRejectPlan?: () => void
+  planStatus?: ContributionPlanStatus | null
   positions: ResultPosition[]
   result: ContributionResultData
   strategy: ContributionStrategyType
@@ -47,6 +51,9 @@ const stopReasonMessages = {
 
 export function ContributionResult({
   onConfirmPurchases,
+  onAcceptPlan,
+  onRejectPlan,
+  planStatus,
   positions,
   result,
   strategy,
@@ -60,6 +67,15 @@ export function ContributionResult({
       ? result.technicalImpact.items.map((item) => [item.assetId, item])
       : []
   )
+  const hasSuggestions = result.distribuicao.length > 0
+  const showAcceptOrReject =
+    hasSuggestions && planStatus === 'presented' && onAcceptPlan && onRejectPlan
+  const showConfirm =
+    hasSuggestions &&
+    onConfirmPurchases &&
+    (planStatus === undefined ||
+      planStatus === null ||
+      planStatus === 'accepted')
 
   return (
     <Card
@@ -200,7 +216,15 @@ export function ContributionResult({
           financeira. Ela não executa ordens nem movimenta valores. Registre
           apenas os fatos das compras que você realmente realizou.
         </p>
-        {onConfirmPurchases && result.distribuicao.length > 0 ? (
+        {showAcceptOrReject ? (
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button onClick={onAcceptPlan}>Aceitar plano</Button>
+            <Button variant="secondary" onClick={onRejectPlan}>
+              Rejeitar plano
+            </Button>
+          </div>
+        ) : null}
+        {showConfirm ? (
           <Button
             className="mt-5"
             variant="secondary"

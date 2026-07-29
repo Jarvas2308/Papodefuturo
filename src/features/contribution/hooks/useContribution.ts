@@ -42,7 +42,10 @@ export function useContribution({
     setError(null)
   }
 
-  function simulateContribution() {
+  function simulateContribution(): {
+    result: ContributionResult | null
+    valorAporteEmCentavos: number | null
+  } {
     try {
       const valorAporteEmCentavos = parseContributionValue(valorAporte)
       const simulation = contributionEngine({
@@ -55,6 +58,7 @@ export function useContribution({
 
       setResult(simulation)
       setError(null)
+      return { result: simulation, valorAporteEmCentavos }
     } catch (caughtError) {
       setResult(null)
       setError(
@@ -64,6 +68,7 @@ export function useContribution({
           ? caughtError.message
           : 'Não foi possível simular o aporte com os dados atuais.'
       )
+      return { result: null, valorAporteEmCentavos: null }
     }
   }
 

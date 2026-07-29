@@ -26,6 +26,12 @@ function createRepositories(): AppRepositories {
     marketData: {
       refresh: vi.fn().mockRejectedValue(new Error('function unavailable')),
     },
+    contributionPlans: {
+      list: vi.fn().mockResolvedValue([]),
+      create: vi.fn(),
+      updateStatus: vi.fn(),
+      linkItemPurchase: vi.fn(),
+    },
   }
 }
 

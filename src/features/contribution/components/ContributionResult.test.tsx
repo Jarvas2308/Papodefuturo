@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import type { ContributionPlanStatus } from '../../../domain/models'
 import type { ContributionResult as ContributionResultData } from '../types'
 import { ContributionResult } from './ContributionResult'
 
@@ -108,5 +109,48 @@ describe('ContributionResult', () => {
     )
 
     expect(markup).toContain('Confirmar compras realizadas')
+  })
+
+  function renderWithPlanStatus(planStatus: ContributionPlanStatus | null) {
+    return renderToStaticMarkup(
+      <ContributionResult
+        positions={positions}
+        result={{
+          strategy: 'proportional',
+          distribuicao: [{ assetId: 'asset-a', valorEmCentavos: 10_000 }],
+          totalDistribuidoEmCentavos: 10_000,
+          saldoNaoAlocadoEmCentavos: 0,
+        }}
+        strategy="proportional"
+        planStatus={planStatus}
+        onAcceptPlan={() => undefined}
+        onRejectPlan={() => undefined}
+        onConfirmPurchases={() => undefined}
+      />
+    )
+  }
+
+  it('offers accept/reject instead of confirm while the plan is only presented', () => {
+    const markup = renderWithPlanStatus('presented')
+
+    expect(markup).toContain('Aceitar plano')
+    expect(markup).toContain('Rejeitar plano')
+    expect(markup).not.toContain('Confirmar compras realizadas')
+  })
+
+  it('offers confirm purchases once the plan has been accepted', () => {
+    const markup = renderWithPlanStatus('accepted')
+
+    expect(markup).not.toContain('Aceitar plano')
+    expect(markup).not.toContain('Rejeitar plano')
+    expect(markup).toContain('Confirmar compras realizadas')
+  })
+
+  it('offers neither accept/reject nor confirm once the plan is rejected', () => {
+    const markup = renderWithPlanStatus('rejected')
+
+    expect(markup).not.toContain('Aceitar plano')
+    expect(markup).not.toContain('Rejeitar plano')
+    expect(markup).not.toContain('Confirmar compras realizadas')
   })
 })

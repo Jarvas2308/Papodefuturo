@@ -651,17 +651,29 @@ Regras:
 
 ## 14. ContributionPlan
 
-`ContributionPlan` e `ContributionPlanItem` existem no domínio, mas a persistência foi deliberadamente adiada.
+`ContributionPlan` e `ContributionPlanItem` são persistidos desde o Sprint 6
+(`DEC-055`): `contribution_plans` e `contribution_plan_items`, por usuário,
+RLS com `(select auth.uid())`, ownership validado nas relações — mesmo padrão
+de `purchases`/`allocation_targets`.
 
-Não criar `contribution_plans` ou `contribution_plan_items` por iniciativa própria.
+O fluxo real cobre os cinco pontos que motivaram o adiamento original:
 
-Revisitar essas tabelas quando o fluxo estiver explicitamente cobrindo:
+- apresentação do plano: ao simular um aporte com sugestões positivas, o app
+  persiste um `ContributionPlan` com status `presented`;
+- aceite ou rejeição: o usuário decide explicitamente (`accepted`/`rejected`)
+  antes de poder confirmar compras;
+- confirmação: ao registrar compras realizadas para um plano aceito, o plano
+  vai para `confirmed`;
+- relação entre item planejado e compra efetivamente registrada:
+  `contribution_plan_items.purchase_id` liga cada item à `Purchase` real
+  (`ContributionPlanItem.plannedPurchase` no domínio);
+- auditoria do plano original versus execução: o plano persistido preserva o
+  valor sugerido por item mesmo que a compra real registrada seja diferente.
 
-- apresentação do plano;
-- aceite ou rejeição;
-- confirmação;
-- relação entre item planejado e compra efetivamente registrada;
-- auditoria do plano original versus execução.
+O motor determinístico continua sem executar ordens e sem persistir plano
+automaticamente — a persistência é sempre resultado de uma ação explícita do
+usuário (simular, aceitar, rejeitar, confirmar), nunca um efeito colateral do
+cálculo em si.
 
 ## 15. Escopo e decisões
 

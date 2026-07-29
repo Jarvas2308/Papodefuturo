@@ -3,14 +3,17 @@ import type { AppRepositories } from '../../../data/repositories'
 import type {
   Asset,
   AssetPrice,
+  ContributionPlanItem,
   ExchangeRate,
   Purchase,
 } from '../../../domain/models'
 import { EXCHANGE_RATE_SCALE } from '../../../domain/models'
 import {
+  buildContributionPlanCreateInput,
   buildContributionPositions,
   buildContributionTargets,
   loadRealContributionInputs,
+  matchRegisteredPurchasesToPlanItems,
 } from './useContributionData'
 
 const asset: Asset = {
@@ -347,6 +350,12 @@ describe('buildContributionPositions', () => {
       marketData: {
         refresh: vi.fn().mockRejectedValue(new Error('function unavailable')),
       },
+      contributionPlans: {
+        list: vi.fn().mockResolvedValue([]),
+        create: vi.fn(),
+        updateStatus: vi.fn(),
+        linkItemPurchase: vi.fn(),
+      },
     }
 
     await expect(
@@ -358,5 +367,97 @@ describe('buildContributionPositions', () => {
       allocationTargets: [],
       rates: [],
     })
+  })
+})
+
+describe('buildContributionPlanCreateInput', () => {
+  it('builds a presented plan from positive suggestions only', () => {
+    const input = buildContributionPlanCreateInput(
+      'user-1',
+      100_000,
+      [
+        { assetId: asset.id, valorEmCentavos: 50_000 },
+        { assetId: 'asset-zero', valorEmCentavos: 0 },
+      ],
+      [asset]
+    )
+
+    expect(input).toEqual({
+      userId: 'user-1',
+      inputAmountInMinorUnits: 100_000,
+      currency: 'BRL',
+      status: 'presented',
+      items: [
+        {
+          assetId: asset.id,
+          plannedAmountInMinorUnits: 50_000,
+          currency: 'BRL',
+        },
+      ],
+    })
+  })
+
+  it('returns null when there is nothing to present', () => {
+    const input = buildContributionPlanCreateInput(
+      'user-1',
+      100_000,
+      [{ assetId: asset.id, valorEmCentavos: 0 }],
+      [asset]
+    )
+
+    expect(input).toBeNull()
+  })
+
+  it('rejects a suggestion for an asset outside the loaded portfolio', () => {
+    expect(() =>
+      buildContributionPlanCreateInput(
+        'user-1',
+        100_000,
+        [{ assetId: 'asset-unknown', valorEmCentavos: 10_000 }],
+        [asset]
+      )
+    ).toThrow('A sugestão informada precisa pertencer à sua carteira.')
+  })
+})
+
+describe('matchRegisteredPurchasesToPlanItems', () => {
+  const planItems: ContributionPlanItem[] = [
+    {
+      id: 'item-1',
+      assetId: asset.id,
+      plannedAmount: { amountInMinorUnits: 50_000, currency: 'BRL' },
+    },
+  ]
+
+  it('links a registered purchase to the plan item for the same asset', () => {
+    const purchase: Purchase = {
+      id: 'purchase-1',
+      assetId: asset.id,
+      quantity: 1,
+      unitPrice: { amountInMinorUnits: 50_000, currency: 'BRL' },
+      totalAmount: { amountInMinorUnits: 50_000, currency: 'BRL' },
+      tradeDate: '2026-07-29',
+      status: 'confirmed',
+    }
+
+    expect(matchRegisteredPurchasesToPlanItems(planItems, [purchase])).toEqual([
+      { itemId: 'item-1', purchase },
+    ])
+  })
+
+  it('ignores a registered purchase for an asset with no matching plan item', () => {
+    const purchase: Purchase = {
+      id: 'purchase-2',
+      assetId: 'asset-outside-plan',
+      quantity: 1,
+      unitPrice: { amountInMinorUnits: 1_000, currency: 'BRL' },
+      totalAmount: { amountInMinorUnits: 1_000, currency: 'BRL' },
+      tradeDate: '2026-07-29',
+      status: 'confirmed',
+    }
+
+    expect(matchRegisteredPurchasesToPlanItems(planItems, [purchase])).toEqual(
+      []
+    )
   })
 })

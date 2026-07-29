@@ -352,59 +352,63 @@ Observações:
 
 Finalidade:
 
-- registrar planos de aporte calculados futuramente.
+- registrar planos de aporte apresentados, aceitos, rejeitados ou
+  confirmados pelo usuário.
 
-Campos sugeridos:
+Campos aplicados (`DEC-055`, Sprint 6):
 
 - `id uuid primary key`;
-- `user_id uuid references auth.users(id)`;
-- `amount_minor integer/bigint`;
-- `currency text`;
-- `status text`;
-- `created_at timestamptz`;
-- `updated_at timestamptz`.
+- `user_id uuid not null references auth.users(id) on delete cascade`;
+- `input_amount_minor bigint not null`;
+- `currency text not null` (`BRL` ou `USD`);
+- `status text not null default 'draft'` (`draft`, `presented`, `accepted`,
+  `rejected`, `confirmed`);
+- `created_at timestamptz not null default now()`;
+- `updated_at timestamptz not null default now()`, com trigger
+  `set_updated_at`.
 
 Observações:
 
-- um plano representa uma simulação ou decisão futura;
-- `ContributionPlan` representa um resultado futuro do motor estratégico;
-- persistir planos agora anteciparia o histórico de decisões antes de existir o
-  fluxo real de Auth, carteira, estratégia e repositories;
-- `contribution_plans` continua planejada, mas foi explicitamente adiada e não
-  cancelada;
-- deve ser revisitada quando o motor estratégico real e o fluxo de confirmação
-  estiverem sendo conectados;
-- status deve ser modelado antes de qualquer confirmação operacional.
+- um plano representa uma simulação apresentada ao usuário, com decisão de
+  aceite/rejeição e, quando aceito, confirmação ligada às compras reais;
+- `ContributionPlan` no domínio corresponde diretamente a esta tabela;
+- `contribution_plans` está aplicada, com RLS por `(select auth.uid())` e
+  grants de CRUD completo para `authenticated`, mesmo padrão de
+  `purchases`/`allocation_targets`;
+- persistência é sempre ato explícito do usuário (simular → apresentar →
+  aceitar/rejeitar → confirmar); o motor nunca persiste automaticamente.
 
 ### contribution_plan_items
 
 Finalidade:
 
-- itens sugeridos dentro de um plano de aporte.
+- itens sugeridos dentro de um plano de aporte, com link opcional para a
+  compra real que os confirmou.
 
-Campos sugeridos:
+Campos aplicados (`DEC-055`, Sprint 6):
 
 - `id uuid primary key`;
-- `user_id uuid references auth.users(id)`;
-- `contribution_plan_id uuid references contribution_plans(id)`;
-- `asset_id uuid references assets(id)`;
-- `suggested_amount_minor integer/bigint`;
-- `suggested_quantity numeric nullable`;
-- `reason text`;
-- `created_at timestamptz`.
+- `user_id uuid not null references auth.users(id) on delete cascade`;
+- `contribution_plan_id uuid not null references contribution_plans(id) on delete cascade`;
+- `asset_id uuid not null references assets(id) on delete restrict`;
+- `planned_amount_minor bigint not null`;
+- `currency text not null` (`BRL` ou `USD`);
+- `purchase_id uuid references purchases(id) on delete set null`;
+- `created_at timestamptz not null default now()`.
 
 Observações:
 
-- item pertence a um plano de aporte;
-- `user_id` facilita RLS e auditoria;
-- `ContributionPlanItem` representa itens de uma sugestão ou plano futuro;
-- `plannedPurchase` no domínio indica dependência da definição entre plano
-  aceito e compra registrada;
-- `contribution_plan_items` continua planejada, mas foi explicitamente adiada e
-  não cancelada;
-- deve ser revisitada junto com `contribution_plans`, quando houver fluxo real de
-  apresentação, aceite e confirmação;
-- justificativas devem ser explicativas, não recomendação financeira.
+- item pertence a um plano de aporte; unicidade por
+  `(contribution_plan_id, asset_id)` — um item por ativo por plano;
+- `user_id` denormalizado para simplificar RLS e auditoria;
+- `ContributionPlanItem` no domínio corresponde diretamente a esta tabela;
+- `plannedPurchase` no domínio é resolvido via `purchase_id`: fica `null`
+  enquanto o plano não chega a `confirmed`, e aponta para a `Purchase` real
+  registrada quando o usuário confirma a compra;
+- `contribution_plan_items` está aplicada, com RLS validando ownership tanto
+  do plano pai quanto do ativo nas policies de insert/update; grants de
+  select/insert/update para `authenticated` (sem delete — itens são
+  removidos apenas por cascade quando o plano é apagado).
 
 ## 5. Relacionamentos
 
@@ -444,8 +448,8 @@ isolamento das tabelas por usuário no CI (`rls-pgtap`, `DEC-039`).
 4. `purchases` — aplicada.
 5. `asset_prices` — aplicada.
 6. `allocation_targets` — aplicada.
-7. `contribution_plans` — planejada e adiada.
-8. `contribution_plan_items` — planejada e adiada.
+7. `contribution_plans` — aplicada (`DEC-055`).
+8. `contribution_plan_items` — aplicada (`DEC-055`).
 9. Índices.
 10. Triggers de `updated_at`.
 11. RLS.
@@ -492,7 +496,13 @@ isolamento das tabelas por usuário no CI (`rls-pgtap`, `DEC-039`).
   para metas de categoria;
 - `allocation_targets(user_id, asset_id)` — aplicado como índice único parcial
   para metas de ativo;
-- `contribution_plan_items(contribution_plan_id)`.
+- `contribution_plans(user_id)` — aplicado;
+- `contribution_plans(user_id, status)` — aplicado;
+- `contribution_plan_items(contribution_plan_id)` — aplicado;
+- `contribution_plan_items(user_id)` — aplicado;
+- `contribution_plan_items(asset_id)` — aplicado;
+- `contribution_plan_items(purchase_id)` — aplicado como índice parcial para
+  itens já ligados a uma compra real.
 
 ## 9. Integração Gradual com o App
 
@@ -508,8 +518,8 @@ Ordem futura recomendada:
 8. Conectar compras.
 9. Fazer Novo Aporte consumir dados reais.
 10. Evoluir o motor estratégico real.
-11. Revisitar `contribution_plans` e `contribution_plan_items` quando houver
-    fluxo real de apresentação, aceite e confirmação.
+11. Conectar `contribution_plans` e `contribution_plan_items` ao fluxo real de
+    apresentação, aceite e confirmação — concluído no Sprint 6 (`DEC-055`).
 
 Mocks permanecem como fallback durante a integração gradual.
 
@@ -537,7 +547,11 @@ Estado real, com detalhe em `docs/PROJECT_HANDOFF.md`:
   globais, sem `user_id`, e são hoje a única fonte real de preços e câmbio
   consumida pelo app e pela Edge Function `refresh-market-data`, atualizada
   automaticamente a cada hora via `pg_cron`/`pg_net` (`DEC-054`);
-- `contribution_plans` e `contribution_plan_items` seguem explicitamente
-  adiadas, não canceladas — ver seções 4 e 7 acima, ainda vigentes;
 - Sprint 5 do plano de sprints (dados de mercado globais + agendamento
-  automático) está completo — ver `docs/ROADMAP.md`.
+  automático) está completo — ver `docs/ROADMAP.md`;
+- `contribution_plans` e `contribution_plan_items` deixaram de ser
+  "planejada e adiada" (`DEC-055`, Sprint 6): aplicadas, por usuário, RLS com
+  `(select auth.uid())`, conectadas ao fluxo real de apresentação, aceite,
+  rejeição e confirmação em `src/features/contribution`. `ContributionPlanItem.plannedPurchase`
+  é resolvido via `purchase_id`, ligando cada item à `Purchase` real quando o
+  plano é confirmado.

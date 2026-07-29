@@ -201,22 +201,26 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 - desenho operacional dos providers CVM/SEC em ciclos próprios, sem alterar o
   plano determinístico.
 
-## Funcionamento futuro do planejamento de aporte
+## Funcionamento do planejamento de aporte
 
-Fluxo conceitual planejado:
+Fluxo real (Sprint 6, `DEC-055`):
 
 1. usuário informa o capital disponível;
 2. sistema consolida a carteira;
 3. motor determinístico calcula os desvios;
 4. motor gera alternativas de aporte;
 5. regras estratégicas eliminam alternativas inválidas;
-6. resultado técnico é apresentado ao usuário;
+6. resultado técnico é apresentado ao usuário e persistido como
+   `ContributionPlan` (status `presented`);
 7. futuramente, a IA poderá interpretar o dossiê e explicar o plano;
-8. usuário aceita, ajusta ou rejeita o plano.
+8. usuário aceita ou rejeita o plano (`accepted`/`rejected`); ao registrar as
+   compras realmente realizadas para um plano aceito, o plano é marcado como
+   `confirmed` e cada item fica ligado à compra real correspondente.
 
 O Novo Aporte autenticado já consome carteira, cotações, metas e câmbio reais.
-Seu resultado continua sendo uma simulação em memória: não executa ordens e não
-persiste automaticamente um plano.
+O motor nunca executa ordens nem persiste um plano automaticamente — a
+persistência acontece apenas quando o usuário explicitamente simula, aceita,
+rejeita ou confirma.
 
 ## Motor estratégico
 

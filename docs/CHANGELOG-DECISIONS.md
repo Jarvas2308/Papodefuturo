@@ -1365,3 +1365,68 @@ invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
     segurança, e fica **aceito e documentado**, no mesmo padrão do WARN já
     conhecido de `auth_leaked_password_protection` (ação de painel, não de
     código).
+
+## DEC-055 — Persistência do plano de aporte; reverte o adiamento de `ContributionPlan`
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: `ContributionPlan`/`ContributionPlanItem` existiam apenas no
+  domínio desde o início do projeto; a persistência foi deliberadamente
+  adiada (`AGENTS.md` seção 14, decisão original preservada no histórico)
+  até existir o fluxo real de apresentação, aceite, rejeição e confirmação.
+  Esse fluxo agora existe: o Novo Aporte autenticado já consome carteira,
+  cotações, metas e câmbio reais (Sprints anteriores), e o motor
+  determinístico já produz resultados técnicos reais. Zero blast radius no
+  código de aplicação antes desta decisão — nenhum hook, componente ou
+  repository referenciava os dois símbolos.
+- Decisão: `contribution_plans` e `contribution_plan_items` aplicadas como
+  tabelas **por usuário** — `user_id` da sessão, RLS com
+  `(select auth.uid())`, ownership validado nas relações de insert/update,
+  mesmo padrão de `purchases`/`allocation_targets` (sem RPC; escrita direta
+  via client autenticado, como as demais tabelas por usuário desta
+  categoria).
+  - `contribution_plans`: `input_amount_minor`, `currency`, `status`
+    (`draft`, `presented`, `accepted`, `rejected`, `confirmed` — o domínio
+    ganhou o status `confirmed`, que não existia antes), trigger
+    `set_updated_at`.
+  - `contribution_plan_items`: `contribution_plan_id` (FK cascade),
+    `asset_id` (FK restrict), `planned_amount_minor`, `currency`,
+    `purchase_id` (FK nullable, `on delete set null`) — resolve
+    `ContributionPlanItem.plannedPurchase`, o campo que motivava
+    explicitamente o adiamento original. Unicidade por
+    `(contribution_plan_id, asset_id)`: um item por ativo por plano.
+  - Fluxo real implementado: simular aporte com sugestões positivas persiste
+    um plano `presented`; o usuário aceita ou rejeita explicitamente
+    (`ContributionResult` ganha os botões "Aceitar plano"/"Rejeitar plano");
+    somente um plano `accepted` libera "Confirmar compras realizadas"; ao
+    registrar as compras, cada `Purchase` criada é ligada ao
+    `ContributionPlanItem` do mesmo ativo via `linkItemPurchase`, e o plano
+    vai para `confirmed`. O motor determinístico não muda: continua sem
+    executar ordens e sem persistir plano automaticamente — cada transição
+    de status é ato explícito do usuário (`AGENTS.md` seção 14 atualizada
+    para refletir isso, mantendo a restrição contra persistência automática
+    do motor).
+  - Repository novo (`ContributionPlanRepository`): `list`, `create`,
+    `updateStatus`, `linkItemPurchase`. Mapeadores em
+    `contributionPlanMapper.ts` resolvem `plannedPurchase` via um
+    `ReadonlyMap<EntityId, Purchase>` passado pelo chamador — mesmo padrão
+    de resolução por mapa já usado para `ticker → Asset.id` em `DEC-053`.
+  - Lógica de construção do input do plano e de vínculo compra-item extraída
+    em funções puras exportadas (`buildContributionPlanCreateInput`,
+    `matchRegisteredPurchasesToPlanItems`) para cobertura de teste direta,
+    já que a Vitest não tem um padrão de `renderHook` neste projeto.
+- Verificado em produção: migration aplicada; auditoria transacional
+  (`begin; … rollback;`) confirmou insert de plano e item, transições de
+  status `draft → presented → accepted`, rejeição do `check` de status
+  inválido, unicidade `(contribution_plan_id, asset_id)` rejeitando
+  duplicata, `on delete restrict` em `asset_id`, `on delete set null` em
+  `purchase_id` (apagar a compra zera o link sem afetar o plano), `on delete
+cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
+  sem achado novo. `src/lib/database.types.ts` regenerado.
+- Consequências: `npm test`, `format:check`, `lint`, `build` e
+  `git diff --check` limpos. Sanidade em browser (modo demo, sem crash —
+  demo nunca exercita o novo caminho). Docs atualizados: `AGENTS.md` seção
+  14, `docs/PRODUCT.md` (fluxo de aporte deixa de ser "funcionamento
+  futuro"), `docs/ARCHITECTURE.md`, `docs/SUPABASE_SCHEMA_PLAN.md`
+  (`contribution_plans`/`contribution_plan_items` deixam de ser "planejada e
+  adiada"), `docs/ROADMAP.md`.

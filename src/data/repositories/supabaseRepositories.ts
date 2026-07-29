@@ -2,13 +2,15 @@ import {
   buildClosedAssetInsertRows,
   type AssetIdFactory,
 } from '../assetUniverse'
-import type { AllocationTarget } from '../../domain/models'
+import type { AllocationTarget, EntityId, Purchase } from '../../domain/models'
 import type { SupabaseBrowserClient } from '../../lib/supabaseClient'
 import type {
   AllocationTargetRepository,
   AppRepositories,
   AssetPriceRepository,
   AssetRepository,
+  ContributionPlanRepository,
+  CreateContributionPlanInput,
   CreatePurchaseBatchInput,
   CreatePurchaseInput,
   ExchangeRateRepository,
@@ -16,6 +18,10 @@ import type {
   MarketDataRepository,
   PurchaseRepository,
 } from './contracts'
+import {
+  mapContributionPlanItemRow,
+  mapContributionPlanRow,
+} from './contributionPlanMapper'
 import { mapExchangeRateRow } from './exchangeRateMapper'
 import type { RpcJson, RpcSupabaseClient } from './rpcSchema'
 import {
@@ -369,6 +375,111 @@ export function createSupabaseMarketDataRepository(
   }
 }
 
+const CONTRIBUTION_PLAN_WITH_ITEMS_SELECT = '*, contribution_plan_items(*)'
+
+export function createSupabaseContributionPlanRepository(
+  client: SupabaseBrowserClient,
+  createId: PurchaseIdFactory = createBrowserEntityId
+): ContributionPlanRepository {
+  return {
+    async list(purchasesById) {
+      const { data, error } = await client
+        .from('contribution_plans')
+        .select(CONTRIBUTION_PLAN_WITH_ITEMS_SELECT)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        throw createRepositoryQueryError('contribution plans', error)
+      }
+
+      return (data ?? []).map((row) =>
+        mapContributionPlanRow(row, purchasesById)
+      )
+    },
+    async create(input: CreateContributionPlanInput, purchasesById) {
+      const planId = createId()
+      const { error: planError } = await client
+        .from('contribution_plans')
+        .insert({
+          id: planId,
+          user_id: input.userId,
+          input_amount_minor: input.inputAmountInMinorUnits,
+          currency: input.currency,
+          status: input.status,
+        })
+
+      if (planError) {
+        throw createRepositoryQueryError('contribution plan', planError)
+      }
+
+      if (input.items.length > 0) {
+        const { error: itemsError } = await client
+          .from('contribution_plan_items')
+          .insert(
+            input.items.map((item) => ({
+              id: createId(),
+              user_id: input.userId,
+              contribution_plan_id: planId,
+              asset_id: item.assetId,
+              planned_amount_minor: item.plannedAmountInMinorUnits,
+              currency: item.currency,
+            }))
+          )
+
+        if (itemsError) {
+          throw createRepositoryQueryError(
+            'contribution plan items',
+            itemsError
+          )
+        }
+      }
+
+      const { data, error } = await client
+        .from('contribution_plans')
+        .select(CONTRIBUTION_PLAN_WITH_ITEMS_SELECT)
+        .eq('id', planId)
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('contribution plan', error)
+      }
+
+      return mapContributionPlanRow(data, purchasesById)
+    },
+    async updateStatus(planId, status, purchasesById) {
+      const { data, error } = await client
+        .from('contribution_plans')
+        .update({ status })
+        .eq('id', planId)
+        .select(CONTRIBUTION_PLAN_WITH_ITEMS_SELECT)
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('contribution plan', error)
+      }
+
+      return mapContributionPlanRow(data, purchasesById)
+    },
+    async linkItemPurchase(itemId, purchase) {
+      const { data, error } = await client
+        .from('contribution_plan_items')
+        .update({ purchase_id: purchase.id })
+        .eq('id', itemId)
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('contribution plan item', error)
+      }
+
+      return mapContributionPlanItemRow(
+        data,
+        new Map<EntityId, Purchase>([[purchase.id, purchase]])
+      )
+    },
+  }
+}
+
 export function createSupabaseRepositories(
   client: SupabaseBrowserClient
 ): AppRepositories {
@@ -379,5 +490,6 @@ export function createSupabaseRepositories(
     exchangeRates: createSupabaseExchangeRateRepository(client),
     allocationTargets: createSupabaseAllocationTargetRepository(client),
     marketData: createSupabaseMarketDataRepository(client),
+    contributionPlans: createSupabaseContributionPlanRepository(client),
   }
 }
