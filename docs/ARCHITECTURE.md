@@ -205,12 +205,14 @@ Helpers puros disponíveis:
 - soma de pontos-base;
 - verificação de alocação completa.
 
-`Asset`, `PortfolioPosition`, `Purchase`, `AssetPrice` e `AllocationTarget` estão
+`Asset`, `PortfolioPosition`, `Purchase`, `AssetPrice`, `AllocationTarget` e,
+desde o Sprint 6 (`DEC-055`), `ContributionPlan`/`ContributionPlanItem` estão
 conectados a repositories Supabase reais nos fluxos autenticados (carteira,
-compras, histórico, estratégia). `ContributionPlan` e `ContributionPlanItem`
-seguem apenas no domínio, sem repository, migration ou persistência — decisão
-explícita e ainda vigente (`docs/CHANGELOG-DECISIONS.md`); ver `docs/ROADMAP.md`
-para o estado desse item.
+compras, histórico, estratégia, aporte). `contribution_plans` e
+`contribution_plan_items` são tabelas por usuário, RLS com
+`(select auth.uid())`, ownership validado nas relações — mesmo padrão de
+`purchases`/`allocation_targets`; ver `docs/CHANGELOG-DECISIONS.md` (`DEC-055`)
+e `docs/SUPABASE_SCHEMA_PLAN.md`.
 
 ### Fronteira do Dossiê Técnico V1
 

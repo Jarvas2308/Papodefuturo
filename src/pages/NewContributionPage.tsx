@@ -7,10 +7,11 @@ import { useContribution } from '../features/contribution/hooks/useContribution'
 import { useContributionData } from '../features/contribution/hooks/useContributionData'
 import { contributionMock } from '../features/contribution/mocks/contributionMock'
 import type { CreatePurchaseBatchItem } from '../data/repositories/contracts'
-import type { Asset, ExchangeRate } from '../domain/models'
+import type { Asset, ContributionPlan, ExchangeRate } from '../domain/models'
 import type {
   AllocationTarget,
   ContributionAssetTarget,
+  ContributionDistribution,
   ContributionPosition,
 } from '../features/contribution/types'
 import { shouldOfferContributionPurchaseConfirmation } from '../features/contribution/utils/confirmedPurchases'
@@ -30,6 +31,13 @@ type ContributionWorkspaceProps = {
   targets: AllocationTarget[]
   assetTargets: ContributionAssetTarget[]
   isDemo: boolean
+  contributionPlan: ContributionPlan | null
+  onPresentPlan(
+    distribution: readonly ContributionDistribution[],
+    inputAmountInMinorUnits: number
+  ): Promise<void>
+  onAcceptPlan(): Promise<void>
+  onRejectPlan(): Promise<void>
   onRegisterPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
   ): Promise<unknown>
@@ -43,6 +51,10 @@ function ContributionWorkspace({
   targets,
   assetTargets,
   isDemo,
+  contributionPlan,
+  onPresentPlan,
+  onAcceptPlan,
+  onRejectPlan,
   onRegisterPurchases,
 }: ContributionWorkspaceProps) {
   const {
@@ -63,8 +75,20 @@ function ContributionWorkspace({
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
 
   function handleSimulation() {
-    simulateContribution()
+    const simulation = simulateContribution()
     setIsConfirmationOpen(false)
+
+    if (
+      !isDemo &&
+      simulation.result &&
+      simulation.valorAporteEmCentavos !== null &&
+      simulation.result.distribuicao.length > 0
+    ) {
+      void onPresentPlan(
+        simulation.result.distribuicao,
+        simulation.valorAporteEmCentavos
+      )
+    }
   }
 
   return (
@@ -90,6 +114,9 @@ function ContributionWorkspace({
           positions={resultPositions}
           result={result}
           strategy={strategy}
+          planStatus={isDemo ? undefined : contributionPlan?.status}
+          onAcceptPlan={isDemo ? undefined : () => void onAcceptPlan()}
+          onRejectPlan={isDemo ? undefined : () => void onRejectPlan()}
           onConfirmPurchases={
             result.distribuicao.length > 0 &&
             shouldOfferContributionPurchaseConfirmation(isDemo)
@@ -182,6 +209,10 @@ export function NewContributionPage() {
         targets={contributionData.targets}
         assetTargets={contributionData.assetTargets}
         isDemo={contributionData.isDemo}
+        contributionPlan={contributionData.contributionPlan}
+        onPresentPlan={contributionData.presentContributionPlan}
+        onAcceptPlan={contributionData.acceptContributionPlan}
+        onRejectPlan={contributionData.rejectContributionPlan}
         onRegisterPurchases={contributionData.registerConfirmedPurchases}
       />
     </section>

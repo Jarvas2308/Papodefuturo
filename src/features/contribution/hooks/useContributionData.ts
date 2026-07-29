@@ -6,11 +6,16 @@ import {
 } from '../../../data/repositories'
 import { refreshMarketDataBestEffort } from '../../../data/marketDataRefresh'
 import { getLatestAssetPricesByAsset } from '../../../domain/latestAssetPrices'
-import type { CreatePurchaseBatchItem } from '../../../data/repositories/contracts'
+import type {
+  CreateContributionPlanInput,
+  CreatePurchaseBatchItem,
+} from '../../../data/repositories/contracts'
 import type {
   AllocationTarget as DomainAllocationTarget,
   Asset,
   AssetPrice,
+  ContributionPlan,
+  ContributionPlanItem,
   ExchangeRate,
   EntityId,
   Purchase,
@@ -24,6 +29,7 @@ import { contributionMock } from '../mocks/contributionMock'
 import type {
   AllocationTarget,
   ContributionAssetTarget,
+  ContributionDistribution,
   ContributionPosition,
 } from '../types'
 import { buildGlobalAssetTargets } from '../utils/buildGlobalAssetTargets'
@@ -135,6 +141,53 @@ export function buildContributionTargets(
   }
 }
 
+export function buildContributionPlanCreateInput(
+  userId: EntityId,
+  inputAmountInMinorUnits: number,
+  distribution: readonly ContributionDistribution[],
+  assets: readonly Asset[]
+): CreateContributionPlanInput | null {
+  const suggestions = distribution.filter((item) => item.valorEmCentavos > 0)
+
+  if (suggestions.length === 0) {
+    return null
+  }
+
+  return {
+    userId,
+    inputAmountInMinorUnits,
+    currency: 'BRL',
+    status: 'presented',
+    items: suggestions.map((item) => {
+      const asset = assets.find((candidate) => candidate.id === item.assetId)
+
+      if (!asset) {
+        throw new Error(
+          'A sugestão informada precisa pertencer à sua carteira.'
+        )
+      }
+
+      return {
+        assetId: item.assetId,
+        plannedAmountInMinorUnits: item.valorEmCentavos,
+        currency: getContributionAssetCurrency(asset),
+      }
+    }),
+  }
+}
+
+export function matchRegisteredPurchasesToPlanItems(
+  planItems: readonly ContributionPlanItem[],
+  registeredPurchases: readonly Purchase[]
+): Array<{ itemId: EntityId; purchase: Purchase }> {
+  const itemsByAssetId = new Map(planItems.map((item) => [item.assetId, item]))
+
+  return registeredPurchases.flatMap((purchase) => {
+    const item = itemsByAssetId.get(purchase.assetId)
+    return item ? [{ itemId: item.id, purchase }] : []
+  })
+}
+
 export function useContributionData() {
   const { status: authStatus, client, user } = useAuth()
   const [positions, setPositions] = useState<ContributionPosition[]>(() =>
@@ -158,6 +211,8 @@ export function useContributionData() {
   const [latestUsdBrlRate, setLatestUsdBrlRate] = useState<ExchangeRate | null>(
     null
   )
+  const [contributionPlan, setContributionPlan] =
+    useState<ContributionPlan | null>(null)
 
   const loadReal = useCallback(async () => {
     if (authStatus !== 'authenticated' || !client || !user) {
@@ -244,6 +299,60 @@ export function useContributionData() {
     }
   }, [authStatus, loadReal])
 
+  async function presentContributionPlan(
+    distribution: readonly ContributionDistribution[],
+    inputAmountInMinorUnits: number
+  ) {
+    if (authStatus === 'demo' || !client || !user) {
+      return
+    }
+
+    const input = buildContributionPlanCreateInput(
+      user.id,
+      inputAmountInMinorUnits,
+      distribution,
+      assets
+    )
+
+    if (!input) {
+      setContributionPlan(null)
+      return
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    const plan = await repositories.contributionPlans.create(input, new Map())
+
+    setContributionPlan(plan)
+  }
+
+  async function acceptContributionPlan() {
+    if (!client || !contributionPlan) {
+      return
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    const plan = await repositories.contributionPlans.updateStatus(
+      contributionPlan.id,
+      'accepted',
+      new Map()
+    )
+    setContributionPlan(plan)
+  }
+
+  async function rejectContributionPlan() {
+    if (!client || !contributionPlan) {
+      return
+    }
+
+    const repositories = createSupabaseRepositories(client)
+    const plan = await repositories.contributionPlans.updateStatus(
+      contributionPlan.id,
+      'rejected',
+      new Map()
+    )
+    setContributionPlan(plan)
+  }
+
   async function registerConfirmedPurchases(
     purchases: readonly CreatePurchaseBatchItem[]
   ) {
@@ -277,6 +386,28 @@ export function useContributionData() {
       userId: user.id,
       purchases: purchasesWithDerivedCurrency,
     })
+
+    if (contributionPlan && contributionPlan.status === 'accepted') {
+      const matches = matchRegisteredPurchasesToPlanItems(
+        contributionPlan.items,
+        registeredPurchases
+      )
+
+      for (const match of matches) {
+        await repositories.contributionPlans.linkItemPurchase(
+          match.itemId,
+          match.purchase
+        )
+      }
+
+      await repositories.contributionPlans.updateStatus(
+        contributionPlan.id,
+        'confirmed',
+        new Map()
+      )
+      setContributionPlan(null)
+    }
+
     await loadReal()
 
     return registeredPurchases
@@ -293,6 +424,10 @@ export function useContributionData() {
     needsExchangeRate,
     latestUsdBrlRate,
     isDemo: authStatus === 'demo',
+    contributionPlan,
+    presentContributionPlan,
+    acceptContributionPlan,
+    rejectContributionPlan,
     registerConfirmedPurchases,
   }
 }

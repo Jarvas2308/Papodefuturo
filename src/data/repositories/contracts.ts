@@ -2,6 +2,9 @@ import type {
   AllocationTarget,
   Asset,
   AssetPrice,
+  ContributionPlan,
+  ContributionPlanItem,
+  ContributionPlanStatus,
   CurrencyCode,
   EntityId,
   ExchangeRate,
@@ -50,6 +53,39 @@ export type ExchangeRateRepository = {
   list(): Promise<ExchangeRate[]>
 }
 
+export type CreateContributionPlanItemInput = {
+  assetId: EntityId
+  plannedAmountInMinorUnits: number
+  currency: CurrencyCode
+}
+
+export type CreateContributionPlanInput = {
+  userId: EntityId
+  inputAmountInMinorUnits: number
+  currency: CurrencyCode
+  status: ContributionPlanStatus
+  items: readonly CreateContributionPlanItemInput[]
+}
+
+export type ContributionPlanRepository = {
+  list(
+    purchasesById: ReadonlyMap<EntityId, Purchase>
+  ): Promise<ContributionPlan[]>
+  create(
+    input: CreateContributionPlanInput,
+    purchasesById: ReadonlyMap<EntityId, Purchase>
+  ): Promise<ContributionPlan>
+  updateStatus(
+    planId: EntityId,
+    status: ContributionPlanStatus,
+    purchasesById: ReadonlyMap<EntityId, Purchase>
+  ): Promise<ContributionPlan>
+  linkItemPurchase(
+    itemId: EntityId,
+    purchase: Purchase
+  ): Promise<ContributionPlanItem>
+}
+
 export type AllocationTargetRepository = {
   list(): Promise<AllocationTarget[]>
   replaceAll(targets: readonly AllocationTarget[]): Promise<AllocationTarget[]>
@@ -81,4 +117,5 @@ export type AppRepositories = {
   exchangeRates: ExchangeRateRepository
   allocationTargets: AllocationTargetRepository
   marketData: MarketDataRepository
+  contributionPlans: ContributionPlanRepository
 }
