@@ -76,10 +76,14 @@ No estado atual:
 - factory isolada de cliente Supabase em `src/lib`, com migrations versionadas
   aplicadas ao projeto real;
 - o Supabase real possui `public.profiles`, `public.assets`,
-  `public.purchases`, `public.asset_prices`, `public.allocation_targets`,
-  `public.exchange_rates`, `public.fundamental_snapshots`,
-  `public.official_asset_events` e as tabelas de checkpoint de backfill, todas
-  com RLS habilitado;
+  `public.purchases`, `public.allocation_targets`,
+  `public.fundamental_snapshots`, `public.official_asset_events` e as
+  tabelas de checkpoint de backfill, todas com RLS habilitado;
+- `public.asset_prices` e `public.exchange_rates` (por usuário) permanecem
+  aplicadas mas sem consumidor no app desde `DEC-053`; preços e câmbio reais
+  vêm de `public.market_asset_prices` e `public.market_exchange_rates`
+  (globais, `DEC-052`), atualizadas automaticamente a cada hora via
+  `pg_cron`/`pg_net` (`DEC-054`);
 - advisors de segurança limpos; avisos de performance restantes são
   informativos para tabelas ainda vazias (`fundamental_snapshots`,
   `official_asset_events`);
@@ -119,7 +123,6 @@ No estado atual:
   bloqueado por parser — ver `docs/ROADMAP.md`);
 - ativação em produção do runtime de fundamentos (`read-only`), como ocorreu
   para eventos oficiais em `DEC-041`;
-- agendamento automático de atualização de mercado;
 - persistência do plano de aporte aceito;
 - IA explicativa consumindo o Dossiê Técnico.
 
@@ -705,14 +708,10 @@ Cotações com:
 - fonte;
 - data e hora.
 
-Decisão em aberto:
-
-- se cotações de mercado serão globais;
-- como serão separados preços de mercado e substituições manuais por usuário;
-- política de histórico e retenção.
-
-Não há justificativa, nesta fase, para assumir automaticamente o modelo antigo
-com `user_id` em todas as cotações.
+Decisão tomada (`DEC-052`): cotações de mercado são globais
+(`public.market_asset_prices`), sem `user_id`, identidade por ticker. Não
+existe mais substituição manual por usuário — a edição manual de câmbio foi
+removida por completo (`DEC-053`); todo dado vem de fonte automática.
 
 ## Precisão financeira
 
@@ -730,7 +729,8 @@ Princípios em vigor:
 - a visualização consolidada da carteira é expressa em reais;
 - ativos internacionais mantêm a moeda original da cotação;
 - a conversão usa taxa USD/BRL identificada por fonte e horário, persistida em
-  `public.exchange_rates`;
+  `public.market_exchange_rates` (global, `DEC-052`), atualizada
+  automaticamente via `pg_cron` (`DEC-054`);
 - o valor original e o valor convertido são rastreáveis.
 
 ## Supabase
@@ -740,15 +740,20 @@ para o histórico completo de cada tabela e `docs/PROJECT_HANDOFF.md` seção 9
 para o estado mais recente auditado:
 
 - Supabase Auth real, com fallback demo quando o ambiente não está configurado;
-- `public.profiles`, `public.assets`, `public.purchases`, `public.asset_prices`,
-  `public.allocation_targets`, `public.exchange_rates`,
-  `public.fundamental_snapshots`, `public.official_asset_events` e as tabelas
-  de checkpoint de backfill aplicadas, todas com RLS habilitado;
+- `public.profiles`, `public.assets`, `public.purchases`,
+  `public.allocation_targets`, `public.fundamental_snapshots`,
+  `public.official_asset_events` e as tabelas de checkpoint de backfill
+  aplicadas, todas com RLS habilitado;
+- `public.asset_prices` e `public.exchange_rates` (por usuário) permanecem
+  aplicadas, sem consumidor no app desde `DEC-053`;
 - policies de tabelas privadas usando `(select auth.uid())`, com ownership
   validado nas relações de insert/update;
-- eventos oficiais e fundamentos são dados **globais** (sem `user_id`), com
-  leitura para `authenticated` e escrita reservada a `service_role` via RPC
-  transacional;
+- eventos oficiais, fundamentos e, desde `DEC-052`, dados de mercado
+  (`public.market_asset_prices`, `public.market_exchange_rates`) são dados
+  **globais** (sem `user_id`), com leitura para `authenticated` e escrita
+  reservada a `service_role` via RPC transacional. Dados de mercado são
+  atualizados automaticamente a cada hora via `pg_cron`/`pg_net`
+  (`DEC-054`);
 - advisors de segurança limpos; avisos de performance restantes são
   informativos para tabelas ainda vazias ou de baixo volume.
 

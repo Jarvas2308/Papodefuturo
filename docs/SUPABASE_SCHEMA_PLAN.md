@@ -272,14 +272,31 @@ Observações:
 - os avisos `unused_index` atuais são informativos, esperados porque a tabela
   a tabela teve poucas linhas ou baixo volume de consulta no momento da
   auditoria;
-- `asset_prices` está conectada às telas via `MarketDataRepository`; a Edge
-  Function `refresh-market-data` grava linhas reais com `source =
-'market-provider'`; o modo demo continua disponível como fallback quando o
-  ambiente Supabase não está configurado;
-- source aceita `manual` e `market-provider`;
-- histórico de preços é consultado por ativo e data de preço;
-- `refresh-market-data` cobre B3 COTAHIST e Twelve Data (mercado internacional);
-  ver `docs/PROJECT_HANDOFF.md` seção 5 para o estado de agendamento.
+- desde `DEC-053`, `asset_prices` **não tem mais consumidor no app**: as
+  telas leem `public.market_asset_prices` (global, `DEC-052`) via
+  `AssetPriceRepository`. `asset_prices` permanece aplicada e intocada no
+  schema, mantida até um ciclo futuro confirmar remoção;
+- source aceita `manual` e `market-provider`, mas nenhuma linha nova é
+  gravada aqui desde o cutover — ver `market_asset_prices` abaixo.
+
+### market_asset_prices e market_exchange_rates (globais, `DEC-052`)
+
+- tabelas novas e independentes, sem `user_id`, identidade por `ticker`
+  (`market_asset_prices`) ou por par de moeda (`market_exchange_rates`),
+  não FK para `assets`, que é por usuário;
+- RLS com leitura para `authenticated` (`using (true)`), escrita exclusiva
+  de `service_role` via RPC transacional (`upsert_market_asset_prices_v1`,
+  `upsert_market_exchange_rates_v1`);
+- a Edge Function `refresh-market-data` grava linhas reais com `source =
+'market-provider'`, autenticada como `service_role` (`DEC-053`), sem
+  depender de sessão de usuário;
+- desde `DEC-054`, atualizadas automaticamente a cada hora via
+  `pg_cron`/`pg_net` (job `refresh-market-data-hourly`), com o segredo
+  `service_role` lido do Supabase Vault em tempo de execução, nunca
+  versionado;
+- `refresh-market-data` cobre B3 COTAHIST e Twelve Data (mercado
+  internacional); ver `docs/PROJECT_HANDOFF.md` seção 9 para o estado mais
+  recente auditado.
 
 ### allocation_targets
 
@@ -508,12 +525,19 @@ próprio além disso.
 
 Estado real, com detalhe em `docs/PROJECT_HANDOFF.md`:
 
-- as cinco tabelas por usuário (`profiles`, `assets`, `purchases`,
-  `asset_prices`, `allocation_targets`) estão aplicadas, conectadas e recebem
-  dados reais nos fluxos autenticados;
-- `exchange_rates`, `fundamental_snapshots` e `official_asset_events` também
-  estão aplicadas, como tabelas globais sem `user_id`;
+- as tabelas por usuário `profiles`, `assets`, `purchases`,
+  `allocation_targets` estão aplicadas, conectadas e recebem dados reais nos
+  fluxos autenticados;
+- `asset_prices` e `exchange_rates` (por usuário, com `user_id`) permanecem
+  aplicadas mas sem consumidor no app desde `DEC-053` — mantidas intocadas
+  até um ciclo futuro confirmar remoção;
+- `fundamental_snapshots` e `official_asset_events` são tabelas globais
+  aplicadas, sem `user_id`;
+- `market_asset_prices` e `market_exchange_rates` (`DEC-052`) também são
+  globais, sem `user_id`, e são hoje a única fonte real de preços e câmbio
+  consumida pelo app e pela Edge Function `refresh-market-data`, atualizada
+  automaticamente a cada hora via `pg_cron`/`pg_net` (`DEC-054`);
 - `contribution_plans` e `contribution_plan_items` seguem explicitamente
   adiadas, não canceladas — ver seções 4 e 7 acima, ainda vigentes;
-- o próximo passo de schema pendente é a tabela global de preços/câmbio do
-  Sprint 5 do plano de sprints (ver `docs/ROADMAP.md`).
+- Sprint 5 do plano de sprints (dados de mercado globais + agendamento
+  automático) está completo — ver `docs/ROADMAP.md`.
