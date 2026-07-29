@@ -26,3 +26,17 @@ export function isSafeSecPrimaryDocumentPath(value: string): boolean {
       SAFE_PATH_SEGMENT_PATTERN.test(segment)
   )
 }
+
+/**
+ * Quando primaryDocument tem mais de um segmento (ex.:
+ * "xslFormNPORT-P_X01/primary_doc.xml"), o primeiro segmento identifica o
+ * visualizador XSLT que renderiza o documento como HTML para leitura humana -
+ * confirmado contra download real, que retorna `<!DOCTYPE html>`. O XML
+ * estruturado (`<?xml ...?><edgarSubmission ...>`) fica na raiz da pasta da
+ * accession, sob o nome do ultimo segmento apenas. Chame somente com um valor
+ * ja validado por isSafeSecPrimaryDocumentPath.
+ */
+export function extractSecPrimaryDocumentFileName(value: string): string {
+  const segments = value.split('/')
+  return segments[segments.length - 1]!
+}

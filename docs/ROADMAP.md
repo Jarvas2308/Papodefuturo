@@ -771,8 +771,16 @@ pendente:
    `src/application/context/fundamentals` e `src/features/fundamentals`, rota
    `/fundamentos`, espelhando fielmente o padrão de eventos oficiais; a
    composição real permanece `disabled` — ativação em produção é decisão
-   separada. Restam: demais competências/exercícios de CVM (DFP e ITR), SEC
-   N-PORT após a correção do parser, e a ativação `read-only` do runtime.
+   separada. Em 29 de julho de 2026 (`DEC-051`), o provider `sec-nport` foi
+   corrigido por completo — três bugs reais independentes revelados em
+   sequência (URL do documento primário apontava para o visualizador HTML em
+   vez do XML bruto; caminho XML incorreto para `seriesId`/`classId` do
+   cabeçalho; `seriesName` divergente por maiúsculas/minúsculas contra a
+   identidade oficial) — e reexecutado com sucesso: 3 registros persistidos
+   (VOO, VNQ, VEA). `fundamental_snapshots` chega a 12 linhas, cobrindo as
+   três categorias do universo fechado pela primeira vez. Restam: demais
+   competências/exercícios de CVM (DFP e ITR) e a ativação `read-only` do
+   runtime de fundamentos.
 3. Agendamento automático (`pg_cron` ou equivalente) para `refresh-market-data`
    e, eventualmente, para o backfill de eventos. Hoje não existe `pg_cron`
    instalado; `refresh-market-data` só roda quando um usuário autentica.
@@ -820,4 +828,6 @@ correção do parser CVM IPE (`DEC-047`) e a reexecução do job (`DEC-048`),
 (CVM IPE, CVM Fund Delivery, SEC EDGAR) já têm pelo menos um backfill real
 bem-sucedido. No mesmo dia, a primeira ingestão real de fundamentos
 (`DEC-049`) trouxe `fundamental_snapshots` de 0 para 9 linhas via `cvm-fii` e
-`cvm-stocks`; `sec-nport` segue bloqueado até a correção do parser.
+`cvm-stocks`. Em 29 de julho de 2026, após corrigir três bugs reais
+independentes no provider `sec-nport` (`DEC-051`), a tabela chegou a 12
+linhas, cobrindo as três categorias do universo fechado.

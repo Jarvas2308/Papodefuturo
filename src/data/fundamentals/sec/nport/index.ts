@@ -12,7 +12,10 @@ export {
   SEC_INTERNATIONAL_ETFS,
 } from './etfs'
 export { parseNullableSecUsdMoney } from './numbers'
-export { isSafeSecPrimaryDocumentPath } from './path'
+export {
+  extractSecPrimaryDocumentFileName,
+  isSafeSecPrimaryDocumentPath,
+} from './path'
 export {
   assertSecNportFundIdentity,
   loadLatestSecNportFundamentalRecord,

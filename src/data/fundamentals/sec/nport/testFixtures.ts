@@ -90,15 +90,15 @@ export function createMinimalNportXml(input: {
     <filerInfo>
       <filer>
         <issuerCredentials><cik>${registrantCik}</cik></issuerCredentials>
-        ${seriesClassGroups
-          .map(
-            (group) => `<seriesClassInfo>
-          <seriesId>${group.seriesId}</seriesId>
-          ${group.classIds.map((id) => `<classId>${id}</classId>`).join('')}
-        </seriesClassInfo>`
-          )
-          .join('')}
       </filer>
+      ${seriesClassGroups
+        .map(
+          (group) => `<seriesClassInfo>
+        <seriesId>${group.seriesId}</seriesId>
+        ${group.classIds.map((id) => `<classId>${id}</classId>`).join('')}
+      </seriesClassInfo>`
+        )
+        .join('')}
     </filerInfo>
   </headerData>
   <formData>

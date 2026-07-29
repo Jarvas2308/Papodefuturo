@@ -12,9 +12,9 @@ export const SEC_NPORT_XML_PATHS = {
   headerCik:
     '/edgarSubmission/headerData/filerInfo/filer/issuerCredentials/cik',
   headerSeriesId:
-    '/edgarSubmission/headerData/filerInfo/filer/seriesClassInfo/seriesId',
+    '/edgarSubmission/headerData/filerInfo/seriesClassInfo/seriesId',
   headerClassId:
-    '/edgarSubmission/headerData/filerInfo/filer/seriesClassInfo/classId',
+    '/edgarSubmission/headerData/filerInfo/seriesClassInfo/classId',
   registrantName: '/edgarSubmission/formData/genInfo/regName',
   registrantCik: '/edgarSubmission/formData/genInfo/regCik',
   seriesName: '/edgarSubmission/formData/genInfo/seriesName',

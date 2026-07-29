@@ -17,6 +17,7 @@ import type {
   InternationalEtfFundamentalSnapshotStorage,
 } from './contracts'
 import {
+  extractSecPrimaryDocumentFileName,
   getSecInternationalEtf,
   isSafeSecPrimaryDocumentPath,
   isSecInternationalEtfTicker,
@@ -435,7 +436,8 @@ function assertOfficialDocumentUrl(
   }
   const cik = registrantCik.replace(/^0+/, '') || '0'
   const accession = accessionNumber.replaceAll('-', '')
-  const expectedPath = `/Archives/edgar/data/${cik}/${accession}/${primaryDocument}`
+  const fileName = extractSecPrimaryDocumentFileName(primaryDocument)
+  const expectedPath = `/Archives/edgar/data/${cik}/${accession}/${fileName}`
   if (
     url.protocol !== 'https:' ||
     url.hostname !== 'www.sec.gov' ||

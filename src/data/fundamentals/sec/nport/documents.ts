@@ -1,4 +1,7 @@
-import { isSafeSecPrimaryDocumentPath } from './path'
+import {
+  extractSecPrimaryDocumentFileName,
+  isSafeSecPrimaryDocumentPath,
+} from './path'
 import type { SecNportFetcher, SecNportFiling } from './types'
 
 const SEC_SUBMISSIONS_BASE_URL = 'https://data.sec.gov/submissions'
@@ -85,7 +88,8 @@ export function buildSecPrimaryDocumentUrl(
 
   const cik = registrantCik.replace(/^0+/, '') || '0'
   const accession = filing.accessionNumber.replaceAll('-', '')
-  return `${SEC_ARCHIVES_BASE_URL}/${cik}/${accession}/${filing.primaryDocument}`
+  const fileName = extractSecPrimaryDocumentFileName(filing.primaryDocument)
+  return `${SEC_ARCHIVES_BASE_URL}/${cik}/${accession}/${fileName}`
 }
 
 export function downloadSecSubmissionsJson(input: {
