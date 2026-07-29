@@ -1,6 +1,6 @@
 # explain-contribution-plan
 
-Edge Function autenticada que interpreta um `TechnicalDossierV1` já calculado pelo motor determinístico e devolve uma explicação em texto, via Claude API.
+Edge Function autenticada que interpreta um `TechnicalDossierV1` já calculado pelo motor determinístico e devolve uma explicação em texto, via OpenRouter (roteando para `anthropic/claude-sonnet-4.5`, endpoint OpenAI-compatible).
 
 ## Contrato de produto (inegociável, `docs/PRODUCT.md` §Papel futuro da IA)
 
@@ -14,7 +14,7 @@ A falha da IA (rede, chave ausente, resposta malformada) nunca bloqueia o plano 
 
 ## Saída
 
-`AiExplanationV1` (`ai-explanation.v1`): `facts: string[]`, `interpretation`, `convictionLevel: 'low' | 'medium' | 'high'`, `technicalPlanSummary`, `comparativeExplanation`. A resposta bruta da Claude API é parseada e validada (`responseSchema.ts`) — uma resposta fora do formato esperado é rejeitada, nunca repassada como está.
+`AiExplanationV1` (`ai-explanation.v1`): `facts: string[]`, `interpretation`, `convictionLevel: 'low' | 'medium' | 'high'`, `technicalPlanSummary`, `comparativeExplanation`. A resposta bruta do OpenRouter é parseada e validada (`responseSchema.ts`) — uma resposta fora do formato esperado é rejeitada, nunca repassada como está.
 
 ## Autenticação
 
@@ -24,10 +24,10 @@ Exige sessão de usuário autenticada real (`Authorization: Bearer <JWT>`). Dife
 
 Secret esperado, exclusivo do ambiente da Edge Function, nunca `VITE_*`:
 
-- `ANTHROPIC_API_KEY`.
+- `OPENROUTER_API_KEY`.
 
-O envio do dossiê para a Anthropic API é o "envio de dados a serviço externo" que `AGENTS.md` exige autorização explícita para habilitar (`DEC-056`). Este diretório não executa deploy nem altera o projeto Supabase real; qualquer publicação continua sendo uma etapa manual e separada.
+O envio do dossiê para o OpenRouter (e por ele, à Claude API) é o "envio de dados a serviço externo" que `AGENTS.md` exige autorização explícita para habilitar (`DEC-056`). Este diretório não executa deploy nem altera o projeto Supabase real; qualquer publicação continua sendo uma etapa manual e separada.
 
 ## Sanitização de erros
 
-Qualquer falha (chave ausente, rede, resposta malformada da Claude API) retorna uma mensagem genérica em português, nunca o payload bruto do provedor ou o erro original — mesmo padrão de `refresh-market-data`.
+Qualquer falha (chave ausente, rede, resposta malformada do OpenRouter) retorna uma mensagem genérica em português, nunca o payload bruto do provedor ou o erro original — mesmo padrão de `refresh-market-data`.

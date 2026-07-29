@@ -374,6 +374,7 @@ Saída (`AiExplanationV1`, `ai-explanation.v1`):
 - explicação comparativa.
 
 A explicação é gerada server-side (Edge Function `explain-contribution-plan`,
-Claude API), nunca no navegador, e nunca é obrigatória: uma falha da IA
+via OpenRouter, roteando para `anthropic/claude-sonnet-4.5`), nunca no
+navegador, e nunca é obrigatória: uma falha da IA
 (rede, resposta malformada, chave ausente) degrada silenciosamente para o
 plano técnico puro — o usuário nunca fica bloqueado pela IA.

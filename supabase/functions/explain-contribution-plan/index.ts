@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.110.2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2.110.2/cors'
-import { createAnthropicClient } from './anthropicClient.ts'
+import { createOpenRouterClient } from './openRouterClient.ts'
 import { validateTechnicalDossierInput } from './dossierValidator.ts'
 
 declare const Deno: {
@@ -67,9 +67,9 @@ Deno.serve(async (request) => {
       (body as { dossier?: unknown } | null)?.dossier
     )
 
-    const apiKey = requireEnvironment('ANTHROPIC_API_KEY')
-    const anthropicClient = createAnthropicClient({ apiKey })
-    const explanation = await anthropicClient.explain(dossier)
+    const apiKey = requireEnvironment('OPENROUTER_API_KEY')
+    const openRouterClient = createOpenRouterClient({ apiKey })
+    const explanation = await openRouterClient.explain(dossier)
 
     return jsonResponse(explanation)
   } catch {

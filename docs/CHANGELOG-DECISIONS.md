@@ -1455,8 +1455,10 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   (`promptBuilder.ts`) com um system prompt que reafirma as regras
   inegociáveis do produto (nunca cria/seleciona/modifica o plano, nunca
   recomenda ativo fora do dossiê, nunca inventa números, sempre responde em
-  JSON estrito), chama a Claude API (`ANTHROPIC_API_KEY`, secret exclusivo
-  do ambiente da função, nunca `VITE_*`) e valida a resposta contra o
+  JSON estrito), chama o OpenRouter (`OPENROUTER_API_KEY`, secret exclusivo
+  do ambiente da função, nunca `VITE_*`, roteando para
+  `anthropic/claude-sonnet-4.5` via endpoint OpenAI-compatible) e valida a
+  resposta contra o
   contrato de saída (`responseSchema.ts`) antes de devolvê-la — uma resposta
   fora do formato é rejeitada, nunca repassada como está.
   - Contrato de saída novo, `AiExplanationV1` (`ai-explanation.v1`,
@@ -1484,14 +1486,14 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
     componente `AiExplanation` só renderiza quando há explicação disponível
     — nenhuma UI de carregamento bloqueante, nenhum erro visível ao usuário
     quando a IA falha.
-- Verificado: `npm test` (135 arquivos, 2160 testes — cobertura nova para
-  `dossierValidator`, `promptBuilder`, `responseSchema`, `anthropicClient`
-  com fetch mockado, e `explainContributionPlanBestEffort`), `format:check`,
+- Verificado: `npm test` (cobertura nova para `dossierValidator`,
+  `promptBuilder`, `responseSchema`, `openRouterClient` com fetch mockado, e
+  `explainContributionPlanBestEffort`), `format:check`,
   `lint`, `build` e `git diff --check` limpos. Sanidade em browser (modo
   demo, sem crash — demo nunca exercita o novo caminho).
-  - **Não verificado neste PR**: chamada real à Claude API em produção. A
+  - **Não verificado neste PR**: chamada real ao OpenRouter em produção. A
     Edge Function foi escrita e testada com fetch mockado, mas o deploy real
-    e o primeiro disparo com `ANTHROPIC_API_KEY` real exigem autorização
+    e o primeiro disparo com `OPENROUTER_API_KEY` real exigem autorização
     explícita separada (envio de dados a serviço externo,
     `AGENTS.md`), registrada quando essa etapa acontecer.
 - Consequências: primeira integração de IA do projeto. O dossiê nunca é

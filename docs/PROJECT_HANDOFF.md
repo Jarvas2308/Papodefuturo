@@ -94,7 +94,8 @@ Uma décima terceira atualização, ainda em 29 de julho de 2026, registra o
 encerramento do Sprint 7 (`DEC-056`): IA explicativa integrada. O
 `TechnicalDossierV1`, já existente e sem consumidor, passou a ser montado no
 Novo Aporte e enviado à Edge Function `explain-contribution-plan`
-(server-side, `ANTHROPIC_API_KEY`), que devolve um `AiExplanationV1`
+(server-side, `OPENROUTER_API_KEY`, roteando para
+`anthropic/claude-sonnet-4.5`), que devolve um `AiExplanationV1`
 validado — fatos, interpretação, grau de convicção, reapresentação do plano
 técnico e explicação comparativa. A IA nunca cria, seleciona ou modifica o
 plano; falha em qualquer ponto degrada silenciosamente para `null`, nunca
@@ -340,8 +341,9 @@ Contrato puro `technical-dossier.v1`, derivado em memória. Consolida snapshot d
 carteira, estratégia, fatos de mercado e resultado já calculado do Motor V2.
 Não recalcula o plano, não persiste dados e declara limitações de forma
 explícita. Desde `DEC-056` (Sprint 7), é montado no Novo Aporte e enviado à
-Edge Function `explain-contribution-plan`, que o entrega à Claude API
-server-side e devolve um `AiExplanationV1` — o dossiê em si continua puro e
+Edge Function `explain-contribution-plan`, que o entrega ao OpenRouter
+server-side (roteando para `anthropic/claude-sonnet-4.5`) e devolve um
+`AiExplanationV1` — o dossiê em si continua puro e
 não persistido; só o envio para interpretação foi autorizado.
 
 ### AiExplanationV1 (`DEC-056`, Sprint 7)
