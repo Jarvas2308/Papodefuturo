@@ -799,9 +799,10 @@ pendente:
    completo** — câmbio global não tem dono individual para sobrescrever, e a
    atualização automática já roda de verdade. As tabelas antigas por usuário
    (`asset_prices`, `exchange_rates`) permanecem intocadas no schema, sem mais
-   nenhum consumidor no app. Resta apenas, neste mesmo sprint: aplicar
-   `pg_cron`/`pg_net` para agendamento automático (hoje o refresh só roda por
-   disparo direto).
+   nenhum consumidor no app. Em seguida (`DEC-054`), o agendamento automático
+   foi aplicado: `pg_cron`/`pg_net` disparam `refresh-market-data-hourly` a
+   cada hora, autenticado como `service_role` via segredo lido do Supabase
+   Vault (nunca versionado). **Sprint 5 completo.**
 4. Camadas qualitativas e IA explicativa seguem posteriores; devem consumir os
    contratos factuais e derivados já existentes sem recalcular ou alterar o
    plano técnico do motor determinístico.
