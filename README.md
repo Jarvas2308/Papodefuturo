@@ -49,7 +49,6 @@ simulação e a decisão permanece com o usuário.
 - backfill amplo dos providers de eventos oficiais e ingestão real de
   fundamentos (hoje as tabelas seguem vazias);
 - runtime e UI consumindo os contratos de fundamentos já construídos;
-- agendamento automático de atualização de mercado (`pg_cron`);
 - persistência do plano de aporte aceito pelo usuário;
 - IA explicativa consumindo o Dossiê Técnico;
 - notícias editoriais (sem provider aprovado).

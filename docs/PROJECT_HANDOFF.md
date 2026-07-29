@@ -75,6 +75,12 @@ USD/BRL (`saveManualUsdBrl`, componente `ExchangeRateSetup`) foi **removida
 por completo** do código — não é mais uma feature do produto. Detalhe na
 seção 9.
 
+Uma décima primeira atualização, ainda em 29 de julho de 2026, registra o
+encerramento do Sprint 5 (`DEC-054`): `pg_cron`/`pg_net` foram habilitados e
+o job `refresh-market-data-hourly` agendado a cada hora, autenticado como
+`service_role` via segredo lido do Supabase Vault (nunca versionado em
+migration). Sprint 5 completo. Detalhe na seção 9.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -562,6 +568,16 @@ Tabelas globais documentadas como aplicadas:
   2026): schema aplicado, RPCs auditadas transacionalmente. Desde `DEC-053`,
   com dado real (12 preços, 1 câmbio) e único destino de leitura/escrita da
   Edge Function `refresh-market-data` e do app (repository, quatro hooks).
+  Desde `DEC-054`, atualizadas automaticamente a cada hora via
+  `pg_cron`/`pg_net` (job `refresh-market-data-hourly`).
+
+Extensões habilitadas para o agendamento (`DEC-054`):
+
+- `pg_net` e `pg_cron`, ambas com escopo de projeto (não por schema
+  privado);
+- o segredo `service_role` usado pelo job de cron vive no Supabase Vault
+  (`vault.decrypted_secrets`, nome `refresh_market_data_service_role_key`),
+  nunca em migration versionada ou em texto plano.
 
 Regras inegociáveis:
 

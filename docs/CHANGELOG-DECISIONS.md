@@ -1321,3 +1321,47 @@ invalid fields"`. A RPC exige exatamente as 24 colunas canônicas de
   crash, sem erro de console); o caminho autenticado real é coberto pelos
   testes unitários dos quatro hooks. Resta apenas o agendamento
   `pg_cron`/`pg_net` (PR 5.3) para fechar o Sprint 5.
+
+## DEC-054 — Agendamento automático de refresh-market-data via pg_cron/pg_net
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: último item pendente do Sprint 5. `DEC-052`/`DEC-053` resolveram o
+  pré-requisito (dados de mercado globais, Edge Function aceitando
+  `service_role` como chamador de confiança sem sessão de usuário); faltava
+  só o agendamento em si — hoje o refresh só roda por disparo direto
+  (script ou usuário autenticado), nunca sozinho.
+- Decisão: migration nova (`20260729120000_schedule_refresh_market_data_cron.sql`)
+  habilita `pg_net` e `pg_cron` e agenda o job `refresh-market-data-hourly`
+  (`0 * * * *`, a cada hora), alinhado com a janela de freshness de 60
+  minutos já usada pelo core da função (`MARKET_DATA_FRESHNESS_MS`). O job
+  chama a Edge Function via `net.http_post`, autenticado como
+  `service_role`.
+  - **O valor do `service_role` key nunca entra na migration versionada.**
+    O job lê o segredo em tempo de execução via Supabase Vault
+    (`vault.decrypted_secrets`), referenciado só pelo nome
+    `refresh_market_data_service_role_key`. O segredo em si foi inserido por
+    uma ação operacional separada (`vault.create_secret`, fora do controle
+    de versão), executada uma única vez em produção com autorização
+    explícita, antes do primeiro disparo agendado.
+  - Teste de forma estática (`scheduleRefreshMarketDataCronMigration.test.ts`)
+    confirma que a migration nunca contém o segredo literal e sempre lê via
+    Vault por nome.
+- Consequências: com este PR, o Sprint 5 está completo — dados de mercado
+  globais aplicados (`DEC-052`), consumo migrado por completo em ambos os
+  lados, Edge Function e app (`DEC-053`), agendamento automático ativo
+  (`DEC-054`). A partir do próximo disparo de hora cheia, `market_asset_prices`/
+  `market_exchange_rates` se atualizam sozinhas, sem depender de nenhum
+  usuário autenticar.
+  - Verificado em produção: migration aplicada, segredo inserido no Vault
+    via `vault.create_secret` (ação operacional avulsa, fora de qualquer
+    migration versionada), job confirmado em `cron.job` (`active = true`,
+    `schedule = '0 * * * *'`). `get_advisors` mostrou um achado novo, WARN
+    `extension_in_public` para `pg_net`: a extensão é **não relocável**
+    (`alter extension pg_net set schema extensions` falha com
+    `does not support SET SCHEMA`), suas funções reais (`net.http_post`)
+    já vivem no schema `net`, dedicado e não exposto via `public` — o
+    achado é metadado cosmético do `pg_extension`, sem consequência de
+    segurança, e fica **aceito e documentado**, no mesmo padrão do WARN já
+    conhecido de `auth_leaked_password_protection` (ação de painel, não de
+    código).
