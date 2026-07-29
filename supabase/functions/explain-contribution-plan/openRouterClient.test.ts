@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createAnthropicClient } from './anthropicClient.ts'
+import { createOpenRouterClient } from './openRouterClient.ts'
 import type { TechnicalDossierInput } from './types.ts'
 
 const dossier: TechnicalDossierInput = {
@@ -37,15 +37,15 @@ const validExplanation = {
   comparativeExplanation: 'comparativo',
 }
 
-describe('createAnthropicClient', () => {
-  it('sends the api key and model in the request and parses a valid response', async () => {
+describe('createOpenRouterClient', () => {
+  it('sends the api key, model and messages, then parses a valid response', async () => {
     const fetchImplementation = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: JSON.stringify(validExplanation) }],
+        choices: [{ message: { content: JSON.stringify(validExplanation) } }],
       }),
     })
-    const client = createAnthropicClient({
+    const client = createOpenRouterClient({
       apiKey: 'server-secret',
       fetchImplementation: fetchImplementation as unknown as typeof fetch,
       now: () => new Date('2026-07-29T12:05:00.000Z'),
@@ -62,38 +62,40 @@ describe('createAnthropicClient', () => {
       string,
       RequestInit,
     ]
-    expect(url).toBe('https://api.anthropic.com/v1/messages')
-    expect((init.headers as Record<string, string>)['x-api-key']).toBe(
-      'server-secret'
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions')
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      'Bearer server-secret'
     )
     const body = JSON.parse(init.body as string)
-    expect(body.model).toBe('claude-sonnet-5')
+    expect(body.model).toBe('anthropic/claude-sonnet-4.5')
+    expect(body.messages[0].role).toBe('system')
+    expect(body.messages[1].role).toBe('user')
   })
 
   it('throws when the HTTP request fails', async () => {
     const fetchImplementation = vi.fn().mockResolvedValue({ ok: false })
-    const client = createAnthropicClient({
+    const client = createOpenRouterClient({
       apiKey: 'server-secret',
       fetchImplementation: fetchImplementation as unknown as typeof fetch,
     })
 
     await expect(client.explain(dossier)).rejects.toThrow(
-      'Anthropic API request failed'
+      'OpenRouter API request failed'
     )
   })
 
-  it('throws when the response has no text content block', async () => {
+  it('throws when the response has no message content', async () => {
     const fetchImplementation = vi.fn().mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue({ content: [] }),
+      json: vi.fn().mockResolvedValue({ choices: [] }),
     })
-    const client = createAnthropicClient({
+    const client = createOpenRouterClient({
       apiKey: 'server-secret',
       fetchImplementation: fetchImplementation as unknown as typeof fetch,
     })
 
     await expect(client.explain(dossier)).rejects.toThrow(
-      'Anthropic API response has no text content'
+      'OpenRouter API response has no message content'
     )
   })
 
@@ -101,10 +103,10 @@ describe('createAnthropicClient', () => {
     const fetchImplementation = vi.fn().mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: 'not json' }],
+        choices: [{ message: { content: 'not json' } }],
       }),
     })
-    const client = createAnthropicClient({
+    const client = createOpenRouterClient({
       apiKey: 'server-secret',
       fetchImplementation: fetchImplementation as unknown as typeof fetch,
     })

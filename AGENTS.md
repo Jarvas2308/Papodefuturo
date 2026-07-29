@@ -352,8 +352,9 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   e fontes ambientais;
 - `generatedAt` deve ser injetado pelo chamador;
 - não inventar ranking técnico enquanto o Motor V2 não expuser esse fato;
-- o dossiê passou a ser enviado a um serviço externo (Claude API) desde o
-  Sprint 7 — essa é exatamente a "nova decisão arquitetural explícita" que
+- o dossiê passou a ser enviado a um serviço externo (OpenRouter, roteando
+  para `anthropic/claude-sonnet-4.5`) desde o Sprint 7 — essa é exatamente a
+  "nova decisão arquitetural explícita" que
   este bullet exigia, registrada em `DEC-056`; a Edge Function
   `explain-contribution-plan` é o único ponto de envio, o dossiê nunca sai do
   navegador diretamente para a IA, e o dossiê continua não sendo persistido.
@@ -366,8 +367,8 @@ IA nunca deve substituir o motor determinístico nem ser a fonte oficial de cál
   da IA — esses valores já vêm prontos no dossiê;
 - nunca recomendar ativo fora dos que já aparecem no dossiê recebido;
 - nunca declarar execução de ordem;
-- a chamada à Claude API vive exclusivamente na Edge Function
-  `explain-contribution-plan` (server-side); `ANTHROPIC_API_KEY` nunca em
+- a chamada ao OpenRouter vive exclusivamente na Edge Function
+  `explain-contribution-plan` (server-side); `OPENROUTER_API_KEY` nunca em
   `VITE_*`, nunca no navegador;
 - falha da IA (rede, chave ausente, resposta malformada) nunca bloqueia o
   plano determinístico — degradação silenciosa via

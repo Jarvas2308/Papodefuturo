@@ -256,7 +256,7 @@ TechnicalDossierV1 (montado no cliente, em memória)
                 ↓
 client.functions.invoke('explain-contribution-plan')
                 ↓
-Edge Function: valida o dossiê, chama a Claude API, valida a resposta
+Edge Function: valida o dossiê, chama o OpenRouter, valida a resposta
                 ↓
         AiExplanationV1 (ai-explanation.v1)
                 ↓
@@ -267,9 +267,10 @@ Edge Function: valida o dossiê, chama a Claude API, valida a resposta
 
 - o dossiê é montado no app (`buildTechnicalDossierV1`) e enviado como está
   para a Edge Function — nenhum cálculo novo acontece no caminho até a IA;
-- a chamada à Claude API (`ANTHROPIC_API_KEY`) é exclusiva da Edge Function
+- a chamada ao OpenRouter (`OPENROUTER_API_KEY`, roteando para
+  `anthropic/claude-sonnet-4.5`) é exclusiva da Edge Function
   `supabase/functions/explain-contribution-plan`; o navegador nunca vê a
-  chave nem fala diretamente com a Claude API;
+  chave nem fala diretamente com o OpenRouter;
 - a resposta da IA é validada contra o contrato `AiExplanationV1` tanto na
   Edge Function quanto no repository do app — uma resposta fora do formato é
   descartada;

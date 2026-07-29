@@ -820,7 +820,8 @@ pendente:
    (`DEC-056`), integrada: `TechnicalDossierV1` (montado no cliente a partir
    dos contratos já existentes — carteira, estratégia, mercado, plano
    técnico) é enviado à Edge Function `explain-contribution-plan`, que chama
-   a Claude API server-side (`ANTHROPIC_API_KEY`, nunca `VITE_*`) e devolve
+   o OpenRouter server-side (`OPENROUTER_API_KEY`, nunca `VITE_*`, roteando
+   para `anthropic/claude-sonnet-4.5`) e devolve
    um `AiExplanationV1` versionado (fatos, interpretação, grau de convicção,
    reapresentação do plano técnico, explicação comparativa) exibido no Novo
    Aporte. A IA nunca cria, seleciona ou modifica o plano — só interpreta o
