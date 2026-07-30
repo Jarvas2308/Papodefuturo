@@ -801,9 +801,9 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
-- fundamentos têm ingestão real aplicada (ver acima) mas o runtime `/fundamentos`
-  segue `disabled` — ativação em produção é decisão separada, item aberto no
-  ROADMAP;
+- fundamentos têm ingestão real aplicada (ver acima) e o runtime `/fundamentos`
+  foi ativado em `read-only` em produção em 30 de julho (`DEC-060`),
+  verificado com sessão autenticada real (`200`, 21 linhas via RLS);
 - notícias editoriais não têm provider aprovado;
 - comitê, sentimento e score não existem;
 - documentação histórica possui trechos contraditórios com o estado integrado;

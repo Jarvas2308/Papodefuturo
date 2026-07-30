@@ -1648,3 +1648,27 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   em `DEC-047` e `DEC-051`. `docs/PRODUCT.md` documenta a semântica de
   `netIncome` trimestral junto do precedente já existente de `totalRevenue`
   nulo.
+
+## DEC-060 — Ativação do runtime de fundamentos em produção (`read-only`)
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: o runtime opcional e a apresentação de `FundamentalFactsV1`/
+  `FundamentalDerivedFactsV1` (`src/application/context/fundamentals`,
+  `src/features/fundamentals`, rota `/fundamentos`) estavam prontos desde
+  o Sprint 4, mas a composição real permanecia `disabled` — ativação
+  explicitamente adiada como decisão separada, mesmo padrão de eventos
+  oficiais (`DEC-041`). Com `fundamental_snapshots` em 21 linhas reais
+  (`DEC-059`), o usuário autorizou a ativação.
+- Decisão: `FUNDAMENTALS_REAL_UI_MODE`
+  (`src/features/fundamentals/composition.ts`) mudou de `'disabled'` para
+  `'read-only'`. `AppComposition.tsx` já condicionava a fiação do cliente
+  real a esse flag, sem mudança adicional necessária. Verificado em
+  produção com sessão autenticada real (magic link gerado via admin API,
+  nunca enviado por e-mail, mesma técnica de `DEC-042`): leitura direta de
+  `fundamental_snapshots` sob RLS retornou `200` e as 21 linhas reais.
+- Consequências: rota `/fundamentos` e o item de navegação correspondente
+  ficam visíveis para usuários autenticados em produção. O runtime
+  continua sem score, ranking ou recomendação (`'no-fundamental-score'`/
+  `'no-score'`/`'no-ranking'` permanecem verdadeiros). Nenhuma escrita foi
+  afetada; esta é puramente uma mudança de leitura/apresentação.

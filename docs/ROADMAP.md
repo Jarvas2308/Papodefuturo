@@ -804,9 +804,12 @@ LOG FII RL"` (corrigido com allowlist fechado de aliases, mesmo padrão
    `netIncome`, ambíguos sem desambiguação (decisão de produto: `netIncome`
    trimestral passa a significar o trimestre isolado, mesmo espírito do DFP
    anual). Ambos corrigidos e reexecutados com sucesso: `fundamental_snapshots`
-   chega a 21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). Restam: demais
-   competências/exercícios de CVM anteriores a 2025 e a ativação `read-only`
-   do runtime de fundamentos.
+   chega a 21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). No mesmo dia
+   (`DEC-060`), o runtime de fundamentos foi ativado em `read-only` em
+   produção — mesmo padrão de `DEC-041`/`DEC-042` para eventos oficiais —
+   e verificado com sessão autenticada real (`200`, 21 linhas lidas via
+   RLS). Rota `/fundamentos` e item de navegação visíveis em produção.
+   Restam: demais competências/exercícios de CVM anteriores a 2025.
 3. Agendamento automático de `refresh-market-data`. Em 29 de julho de 2026
    (`DEC-052`), dados de mercado passaram a ser globais —
    `market_asset_prices` e `market_exchange_rates`, tabelas novas e
