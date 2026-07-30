@@ -167,6 +167,26 @@ function hasExactKeys(
   )
 }
 
+/**
+ * O envelope de resposta pertence ao supabase-js, não a este contrato: hoje ele
+ * devolve `success`, `error`, `data`, `count`, `status` e `statusText`, e pode
+ * ganhar campos em qualquer versão menor. Exigir contagem exata de chaves aqui
+ * transformava toda leitura em `malformed-response` — a rota `/eventos-oficiais`
+ * falhava de forma determinística mesmo com a RPC respondendo `200`.
+ *
+ * A exatidão continua valendo onde a forma é nossa: as linhas (`ROW_KEYS`) e o
+ * payload da RPC seguem validados por `hasExactKeys`.
+ */
+function hasRequiredKeys(
+  value: Record<string, unknown>,
+  keys: readonly string[]
+): boolean {
+  return (
+    Reflect.ownKeys(value).every((key) => typeof key === 'string') &&
+    keys.every((key) => Object.hasOwn(value, key))
+  )
+}
+
 function assertPlainJsonValue(
   value: unknown,
   path: string,
@@ -321,7 +341,10 @@ async function callRpc(input: {
       limit: input.limit,
     })
   }
-  if (!isPlainObject(response) || !hasExactKeys(response, ['data', 'error'])) {
+  if (
+    !isPlainObject(response) ||
+    !hasRequiredKeys(response, ['data', 'error'])
+  ) {
     throw repositoryError({
       kind: 'malformed-response',
       operation: input.operation,

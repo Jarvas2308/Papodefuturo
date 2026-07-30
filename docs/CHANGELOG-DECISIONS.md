@@ -1814,3 +1814,44 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   que dispara com warning de cotação já atualizada (situação normal) e por
   isso é praticamente permanente, e as notificações demonstrativas do
   cabeçalho, que serão removidas com a persistência de Configurações.
+
+## DEC-064 — A rota de eventos oficiais nunca funcionou pela interface
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: ao validar as telas restantes depois de `DEC-062`/`DEC-063`,
+  `/eventos-oficiais` respondeu "Não foi possível carregar os eventos —
+  ocorreu uma falha segura ao consultar a timeline", mesmo com
+  `official_asset_events` em 902 linhas e o runtime em `read-only` desde
+  `DEC-041`/`DEC-042`.
+- Diagnóstico, por eliminação: a RPC `list_official_asset_events_v1` responde
+  `200` com dados quando chamada com o `access_token` da sessão real do
+  usuário; `authenticated` tem `execute` na função e `select` na tabela; o
+  log do Postgres não registra nenhum erro correspondente; e `/fundamentos`,
+  que usa outro caminho de leitura, renderiza os 21 snapshots normalmente.
+  A falha estava inteiramente no cliente.
+- Causa raiz: `callRpc`
+  (`src/data/context/official-events/repository/supabase.ts`) validava o
+  envelope com `hasExactKeys(response, ['data', 'error'])`, que exige
+  contagem exata de chaves. O `.rpc()` do supabase-js devolve seis —
+  `success`, `error`, `data`, `count`, `status` e `statusText`. A condição
+  nunca era satisfeita, então toda leitura virava `malformed-response` e a
+  UI mostrava a falha segura. Determinístico, não intermitente.
+- Por que a suíte não pegava: o `createClient` de
+  `supabase.test.ts` devolvia exatamente `{ data, error }` — o dublê
+  reproduzia a premissa errada em vez do envelope real da biblioteca. Mesmo
+  padrão estrutural já registrado em `PROJECT_HANDOFF` §"testes em
+  TypeScript não alcançam o corpo de funções PL/pgSQL": um teste que
+  confirma a suposição do autor não testa a integração.
+- Decisão: introduzir `hasRequiredKeys`, que exige presença de `data` e
+  `error` sem fixar a contagem, e usá-la **apenas** no envelope — que
+  pertence ao supabase-js e pode ganhar campos em qualquer versão menor. A
+  exatidão de `hasExactKeys` permanece onde a forma é nossa: as linhas
+  (`ROW_KEYS`) e o payload da RPC seguem fail-closed.
+- Verificação: dois testes novos — um com o envelope real de seis chaves,
+  que falha com o código anterior e passa com o corrigido, e outro
+  confirmando que um envelope sem `data`/`error` continua sendo recusado.
+- Consequências: `DEC-042` registrou a ativação como verificada em produção,
+  mas a verificação daquele ciclo foi feita por consulta direta à RPC, não
+  pela interface. A lição operacional é que ativar uma rota exige exercitá-la
+  pela tela, com sessão real, e não apenas confirmar que o dado responde.
