@@ -7,6 +7,7 @@ import { normalizeCvmCnpj } from '../cnpj'
 import { normalizeCvmDescription } from '../normalizeDescription'
 import { parseCvmFiiComplementCsv, parseCvmFiiGeneralCsv } from './csv'
 import { CVM_REAL_ESTATE_FUNDS } from './funds'
+import { matchCvmFiiOfficialNameAlias } from './officialNames'
 import {
   parseNullableCvmFiiExactDecimalQuantity,
   parseNullableCvmFiiMoney,
@@ -140,10 +141,12 @@ function assertSelectedGeneralIdentity(
   row: CvmFiiGeneralRow,
   fund: CvmRealEstateFund
 ) {
-  if (
-    normalizeCvmDescription(row.officialName) !==
-    normalizeCvmDescription(fund.officialName)
-  ) {
+  const matchedNameAlias = matchCvmFiiOfficialNameAlias(
+    fund.ticker,
+    row.officialName,
+    fund.officialName
+  )
+  if (matchedNameAlias === null) {
     throw new Error(
       `Unexpected official CVM FII name for ${fund.ticker}: ${row.officialName}`
     )
