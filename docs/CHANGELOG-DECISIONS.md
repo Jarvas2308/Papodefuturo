@@ -1491,11 +1491,18 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   `explainContributionPlanBestEffort`), `format:check`,
   `lint`, `build` e `git diff --check` limpos. Sanidade em browser (modo
   demo, sem crash — demo nunca exercita o novo caminho).
-  - **Não verificado neste PR**: chamada real ao OpenRouter em produção. A
-    Edge Function foi escrita e testada com fetch mockado, mas o deploy real
-    e o primeiro disparo com `OPENROUTER_API_KEY` real exigem autorização
-    explícita separada (envio de dados a serviço externo,
-    `AGENTS.md`), registrada quando essa etapa acontecer.
+  - **Verificado em produção, 29 de julho de 2026**: autorização explícita
+    do usuário para enviar dados a serviço externo obtida em chat
+    (`AGENTS.md`). Deploy real da Edge Function (versão 3, `ACTIVE`),
+    `OPENROUTER_API_KEY` configurado como secret da função (via dashboard —
+    não há ferramenta de MCP para secrets de Edge Function, diferente de
+    Vault). Disparo real com sessão autenticada de usuário real (magic link
+    gerado via admin API, verificado, nunca enviado por e-mail) e um dossiê
+    de exemplo: resposta `200`, `AiExplanationV1` completo e validado
+    (`facts`, `interpretation`, `convictionLevel: "high"`,
+    `technicalPlanSummary`, `comparativeExplanation`), gerado de fato pelo
+    `anthropic/claude-sonnet-4.5` via OpenRouter. `get_advisors` sem achado
+    novo.
 - Consequências: primeira integração de IA do projeto. O dossiê nunca é
   persistido — só a explicação passa a existir, e apenas em memória do
   componente React, descartada ao simular de novo. Nenhum dado sai do
