@@ -1596,3 +1596,55 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   no momento da execução. Ampliar a cobertura do SEC EDGAR além disso exige
   trabalho de desenvolvimento novo (suporte a `filings.files`), não apenas
   mais execuções do runner.
+
+## DEC-059 — Expansão de ingestão de fundamentos para 2025 e dois bugs reais de dado corrigidos
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: item 2 de `docs/ROADMAP.md` § Próximo. Antes deste ciclo,
+  `fundamental_snapshots` tinha 12 linhas: `cvm-fii` só cobria o ano 2026,
+  `cvm-stocks` só cobria `DFP` (anual) 2025, e `ITR` (trimestral) nunca havia
+  sido exercitado contra dado real. Usuário autorizou ampliar para
+  `cvm-fii --year=2025` e `cvm-stocks --source=ITR --year=2025`.
+- Decisão:
+  - `cvm-fii --year=2025` falhou na primeira tentativa: a CVM registra
+    XPLG11 na competência de dezembro/2025 como `"FII XP LOG"`, divergindo
+    da denominação oficial canônica `"XP LOG FII RL"` (mesmo CNPJ e ISIN).
+    O provider (`src/data/fundamentals/cvm/fii/provider.ts`) e o storage
+    Supabase (`src/data/fundamentals/supabaseRealEstateFundSnapshots.ts`,
+    dois pontos de revalidação independente por defesa em profundidade)
+    comparavam o nome oficial por igualdade exata e rejeitavam por design
+    fail-closed. Corrigido com um allowlist fechado de aliases por ticker
+    (`src/data/fundamentals/cvm/fii/officialNames.ts`), no mesmo padrão já
+    usado pelo provider CVM IPE de eventos oficiais
+    (`companyNames.ts`/`matchCvmIpeCompanyNameAlias`). Sem fuzzy matching,
+    sem alterar a identidade canônica do fundo. Reexecutado com sucesso: 4
+    registros (um por FII).
+  - `cvm-stocks --source=ITR --year=2025` falhou com
+    `"Ambiguous netIncome: 2 candidates found"` para todas as ações. Causa
+    raiz: a CVM publica, para a mesma data de fechamento do ITR, duas
+    linhas DRE com a mesma conta (`3.11`, `ORDEM_EXERC=ÚLTIMO`) — o
+    trimestre isolado (ex.: jul-set) e o acumulado do ano até ali (ex.:
+    jan-set) — diferindo apenas por `DT_INI_EXERC`, dimensão que
+    `selectFact` não considerava. Nenhuma escrita ocorreu na tentativa que
+    falhou.
+  - Decisão de produto sobre a ambiguidade: `netIncome` trimestral do ITR
+    passa a significar o trimestre isolado, no mesmo espírito de
+    granularidade que o DFP anual já aplica ao ano inteiro. Implementado em
+    `selectStandaloneQuarterPeriodRows` (`src/data/fundamentals/cvm/provider.ts`):
+    quando todos os candidatos têm `DT_INI_EXERC` conhecido e distinto,
+    mantém somente a linha de início mais recente (o subperíodo mais
+    curto); quando a data é desconhecida ou já única, o comportamento
+    anterior — incluindo a falha fail-closed em ambiguidade genuína —
+    permanece intacto. Reexecutado com sucesso: 5 registros (uma ação
+    cada).
+  - `get_advisors` (security e performance) auditado após os jobs: sem
+    achado corrigível novo.
+- Consequências: `fundamental_snapshots` foi de 12 para 21 linhas
+  (`brazilian-stock`/`cvm-dfp`: 5, `brazilian-stock`/`cvm-itr`: 5,
+  `international-etf`/`sec-nport`: 3, `real-estate-fund`/`cvm-fii-inf-mensal`:
+  8). Os dois bugs corrigidos eram reais e não hipotéticos — só surgiram ao
+  tocar dado real de produção pela primeira vez, mesmo padrão já observado
+  em `DEC-047` e `DEC-051`. `docs/PRODUCT.md` documenta a semântica de
+  `netIncome` trimestral junto do precedente já existente de `totalRevenue`
+  nulo.
