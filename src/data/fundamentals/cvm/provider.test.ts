@@ -24,6 +24,7 @@ type FixtureRow = {
   accountCode: string
   accountDescription: string
   accountValue: string
+  exerciseStartDate?: string
 }
 
 const HEADERS = [
@@ -130,7 +131,7 @@ function rowToCsv(row: FixtureRow): string {
     'REAL',
     'MIL',
     row.exerciseOrder,
-    '2026-01-01',
+    row.exerciseStartDate ?? '2026-01-01',
     row.referenceDate,
     row.accountCode,
     row.accountDescription,
@@ -265,6 +266,32 @@ describe('extractCvmBrazilianStockFundamentals', () => {
     expect(itr).toMatchObject({ source: 'cvm-itr', period: 'quarterly' })
     expect(itr.facts.netIncome?.amountInMinorUnits).toBe(1_000_000)
     expect(dfp).toMatchObject({ source: 'cvm-dfp', period: 'annual' })
+  })
+
+  it('prefers the standalone quarter over the year-to-date accumulation when CVM reports both', () => {
+    const rows = createRows()
+    const netIncomeRow = rows.find(
+      (row) => row.cvmCode === '001023' && row.accountCode === '3.11'
+    )
+    if (!netIncomeRow) throw new Error('Missing BBAS3 net income fixture row')
+    const yearToDateRow: FixtureRow = {
+      ...netIncomeRow,
+      exerciseStartDate: '2026-01-01',
+    }
+    const standaloneQuarterRow: FixtureRow = {
+      ...netIncomeRow,
+      exerciseStartDate: '2026-02-01',
+      accountValue: '20',
+    }
+    const withBothPeriods = [
+      ...rows.filter((row) => row !== netIncomeRow),
+      yearToDateRow,
+      standaloneQuarterRow,
+    ]
+
+    const record = findRecord(extract(withBothPeriods), 'BBAS3')
+
+    expect(record.facts.netIncome?.amountInMinorUnits).toBe(2_000_000)
   })
 
   it('keeps totalRevenue null for financial and non-financial companies', () => {

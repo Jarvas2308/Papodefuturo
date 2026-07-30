@@ -139,6 +139,31 @@ function selectCurrentExerciseRows(
   )
 }
 
+/**
+ * CVM ITR (quarterly) statements report the same account twice for the same
+ * closing date: the standalone quarter (e.g. Jul-Sep) and the year-to-date
+ * accumulation (e.g. Jan-Sep), differing only by DT_INI_EXERC. This project
+ * treats "quarterly netIncome" as the standalone quarter, matching the
+ * comparability semantics already chosen for DFP's annual figures. When
+ * every candidate has a known start date and they differ, keep only the
+ * rows with the latest (shortest, most recent) start date. Otherwise leave
+ * candidates untouched so ambiguity still fails closed.
+ */
+function selectStandaloneQuarterPeriodRows(
+  rows: readonly CvmStatementRow[]
+): CvmStatementRow[] {
+  if (rows.length <= 1) return [...rows]
+  const startDates = rows.map((row) => row.exerciseStartDate)
+  if (startDates.some((value) => value === null)) return [...rows]
+  const knownStartDates = startDates as string[]
+  if (new Set(knownStartDates).size <= 1) return [...rows]
+  const latestStartDate = knownStartDates.reduce(
+    (max, value) => (value > max ? value : max),
+    knownStartDates[0]!
+  )
+  return rows.filter((row) => row.exerciseStartDate === latestStartDate)
+}
+
 function selectFact({
   rows,
   metric,
@@ -154,9 +179,10 @@ function selectFact({
       statements.includes(row.statement) &&
       (accountCode === undefined || row.accountCode.trim() === accountCode)
   )
-  const candidates = statementRows.filter((row) =>
+  const matchingRows = statementRows.filter((row) =>
     normalizedDescriptions.has(normalizeCvmDescription(row.accountDescription))
   )
+  const candidates = selectStandaloneQuarterPeriodRows(matchingRows)
 
   if (candidates.length === 0) {
     const descriptionsFound = statementRows
