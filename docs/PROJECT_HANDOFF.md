@@ -101,6 +101,17 @@ técnico e explicação comparativa. A IA nunca cria, seleciona ou modifica o
 plano; falha em qualquer ponto degrada silenciosamente para `null`, nunca
 bloqueando o plano determinístico. Sprint 7 completo. Detalhe na seção 7.
 
+Uma décima quarta atualização, ainda em 29 de julho de 2026, registra o
+encerramento do Sprint 8 e do plano de 8 sprints (`DEC-057`): code-splitting
+por rota eliminou o aviso de bundle >500 kB; `rls_user_isolation.test.sql`
+ampliado de 43 para 58 asserções cobrindo as tabelas dos Sprints 5 e 6;
+`get_advisors` auditado sem achado corrigível novo; varredura de secrets
+limpa; esta seção 17 e trechos de `docs/ARCHITECTURE.md`/`docs/PRODUCT.md`
+que ainda descreviam o projeto pré-persistência foram corrigidos. O plano
+de 8 sprints aprovado em 28 de julho de 2026 está integralmente aplicado em
+produção; trabalho futuro segue em `docs/ROADMAP.md` § Próximo como itens
+abertos, não como um novo plano numerado.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em

@@ -317,12 +317,15 @@ Princípios da fronteira:
 - o contrato não altera o Motor V2 nem o schema `technical-dossier.v1`.
 
 Os providers CVM DFP/ITR para ações brasileiras, Informe Mensal para FIIs e SEC
-N-PORT para ETFs internacionais já produzem o contrato, mas ainda não possuem
-execução real, scheduler ou integração com telas. A
-tabela global `fundamental_snapshots`, sem `user_id` ou FK para `assets.id`, já
-está aplicada e vazia no Supabase real, com leitura autenticada, escrita
-reservada a contexto server-side privilegiado e adapters separados para ações,
-FIIs e ETFs. A generalização SEC integrada na PR #76 foi aplicada como
+N-PORT para ETFs internacionais produzem o contrato e já têm ingestão real
+executada (`DEC-049`, `DEC-051`): `fundamental_snapshots` tem 12 linhas,
+cobrindo as três categorias do universo fechado. Runtime `read-only` e
+apresentação em `/fundamentos` também estão integrados; ativação em
+produção continua sendo decisão separada (`FUNDAMENTALS_REAL_UI_MODE`). A
+tabela global `fundamental_snapshots`, sem `user_id` ou FK para `assets.id`,
+está aplicada no Supabase real, com leitura autenticada, escrita reservada a
+contexto server-side privilegiado e adapters separados para ações, FIIs e
+ETFs. A generalização SEC integrada na PR #76 foi aplicada como
 `20260716203927_generalize_fundamental_snapshots_for_sec_nport`; os tipos
 Supabase foram sincronizados com as colunas factuais e constraints
 discriminadas por `kind`. O provider SEC N-PORT V1 cobre VOO, VNQ e VEA,
@@ -476,8 +479,10 @@ A tabela global habilita RLS, revoga todo acesso de `anon`, concede somente
 `select` a `authenticated` e reserva `select`, `insert`, `update` e `delete` a
 `service_role`. Revisões continuam registros independentes e
 `supersedes_event_id` não possui FK, permitindo backfill fora de ordem. A
-migration ainda não foi aplicada ao Supabase; não existem ingestão, scheduler,
-backfill ou repository de leitura.
+migration está aplicada ao Supabase real, com backfill executado
+(`DEC-046`, `DEC-048`): `official_asset_events` tem 302 linhas. Runtime
+`read-only` e apresentação em `/eventos-oficiais` também estão integrados e
+ativados em produção (`DEC-041`, `DEC-042`).
 
 ### Adapter Supabase de eventos oficiais V1
 
@@ -497,8 +502,8 @@ permite atualizar conteúdo mutável. A execução é exclusiva de `service_role
 escrita direta da tabela pelo role server-side é revogada em favor da RPC.
 
 `database.types.ts` continua gerado e não foi editado sem schema remoto
-aplicado. A migration complementar e o adapter ainda não foram aplicados ao
-Supabase remoto.
+aplicado. A migration complementar e o adapter estão aplicados ao Supabase
+remoto, com backfill real executado (ver acima).
 
 ### Fronteira operacional de deployment de eventos oficiais V1
 

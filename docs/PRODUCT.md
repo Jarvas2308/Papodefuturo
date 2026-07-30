@@ -20,11 +20,15 @@ O produto não deve ser interpretado como:
 > da carteira, considerando simultaneamente a estratégia de alocação, o
 > contexto disponível e o capital informado pelo usuário.
 
-Essa missão descreve a direção do produto. O repositório atual já possui
-experiências demonstrativas, engines locais de simulação e a primeira fundação
-tipada do domínio financeiro, mas ainda não possui dados persistidos,
-integrações reais nem o motor estratégico final necessários para cumprir toda
-essa proposta.
+Essa missão descreve a direção do produto. Desde o Sprint 8 (agosto de
+2026), o repositório cumpre a proposta ponta a ponta para o universo fechado
+de 12 ativos: dados reais persistidos (carteira, compras, metas, plano de
+aporte), Supabase Auth real, motor estratégico V2 determinístico integrado
+ao Novo Aporte, dados de mercado e câmbio globais atualizados
+automaticamente, e uma camada de IA explicativa interpretando o plano já
+calculado. O modo demo permanece como fallback determinístico quando o
+ambiente Supabase não está configurado. Notícias editoriais, sentimento e
+score continuam fora de escopo (`NO-GO`, `DEC-036`).
 
 ## Filosofia
 

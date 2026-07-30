@@ -830,6 +830,17 @@ pendente:
    plano determinístico. **Sprint 7 completo.**
 6. Notícias editoriais seguem em `NO-GO` (`DEC-036`). Nenhum provider editorial
    foi aprovado.
+7. Auditoria e polimento final. Em 29 de julho de 2026 (`DEC-057`):
+   code-splitting por rota eliminou o aviso de bundle >500 kB (maior chunk
+   232 kB); `rls_user_isolation.test.sql` ampliado de 43 para 58 asserções,
+   cobrindo `contribution_plans`/`contribution_plan_items` e o padrão
+   RPC-only das tabelas globais de mercado; `get_advisors` auditado sem
+   achado corrigível novo; varredura de secrets limpa;
+   `docs/PROJECT_HANDOFF.md` §17 e trechos remanescentes de
+   `docs/ARCHITECTURE.md`/`docs/PRODUCT.md` que ainda descreviam o projeto
+   pré-persistência corrigidos. `auth_leaked_password_protection`
+   permanece pendente de ação manual do usuário (configuração de painel).
+   **Sprint 8 completo — plano de 8 sprints encerrado (`DEC-057`).**
 
 O domínio puro e os três providers oficiais — CVM IPE para ações, CVM Fund
 Delivery para FIIs e SEC EDGAR para ETFs — estão concluídos e aplicados em
