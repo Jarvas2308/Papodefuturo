@@ -25,6 +25,7 @@ import {
 import { FundamentalsUiProvider } from '../features/fundamentals/FundamentalsUiProvider'
 import { createSupabaseBrowserClient } from '../lib/supabaseClient'
 import { readCurrentViteSupabaseEnvironment } from '../lib/viteEnv'
+import { ErrorBoundary } from './ErrorBoundary'
 import { AppRouter } from './router/AppRouter'
 
 function createOfficialEventsRuntime(): OfficialEventsRuntimeV1 {
@@ -88,14 +89,16 @@ export function AppComposition() {
   )
 
   return (
-    <AuthProvider>
-      <OfficialEventsUiProvider dependencies={officialEventsDependencies}>
-        <FundamentalsUiProvider dependencies={fundamentalsDependencies}>
-          <BrowserRouter>
-            <AppRouter />
-          </BrowserRouter>
-        </FundamentalsUiProvider>
-      </OfficialEventsUiProvider>
-    </AuthProvider>
+    <ErrorBoundary scope="Aplicação">
+      <AuthProvider>
+        <OfficialEventsUiProvider dependencies={officialEventsDependencies}>
+          <FundamentalsUiProvider dependencies={fundamentalsDependencies}>
+            <BrowserRouter>
+              <AppRouter />
+            </BrowserRouter>
+          </FundamentalsUiProvider>
+        </OfficialEventsUiProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

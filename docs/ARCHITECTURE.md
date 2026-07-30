@@ -149,10 +149,28 @@ Responsável por:
 - formulários;
 - estados de carregamento;
 - feedback ao usuário;
+- contenção de falha inesperada;
 - acessibilidade;
 - responsividade.
 
 Não deve conter regras financeiras relevantes.
+
+#### Contenção de falha (`DEC-061`)
+
+`src/app/ErrorBoundary.tsx` é a única fronteira de contenção de erro de render.
+Aplicada em duas alturas: uma vez na raiz, em `AppComposition`, e uma vez por
+rota autenticada, dentro de `RouteContent` (`src/app/router/AppRouter.tsx`),
+sempre por fora do `Suspense` — assim uma falha de render ou de carregamento de
+chunk derruba apenas o conteúdo da rota, preservando shell e navegação.
+
+`src/lib/logger.ts` é o logger da aplicação: buffer em memória com limite fixo,
+sem dependência externa e sem envio para terceiros. `registerGlobalErrorHandlers`
+é chamado uma única vez em `src/main.tsx` e cobre os dois canais que escapam de
+qualquer boundary — exceção não capturada e promise rejeitada sem tratamento.
+
+O logger nunca deve receber segredo, credencial ou valor financeiro
+identificável do usuário. A tela de falha informa apenas o nome da tela e a
+mensagem técnica do erro, e afirma explicitamente que nenhum dado foi alterado.
 
 ### Domínio
 
