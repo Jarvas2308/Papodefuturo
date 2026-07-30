@@ -222,6 +222,42 @@ describe('Supabase OfficialAssetEventReadRepositoryV1 list', () => {
     expect(secondClient.calls).toHaveLength(0)
   })
 
+  it('accepts the real supabase-js response envelope', async () => {
+    // O envelope pertence ao supabase-js, nao a este contrato: ele devolve
+    // success, error, data, count, status e statusText. Exigir contagem exata
+    // de chaves quebrava toda leitura em producao com malformed-response,
+    // enquanto o helper de teste devolvia apenas { data, error } e escondia a
+    // falha.
+    const events = createReadTimeline()
+    const { client } = createClient(() => ({
+      success: true,
+      error: null,
+      data: listEnvelope(events.slice(0, 2), true),
+      count: null,
+      status: 200,
+      statusText: 'OK',
+    }))
+
+    const page = await createSupabaseOfficialAssetEventReadRepositoryV1({
+      client,
+    }).listPage({ limit: 2 })
+
+    expect(page.items).toHaveLength(2)
+    expect(page.returned).toBe(2)
+  })
+
+  it('still rejects an envelope without data or error', async () => {
+    const { client } = createClient(
+      () => ({ status: 200 }) as unknown as { data: unknown; error: unknown }
+    )
+
+    await expect(
+      createSupabaseOfficialAssetEventReadRepositoryV1({ client }).listPage({
+        limit: 2,
+      })
+    ).rejects.toMatchObject({ kind: 'malformed-response' })
+  })
+
   it.each([
     null,
     [],
