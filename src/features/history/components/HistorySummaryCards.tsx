@@ -14,7 +14,7 @@ export function HistorySummaryCards({ summary }: { summary: HistorySummary }) {
     {
       label: 'Compras',
       value: String(summary.purchaseCount),
-      helper: 'Ordens simuladas no período',
+      helper: 'Compras confirmadas no período',
       icon: ArrowDownToLine,
     },
     {

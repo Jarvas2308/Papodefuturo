@@ -11,6 +11,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth'
 import { cn } from '../../lib/cn'
 import { useOfficialEventsUiDependenciesV1 } from '../../features/official-events/officialEventsUiContext'
 import { useFundamentalsUiDependenciesV1 } from '../../features/fundamentals/fundamentalsUiContext'
@@ -81,10 +82,20 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
   const { runtime } = useOfficialEventsUiDependenciesV1()
   const { runtime: fundamentalsRuntime } = useFundamentalsUiDependenciesV1()
+  const { status, user } = useAuth()
   const items = getNavigationItems(
     runtime.getCapability().mode,
     fundamentalsRuntime.getCapability().mode
   )
+  // Mesmo padrão do Header: em sessão real o rodapé identifica a conta, em vez
+  // de afirmar que o perfil é demonstrativo sobre dados que são do usuário.
+  const isAuthenticated = status === 'authenticated'
+  const profileInitials = isAuthenticated
+    ? (user?.email?.slice(0, 2).toUpperCase() ?? 'US')
+    : 'DE'
+  const profileName = isAuthenticated ? 'Sua conta' : 'Perfil demonstrativo'
+  const profileDetail =
+    isAuthenticated && user?.email ? user.email : 'Dados de exemplo'
 
   return (
     <>
@@ -132,14 +143,14 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand)] font-semibold text-white"
             aria-hidden="true"
           >
-            DE
+            {profileInitials}
           </div>
           <div className={cn('min-w-0', collapsed && 'sr-only')}>
             <p className="truncate text-sm font-semibold text-[var(--color-text)]">
-              Perfil demonstrativo
+              {profileName}
             </p>
             <p className="truncate text-sm text-[var(--color-text-muted)]">
-              Dados de exemplo
+              {profileDetail}
             </p>
           </div>
         </div>
