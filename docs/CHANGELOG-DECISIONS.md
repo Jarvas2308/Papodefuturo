@@ -1512,3 +1512,41 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   - nova subseção "IA explicativa"), `docs/PRODUCT.md` ("Papel futuro da
     IA" vira "Papel da IA"), `docs/ARCHITECTURE.md` (nova fronteira),
     `docs/PROJECT_HANDOFF.md`, `docs/ROADMAP.md`, `README.md`.
+
+## DEC-057 — Encerramento do plano de 8 sprints
+
+- Data: 29 de julho de 2026
+- Status: Aceita
+- Contexto: plano de 8 sprints aprovado em 28 de julho de 2026 para levar o
+  Papo de Futuro do estado pós-eventos-oficiais até o cumprimento completo
+  de `docs/PRODUCT.md`. Os 8 sprints estão completos e mergeados: (1) gate
+  documental; (2) backfill real de eventos oficiais; (3) ingestão real de
+  fundamentos; (4) fundamentos no runtime e na interface; (5) preços/câmbio
+  globais e agendamento automático (`DEC-052`–`DEC-054`); (6) persistência
+  do plano de aporte (`DEC-055`); (7) IA explicativa (`DEC-056`); (8)
+  auditoria e polimento final (este ciclo).
+- Decisão: registrar o encerramento do plano de sprints como marco — não
+  significa fim do projeto, significa que o backlog explicitamente
+  planejado em 28 de julho está integralmente aplicado em produção e
+  verificado. Trabalho futuro (backfill amplo dos providers ainda não
+  exercitados, ativação `read-only` de fundamentos em produção, notícias
+  editoriais, camadas qualitativas adicionais) segue registrado em
+  `docs/ROADMAP.md` § Próximo como itens abertos, não como um novo plano de
+  sprints numerado.
+  - Sprint 8 (PR 8.1–8.4): code-splitting por rota eliminou o aviso de
+    bundle >500 kB (maior chunk 232 kB); `rls_user_isolation.test.sql`
+    ampliado de 43 para 58 asserções, cobrindo `contribution_plans`/
+    `contribution_plan_items` e o padrão RPC-only de
+    `market_asset_prices`/`market_exchange_rates`; `get_advisors`
+    security/performance auditado, sem achado corrigível novo; varredura de
+    secrets no código versionado, limpa; `docs/PROJECT_HANDOFF.md` §17 e
+    trechos remanescentes de `docs/ARCHITECTURE.md`/`docs/PRODUCT.md` que
+    ainda descreviam o projeto pré-persistência corrigidos para o estado
+    real.
+- Consequências: `auth_leaked_password_protection` permanece desabilitado —
+  é configuração de painel do Supabase Auth, não alterável por ciclo de
+  código; fica registrado aqui como ação manual pendente do usuário
+  (Authentication → Policies → Enable leaked password protection). `pg_net`
+  em schema `public` permanece um achado aceito (extensão não relocável,
+  `DEC-054`). Nenhum dado real foi apagado ou alterado neste ciclo — Sprint
+  8 é auditoria e polimento, não migração de schema.
