@@ -780,7 +780,6 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 - notícias editoriais não têm provider aprovado;
 - comitê, sentimento e score não existem;
 - documentação histórica possui trechos contraditórios com o estado integrado;
-- bundle possui aviso preexistente acima de 500 kB;
 - o runner Codex no Windows já apresentou falha de HTTPS/Git Credential Manager
   sob usuário sandbox diferente. Não alterar remote ou credenciais para
   contornar; usar integração autenticada aprovada ou patch validado.
@@ -880,9 +879,10 @@ verificação adicional no sistema correspondente:
   coincide com os arquivos locais — migrations futuras podem ter sido
   aplicadas depois desta atualização;
 - que a Edge Function `refresh-market-data` tenha sido invocada _recentemente_
-  — a auditoria de 27 de julho (`DEC-043`) comprovou execução real passada,
-  mas sem `pg_cron` não há agendamento; a atualização mais recente pode estar
-  defasada quando este documento for lido;
+  — desde `DEC-054` (Sprint 5) o job `refresh-market-data-hourly` roda a cada
+  hora via `pg_cron`/`pg_net`, mas o job em si pode estar pausado, falhando
+  silenciosamente ou o segredo no Vault pode ter expirado; verificar
+  `cron.job` e `cron.job_run_details` antes de assumir execução recente;
 - que o deployment Vercel atual, na data em que este documento for lido, ainda
   aponta para o commit `5b05e11` — deployments futuros podem ter substituído
   esse estado;
@@ -891,11 +891,16 @@ verificação adicional no sistema correspondente:
   linhas, cobrindo as três categorias) — contagem futura deve ser verificada,
   não assumida;
 - que existe backfill real de eventos oficiais além do que está registrado em
-  `DEC-040` (canário, `fetchedEventCount: 0`) e `DEC-046` (28 de julho:
+  `DEC-040` (canário, `fetchedEventCount: 0`), `DEC-046` (28 de julho:
   `sec-edgar` e `cvm-fund-delivery` com sucesso, 4 eventos persistidos;
-  `cvm-ipe` falhou por dado malformado da própria CVM, sem persistir nada) —
-  `official_asset_events` tinha exatamente 4 linhas no momento desta
-  atualização; contagem futura deve ser verificada, não assumida.
+  `cvm-ipe` falhou por dado malformado da própria CVM) e `DEC-048` (correção
+  do parser CVM IPE e reexecução: `fetchedEventCount: 298`,
+  `rejectedItemCount: 170`, `official_asset_events` foi de 4 para 302
+  linhas) — contagem futura deve ser verificada, não assumida;
+- que `contribution_plans`/`contribution_plan_items` (`DEC-055`) ou
+  `market_asset_prices`/`market_exchange_rates` (`DEC-052`) tenham linhas
+  além das inseridas pelos fluxos reais já auditados — contagem futura deve
+  ser verificada, não assumida.
 
 Esses fatos devem ser verificados no sistema correspondente antes de qualquer
 mudança operacional.
