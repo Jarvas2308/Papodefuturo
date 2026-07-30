@@ -22,6 +22,7 @@ import type {
 import { normalizeCvmCnpj } from './cvm/cnpj'
 import {
   getCvmRealEstateFund,
+  matchCvmFiiOfficialNameAlias,
   parseNullableCvmFiiExactDecimalQuantity,
   parseNullableCvmFiiMoney,
   parseNullableCvmFiiNonNegativeInteger,
@@ -30,8 +31,8 @@ import type {
   CvmFiiExactDecimalProvenance,
   CvmFiiRawFieldProvenance,
   CvmRealEstateFundFundamentalRecord,
+  CvmRealEstateFundTicker,
 } from './cvm/fii/types'
-import { normalizeCvmDescription } from './cvm/normalizeDescription'
 import {
   upsertFundamentalSnapshotRowsV1,
   type FundamentalSnapshotsRpcClientV1,
@@ -77,7 +78,7 @@ type RealEstateFundAssetIdentity = {
 type FiiProvenance = CvmRealEstateFundFundamentalRecord['provenance']
 
 type ProvenanceContext = {
-  ticker: string
+  ticker: CvmRealEstateFundTicker
   officialName: string
   cnpj: string
   isin: string
@@ -363,13 +364,17 @@ function assertProvenanceCoherence(
     throw new Error('FII provenance does not match official fields')
   }
 
+  const matchedProvenanceOfficialName = matchCvmFiiOfficialNameAlias(
+    context.ticker,
+    provenance.identity.officialName.rawValue,
+    context.officialName
+  )
   if (
     normalizeCvmCnpj(provenance.identity.cnpj.rawValue) !==
       normalizeCvmCnpj(context.cnpj) ||
     normalizeCvmCnpj(provenance.identity.complementCnpj.rawValue) !==
       normalizeCvmCnpj(context.cnpj) ||
-    normalizeCvmDescription(provenance.identity.officialName.rawValue) !==
-      normalizeCvmDescription(context.officialName) ||
+    matchedProvenanceOfficialName === null ||
     provenance.identity.isin.rawValue.trim().toUpperCase() !==
       context.isin.trim().toUpperCase()
   ) {
@@ -524,11 +529,15 @@ function assertRecordIdentity(
     throw new Error(`Invalid FII snapshot contract: ${record.ticker}`)
   }
   const fund = getCvmRealEstateFund(record.ticker)
+  const matchedOfficialName = matchCvmFiiOfficialNameAlias(
+    fund.ticker,
+    record.fundIdentity.officialName,
+    fund.officialName
+  )
   if (
     normalizeCvmCnpj(record.fundIdentity.cnpj) !==
       normalizeCvmCnpj(fund.cnpj) ||
-    normalizeCvmDescription(record.fundIdentity.officialName) !==
-      normalizeCvmDescription(fund.officialName) ||
+    matchedOfficialName === null ||
     record.fundIdentity.isin.trim().toUpperCase() !== fund.isin
   ) {
     throw new Error(`Invalid official FII identity: ${record.ticker}`)

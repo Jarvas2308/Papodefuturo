@@ -232,6 +232,31 @@ describe('Supabase FII fundamental snapshot storage', () => {
     })
   })
 
+  it('accepts the closed alternate official name for XPLG11', async () => {
+    const rpc = vi.fn(async () => ({ data: null, error: null }))
+    const storage = createSupabaseRealEstateFundSnapshotStorage(
+      asRpcClient({ rpc })
+    )
+    const record = createRecord('XPLG11')
+    record.fundIdentity = {
+      ...record.fundIdentity,
+      officialName: 'FII XP LOG',
+    }
+    record.provenance = {
+      ...record.provenance,
+      identity: {
+        ...record.provenance.identity,
+        officialName: rawField('Nome_Fundo_Classe', 'FII XP LOG'),
+      },
+    }
+
+    await storage.upsertMany([record])
+
+    expect(rpc).toHaveBeenCalledWith('upsert_fundamental_snapshots_v1', {
+      records: [expect.objectContaining({ ticker: 'XPLG11' })],
+    })
+  })
+
   it.each([
     ['VISC11', 288_286_400_000_073],
     ['XPLG11', 513_900_978_938_388],
