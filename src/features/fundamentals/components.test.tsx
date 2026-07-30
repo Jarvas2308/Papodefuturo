@@ -34,8 +34,8 @@ function readOnlyRuntime(): FundamentalsRuntimeV1 {
 }
 
 describe('fundamentals page and feature mode', () => {
-  it('keeps the real UI mode flag disabled until a separate activation decision', () => {
-    expect(FUNDAMENTALS_REAL_UI_MODE).toBe('disabled')
+  it('activates the real UI mode flag to read-only', () => {
+    expect(FUNDAMENTALS_REAL_UI_MODE).toBe('read-only')
   })
 
   it('defaults to a disabled runtime when composition receives no explicit runtime, and renders the disabled state', () => {
