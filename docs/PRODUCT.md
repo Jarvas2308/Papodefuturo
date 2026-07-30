@@ -282,7 +282,12 @@ O provider CVM V1 para BBAS3, ITSA4, TAEE11, WEGE3 e PSSA3 lê DFP e ITR
 consolidados oficiais, normaliza lucro líquido, ativo total, patrimônio líquido
 e fluxo de caixa operacional e preserva proveniência do filing. `totalRevenue`
 permanece `null`: a linha DRE 3.01 de BBAS3 não possui comparabilidade econômica
-com a linha DRE 3.01 das demais companhias auditadas.
+com a linha DRE 3.01 das demais companhias auditadas. Para o ITR, a mesma data
+de fechamento pode trazer duas linhas oficiais para `netIncome` (3.11): o
+trimestre isolado e o acumulado do ano até ali, diferindo apenas pela data de
+início do período. `netIncome` trimestral significa o trimestre isolado — o
+mesmo espírito de granularidade que o DFP anual já aplica ao ano inteiro,
+decidido em 30 de julho de 2026.
 
 O provider CVM V1 para FIIs lê os CSVs `geral` e `complemento` do Informe Mensal
 oficial, valida CNPJ, denominação e ISIN do universo fechado e normaliza

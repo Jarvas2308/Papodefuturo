@@ -790,11 +790,20 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   EDGAR ficou limitado às janelas 2026-01 e 2026-07 (0 eventos cada) por um
   limite estrutural do provider (só lê `filings.recent`, recusa por design
   quando a janela cai em `historicalFiles`) — não é bug, é escopo não
-  implementado, aceito por ora pelo usuário. `purchases` segue com 0;
+  implementado, aceito por ora pelo usuário. No mesmo dia (`DEC-059`), a
+  ingestão de fundamentos foi ampliada (`cvm-fii --year=2025` e a primeira
+  execução real de `cvm-stocks --source=ITR`), revelando e corrigindo dois
+  bugs reais de dado: denominação alternativa da XPLG11 na CVM ("FII XP
+  LOG") e ambiguidade real do `netIncome` do ITR entre trimestre isolado e
+  acumulado (decisão: trimestre isolado). `fundamental_snapshots` chega a
+  21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). `purchases` segue com
+  0;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
-- fundamentos permanecem sem ingestão real, scheduler ou UI;
+- fundamentos têm ingestão real aplicada (ver acima) mas o runtime `/fundamentos`
+  segue `disabled` — ativação em produção é decisão separada, item aberto no
+  ROADMAP;
 - notícias editoriais não têm provider aprovado;
 - comitê, sentimento e score não existem;
 - documentação histórica possui trechos contraditórios com o estado integrado;

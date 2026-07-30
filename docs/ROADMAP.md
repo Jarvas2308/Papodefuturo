@@ -792,9 +792,21 @@ pendente:
    cabeçalho; `seriesName` divergente por maiúsculas/minúsculas contra a
    identidade oficial) — e reexecutado com sucesso: 3 registros persistidos
    (VOO, VNQ, VEA). `fundamental_snapshots` chega a 12 linhas, cobrindo as
-   três categorias do universo fechado pela primeira vez. Restam: demais
-   competências/exercícios de CVM (DFP e ITR) e a ativação `read-only` do
-   runtime de fundamentos.
+   três categorias do universo fechado pela primeira vez. Em 30 de julho de
+   2026 (`DEC-059`), o escopo foi ampliado para `cvm-fii --year=2025` e a
+   primeira execução real de `cvm-stocks --source=ITR`, revelando dois bugs
+   reais de dado (mesmo padrão de `DEC-047`/`DEC-051`, só aparecem ao tocar
+   dado real pela primeira vez): a XPLG11 é registrada pela CVM em
+   dezembro/2025 como `"FII XP LOG"` em vez da denominação canônica `"XP
+LOG FII RL"` (corrigido com allowlist fechado de aliases, mesmo padrão
+   do provider CVM IPE); e o ITR reporta, para a mesma data de fechamento,
+   tanto o trimestre isolado quanto o acumulado do ano até ali para
+   `netIncome`, ambíguos sem desambiguação (decisão de produto: `netIncome`
+   trimestral passa a significar o trimestre isolado, mesmo espírito do DFP
+   anual). Ambos corrigidos e reexecutados com sucesso: `fundamental_snapshots`
+   chega a 21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). Restam: demais
+   competências/exercícios de CVM anteriores a 2025 e a ativação `read-only`
+   do runtime de fundamentos.
 3. Agendamento automático de `refresh-market-data`. Em 29 de julho de 2026
    (`DEC-052`), dados de mercado passaram a ser globais —
    `market_asset_prices` e `market_exchange_rates`, tabelas novas e
