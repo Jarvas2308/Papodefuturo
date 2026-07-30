@@ -5,6 +5,7 @@ export {
 } from './archive'
 export { parseCvmFiiComplementCsv, parseCvmFiiGeneralCsv } from './csv'
 export { CVM_REAL_ESTATE_FUNDS, getCvmRealEstateFund } from './funds'
+export { matchCvmFiiOfficialNameAlias } from './officialNames'
 export {
   parseNullableCvmFiiExactDecimalQuantity,
   parseNullableCvmFiiMoney,
