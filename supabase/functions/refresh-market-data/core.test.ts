@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { refreshMarketData, type MarketDataStorage } from './core.ts'
+import {
+  refreshMarketData,
+  sanitizeMarketPriceRows,
+  type MarketDataStorage,
+} from './core.ts'
 import type {
   ExchangeRateInsert,
   MarketPriceInsert,
@@ -279,5 +283,89 @@ describe('market data refresh core', () => {
     )
     const { result } = await runRefresh({ providers })
     expect(JSON.stringify(result)).not.toContain('secret raw')
+  })
+})
+
+describe('resilient persistence (DEC-062)', () => {
+  it('drops non-positive prices instead of failing the whole batch', () => {
+    const result = sanitizeMarketPriceRows([
+      {
+        ticker: 'BBAS3',
+        market: 'BR',
+        currency: 'BRL',
+        price_minor: 2_078,
+        priced_at: '2026-07-29T21:00:00.000Z',
+        source: 'market-provider',
+      },
+      {
+        ticker: 'ITSA4',
+        market: 'BR',
+        currency: 'BRL',
+        price_minor: 0,
+        priced_at: '2026-07-29T21:00:00.000Z',
+        source: 'market-provider',
+      },
+    ])
+
+    expect(result.discarded).toBe(1)
+    expect(result.rows.map((row) => row.ticker)).toEqual(['BBAS3'])
+  })
+
+  it('deduplicates rows sharing ticker, source and priced_at', () => {
+    const row: MarketPriceInsert = {
+      ticker: 'BBAS3',
+      market: 'BR',
+      currency: 'BRL',
+      price_minor: 2_078,
+      priced_at: '2026-07-29T21:00:00.000Z',
+      source: 'market-provider',
+    }
+
+    // ON CONFLICT DO UPDATE recusa o comando inteiro com 21000 quando a mesma
+    // chave aparece duas vezes no lote.
+    const result = sanitizeMarketPriceRows([row, { ...row }])
+
+    expect(result.rows).toHaveLength(1)
+    expect(result.discarded).toBe(1)
+  })
+
+  it('keeps distinct priced_at values for the same ticker', () => {
+    const base: MarketPriceInsert = {
+      ticker: 'BBAS3',
+      market: 'BR',
+      currency: 'BRL',
+      price_minor: 2_078,
+      priced_at: '2026-07-29T21:00:00.000Z',
+      source: 'market-provider',
+    }
+
+    const result = sanitizeMarketPriceRows([
+      base,
+      { ...base, priced_at: '2026-07-30T21:00:00.000Z' },
+    ])
+
+    expect(result.rows).toHaveLength(2)
+    expect(result.discarded).toBe(0)
+  })
+
+  it('degrades a price write failure into a warning instead of throwing', async () => {
+    const storage = createStorage()
+    storage.storage.insertMarketPrices = vi
+      .fn()
+      .mockRejectedValue(new Error('ON CONFLICT DO UPDATE...'))
+
+    const { result } = await runRefresh({ storage })
+
+    expect(result.warnings).toContainEqual({
+      provider: 'storage',
+      message: 'Não foi possível gravar as cotações de mercado nesta execução.',
+    })
+    expect(result.updatedPrices).toBe(0)
+  })
+
+  it('reports only the prices actually persisted', async () => {
+    const { result, storage } = await runRefresh()
+
+    expect(result.updatedPrices).toBe(storage.insertedPrices[0].length)
   })
 })

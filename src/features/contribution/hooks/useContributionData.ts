@@ -179,8 +179,12 @@ export function buildContributionPlanCreateInput(
 
       return {
         assetId: item.assetId,
+        // O motor distribui exclusivamente em BRL: preços de ativos em USD já
+        // foram convertidos em `buildContributionInputs`. O item herda a moeda
+        // do plano, nunca a do ativo — rotular um valor em BRL como USD
+        // corromperia o dado por um fator igual à cotação do dia.
         plannedAmountInMinorUnits: item.valorEmCentavos,
-        currency: getContributionAssetCurrency(asset),
+        currency: 'BRL' as const,
       }
     }),
   }

@@ -398,6 +398,35 @@ describe('buildContributionPlanCreateInput', () => {
     })
   })
 
+  it('keeps items in BRL for assets quoted in USD', () => {
+    const internationalAsset: Asset = {
+      id: 'asset-vnq',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      category: 'international-etf',
+      market: 'US',
+      status: 'active',
+    }
+
+    const input = buildContributionPlanCreateInput(
+      'user-1',
+      500_000,
+      [{ assetId: internationalAsset.id, valorEmCentavos: 152_970 }],
+      [internationalAsset]
+    )
+
+    // O motor já converteu o preço do ativo para BRL, então 152970 são
+    // R$ 1.529,70. Rotular como USD leria o mesmo número como US$ 1.529,70.
+    expect(input?.currency).toBe('BRL')
+    expect(input?.items).toEqual([
+      {
+        assetId: internationalAsset.id,
+        plannedAmountInMinorUnits: 152_970,
+        currency: 'BRL',
+      },
+    ])
+  })
+
   it('returns null when there is nothing to present', () => {
     const input = buildContributionPlanCreateInput(
       'user-1',
