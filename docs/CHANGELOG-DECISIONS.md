@@ -1550,3 +1550,49 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   em schema `public` permanece um achado aceito (extensão não relocável,
   `DEC-054`). Nenhum dado real foi apagado ou alterado neste ciclo — Sprint
   8 é auditoria e polimento, não migração de schema.
+
+## DEC-058 — Expansão de backfill de eventos oficiais (2026 completo + 2025) e limite estrutural do SEC EDGAR
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: com o plano de 8 sprints encerrado (`DEC-057`), o item 1 de
+  `docs/ROADMAP.md` § Próximo continuava aberto — cada provider de eventos
+  oficiais só tinha uma execução real (CVM IPE ano 2026; CVM Fund Delivery
+  competência 2026-06; SEC EDGAR janela 2026-01). Usuário autorizou
+  expandir o escopo para "2026 completo + 2025" nos três providers, um job
+  por execução, runbook seção 18.
+- Decisão:
+  - CVM IPE: `--year=2025` executado com sucesso.
+    `fetchedEventCount: 500`, `persistedAttemptCount: 500`,
+    `rejectedItemCount: 288` (o provider retorna no máximo 500 itens por
+    execução; rejeições seguem o padrão já auditado em `DEC-048`).
+  - CVM Fund Delivery: 6 meses restantes de 2026 (01, 02, 03, 04, 05, 07 —
+    06 já coberto por `DEC-046`) e os 12 meses de 2025 executados com
+    sucesso, todos `executorStatus: succeeded`, sem falha nem conflito.
+  - SEC EDGAR: janela 2026-01 já coberta (`DEC-046`). Executadas
+    2026-02 a 2026-07 e uma janela de teste em 2025-12. Apenas 2026-01 e
+    2026-07 tiveram sucesso (`fetchedEventCount: 0` em ambos); as demais
+    (2026-02 a 2026-06, e 2025-12) falharam com `provider-failed`.
+  - Causa raiz identificada em código, não em dado: o provider SEC EDGAR
+    (`src/data/context/official-events/sec/edgar/provider.ts`,
+    `assertRecentSubmissionsCoverRequestedRange`) só lê `filings.recent` da
+    API de submissions. Quando a janela pedida se sobrepõe a um
+    `historicalFiles` (índice paginado antigo, fora de `filings.recent`),
+    ele recusa por design fail-closed — comportamento já documentado como
+    limitação da versão atual (`docs/ROADMAP.md`, item "Provider SEC EDGAR
+    V1": "somente `filings.recent`; histórico necessário em `filings.files`
+    interrompe o lote"). Não é bug nem dado malformado; é escopo não
+    implementado. Nenhuma escrita ocorreu nos jobs que falharam.
+  - Usuário optou por aceitar o limite atual em vez de abrir um novo épico
+    de suporte a `filings.files` agora. Fica registrado como item aberto em
+    `docs/ROADMAP.md` § Próximo.
+  - `get_advisors` (security e performance) auditado após todos os jobs:
+    sem achado corrigível novo, mesmo padrão de `unused_index` esperado e
+    `auth_leaked_password_protection` já conhecido.
+- Consequências: `official_asset_events` foi de 302 para 902 linhas. Os
+  três providers seguem com pelo menos uma execução real bem-sucedida;
+  CVM IPE e CVM Fund Delivery agora cobrem 2025–2026 por completo, SEC
+  EDGAR cobre apenas as duas janelas dentro do alcance de `filings.recent`
+  no momento da execução. Ampliar a cobertura do SEC EDGAR além disso exige
+  trabalho de desenvolvimento novo (suporte a `filings.files`), não apenas
+  mais execuções do runner.

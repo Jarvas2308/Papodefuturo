@@ -783,7 +783,14 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   para 302 linhas. No mesmo dia, a primeira ingestão real de fundamentos
   (`DEC-049`) trouxe `fundamental_snapshots` de 0 para 9 linhas (`cvm-fii` e
   `cvm-stocks`); em 29 de julho, após corrigir o provider `sec-nport`
-  (`DEC-051`), a tabela chegou a 12 linhas. `purchases` segue com 0;
+  (`DEC-051`), a tabela chegou a 12 linhas. Em 30 de julho, o backfill de
+  eventos oficiais foi ampliado para 2026 completo mais 2025 inteiro
+  (`DEC-058`): CVM IPE e CVM Fund Delivery cobrem os dois anos por completo
+  sem falha, levando `official_asset_events` de 302 para 902 linhas; SEC
+  EDGAR ficou limitado às janelas 2026-01 e 2026-07 (0 eventos cada) por um
+  limite estrutural do provider (só lê `filings.recent`, recusa por design
+  quando a janela cai em `historicalFiles`) — não é bug, é escopo não
+  implementado, aceito por ora pelo usuário. `purchases` segue com 0;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
