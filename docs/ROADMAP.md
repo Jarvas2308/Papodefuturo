@@ -735,152 +735,100 @@ fundamentalistas auditáveis, preservando fatos, Motor V2 e Dossiê Técnico.
   `list_official_asset_events_v1` e item "Eventos Oficiais" visível na sidebar
   (`DEC-041`, `DEC-042`).
 
+### Plano de 8 sprints (29/07/2026, DEC-057)
+
+1. **Sprint 1 — Regra documental**: gate obrigatório em `AGENTS.md`, README,
+   ARCHITECTURE e SUPABASE_SCHEMA_PLAN atualizados. Concluído.
+
+2. **Sprint 2 — Backfill de eventos oficiais**: Em 28 de julho de 2026
+   (`DEC-046`), três jobs rodaram contra produção via
+   `scripts/run-official-events-backfill.ts`: `sec-edgar` (ETFs, janela
+   2026-01-01 a 2026-01-31, `succeeded`, `fetchedEventCount: 0`) e
+   `cvm-fund-delivery` (FIIs, competência 2026-06, `succeeded`,
+   `fetchedEventCount: 4`, quatro eventos persistidos). O job `cvm-ipe`
+   (ações, ano 2026) falhou por dado malformado no CSV CVM (aspa não
+   escapada); parser rejeitou por design (fail-closed). Corrigido no mesmo
+   dia (`DEC-047`) e reexecutado com sucesso (`DEC-048`): `fetchedEventCount:
+298`, `persistedAttemptCount: 298`, `rejectedItemCount: 170`. Os três
+   providers oficiais têm pelo menos uma execução real bem-sucedida. Em 30
+   de julho de 2026 (`DEC-058`), escopo ampliado para 2026 completo + 2025
+   inteiro: CVM IPE (`--year=2025`, 500 eventos) e CVM Fund Delivery (6
+   meses restantes 2026 + 12 meses 2025) rodaram com sucesso total, sem
+   falha. `official_asset_events` 302 → 902 linhas. SEC EDGAR bateu limite
+   estrutural: só `filings.recent` da SEC, recusa por design quando janela
+   cai em `historicalFiles` (não é bug, funcionalidade não implementada).
+   Usuário aceitou o limite. **Sprint 2 completo.**
+
+3. **Sprint 3 — Ingestão de fundamentos**: Em 28 de julho (`DEC-049`),
+   `cvm-fii --year=2026`: sucesso, 4 registros. `cvm-stocks --source=DFP
+--year=2025`: sucesso após corrigir bug real no adapter. `sec-nport`:
+   falhou por dado real SEC não coberto; corrigido em 29 de julho (`DEC-051`,
+   três bugs: URL primária, caminho XML, maiúscula `seriesName`). Em 30 de
+   julho (`DEC-059`), `cvm-fii --year=2025` + primeira execução real
+   `cvm-stocks --source=ITR`, revelando dois bugs reais de dado (XPLG11 nome
+   alternativo "FII XP LOG" vs "XP LOG FII RL", corrigido com allowlist; ITR
+   `netIncome` ambíguo entre trimestre isolado e acumulado, decisão:
+   trimestre isolado). `fundamental_snapshots` 0 → 12 → 21 linhas (5 DFP, 5
+   ITR, 3 SEC, 8 FII). **Sprint 3 completo.**
+
+4. **Sprint 4 — Fundamentos no runtime/UI**: Runtime opcional
+   (`disabled`/`read-only`) implementado em `src/application/context/fundamentals`
+   e rota `/fundamentos` criada. Em 30 de julho (`DEC-060`), ativado em
+   `read-only` em produção e verificado com sessão real (`200`, 21 linhas via
+   RLS). Rota e item de navegação visíveis. **Sprint 4 completo.**
+
+5. **Sprint 5 — Preços globais e agendamento**: Em 29 de julho (`DEC-052`),
+   dados de mercado ficaram globais: `market_asset_prices` e
+   `market_exchange_rates`, sem `user_id`, leitura `authenticated`, escrita
+   `service_role` via RPC. Em seguida (`DEC-053`), consumo migrou por
+   completo para tabelas globais; edição manual de câmbio removida. Em
+   seguida (`DEC-054`), `pg_cron`/`pg_net` disparam `refresh-market-data-hourly`
+   a cada hora via `service_role`. **Sprint 5 completo.**
+
+6. **Sprint 6 — Persistência plano aporte**: Em 29 de julho (`DEC-055`),
+   `contribution_plans` e `contribution_plan_items` aplicadas — por usuário,
+   RLS com `(select auth.uid())`, ownership validado. Fluxo: simular →
+   apresentar → aceitar/rejeitar → confirmar (ligação via `purchase_id`).
+   `ContributionPlanItem.plannedPurchase` resolvido. Motor continua sem
+   executar ordens — toda transição é ação explícita do usuário.
+   **Sprint 6 completo.**
+
+7. **Sprint 7 — IA explicativa**: Em 29 de julho (`DEC-056`), `TechnicalDossierV1`
+   integrado: Edge Function `explain-contribution-plan` chama OpenRouter
+   server-side (`anthropic/claude-sonnet-4.5`) e devolve `AiExplanationV1`
+   (fatos, interpretação, convicção, reapresentação plano, explicação
+   comparativa). IA nunca modifica o plano — só interpreta. Falha degrada
+   silenciosamente para `null`. **Sprint 7 completo.**
+
+8. **Sprint 8 — Auditoria**: Em 29 de julho (`DEC-057`), code-splitting por
+   rota eliminou aviso bundle >500 kB (maior chunk 232 kB);
+   `rls_user_isolation.test.sql` ampliado 43 → 58 asserções; `get_advisors`
+   auditado sem achado corrigível; varredura secrets limpa; documentos
+   corrigidos. `auth_leaked_password_protection` pendente ação manual
+   (painel). **Sprint 8 completo — plano de 8 sprints encerrado.**
+
+O domínio puro e três providers oficiais (CVM IPE, CVM Fund Delivery, SEC
+EDGAR) estão concluídos e aplicados. Storage global, migration, adapter
+Supabase transacional, executor server-side, backfill controlado, repository
+leitura, runtime opcional, apresentação UI — todos concluídos, aplicados,
+ativados read-only. 17 itens eventos oficiais + 12 itens fase operacional
+concluídos. Item 17 auditoria Editorial News Providers V2 concluído com
+decisão `NO-GO`.
+
 ## Próximo
 
-A sequência de deployment de Eventos Oficiais está encerrada (ver "Fase
-operacional" abaixo). O que resta é decisão de produto, não infraestrutura
-pendente:
+Pós-plano de 8 sprints. Sem infraestrutura pendente — decisão de produto:
 
-1. Backfill gradual dos providers, um job por execução, autorização própria por
-   provider/job (runbook, seção 18). Em 28 de julho de 2026 (`DEC-046`), três
-   jobs reais rodaram contra produção via `scripts/run-official-events-backfill.ts`:
-   `sec-edgar` (ETFs, janela 2026-01-01 a 2026-01-31, `succeeded`,
-   `fetchedEventCount: 0` — sem filing qualificável na janela) e
-   `cvm-fund-delivery` (FIIs, competência 2026-06, `succeeded`,
-   `fetchedEventCount: 4`, quatro eventos `periodic-report` persistidos, um por
-   ativo: KNRI11, VISC11, XPLG11 e HGRU11). O job `cvm-ipe` (ações, ano 2026)
-   falhou por dado malformado no CSV oficial da própria CVM (aspa não escapada
-   dentro de campo não cotado, linha 35 do arquivo); o parser rejeitou o
-   arquivo inteiro por design (fail-closed), sem persistir nada e sem risco de
-   segurança ou corrupção. O parser foi corrigido no mesmo dia (`DEC-047`:
-   aspa fora do início do campo passa a ser aceita como caractere literal) e o
-   job foi reexecutado com sucesso (`DEC-048`): `fetchedEventCount: 298`,
-   `persistedAttemptCount: 298`, `rejectedItemCount: 170`. Os três providers
-   oficiais já têm pelo menos uma execução real bem-sucedida contra produção.
-   Em 30 de julho de 2026 (`DEC-058`), o escopo foi ampliado para 2026
-   completo mais 2025 inteiro: CVM IPE (`--year=2025`, 500 eventos, mesmo
-   padrão de rejeição de `DEC-048`) e CVM Fund Delivery (6 meses restantes
-   de 2026 mais os 12 meses de 2025) rodaram com sucesso total, sem falha
-   nem conflito. `official_asset_events` foi de 302 para 902 linhas. SEC
-   EDGAR encontrou um limite estrutural: só as janelas 2026-01 e 2026-07
-   tiveram sucesso (0 eventos); 2026-02 a 2026-06 e um teste em 2025-12
-   falharam porque o provider só lê `filings.recent` da SEC e recusa por
-   design quando a janela cai em `historicalFiles` (índice paginado antigo,
-   já documentado como fora de escopo da versão atual do provider). Não é
-   bug — é funcionalidade não implementada. Usuário decidiu aceitar o
-   limite por ora em vez de abrir desenvolvimento novo. Restam: suporte a
-   `filings.files` no provider SEC EDGAR (item de desenvolvimento, não de
-   execução) e demais competências/anos anteriores a 2025 dos três
-   providers, se decidido no futuro.
-2. Ingestão real de fundamentos, um provider por execução (`DEC-049`, 28 de
-   julho de 2026). `cvm-fii --year=2026`: sucesso, 4 registros (um por FII).
-   `cvm-stocks --source=DFP --year=2025`: sucesso após corrigir um bug real no
-   adapter de ações (RPC exigia 24 colunas canônicas; o adapter omitia 4
-   específicas de FII, latente desde `DEC-044`) — 5 registros, um por ação.
-   `sec-nport`: falhou por dado real da SEC não coberto pelo parser
-   (`primaryDocument` vazio/malformado em um filing); correção pendente, item
-   separado. `fundamental_snapshots` sai de 0 para 9 linhas. No mesmo dia
-   (`DEC-050`), um runtime opcional (`disabled`/`read-only`) e uma
-   apresentação autenticada foram implementados em
-   `src/application/context/fundamentals` e `src/features/fundamentals`, rota
-   `/fundamentos`, espelhando fielmente o padrão de eventos oficiais; a
-   composição real permanece `disabled` — ativação em produção é decisão
-   separada. Em 29 de julho de 2026 (`DEC-051`), o provider `sec-nport` foi
-   corrigido por completo — três bugs reais independentes revelados em
-   sequência (URL do documento primário apontava para o visualizador HTML em
-   vez do XML bruto; caminho XML incorreto para `seriesId`/`classId` do
-   cabeçalho; `seriesName` divergente por maiúsculas/minúsculas contra a
-   identidade oficial) — e reexecutado com sucesso: 3 registros persistidos
-   (VOO, VNQ, VEA). `fundamental_snapshots` chega a 12 linhas, cobrindo as
-   três categorias do universo fechado pela primeira vez. Em 30 de julho de
-   2026 (`DEC-059`), o escopo foi ampliado para `cvm-fii --year=2025` e a
-   primeira execução real de `cvm-stocks --source=ITR`, revelando dois bugs
-   reais de dado (mesmo padrão de `DEC-047`/`DEC-051`, só aparecem ao tocar
-   dado real pela primeira vez): a XPLG11 é registrada pela CVM em
-   dezembro/2025 como `"FII XP LOG"` em vez da denominação canônica `"XP
-LOG FII RL"` (corrigido com allowlist fechado de aliases, mesmo padrão
-   do provider CVM IPE); e o ITR reporta, para a mesma data de fechamento,
-   tanto o trimestre isolado quanto o acumulado do ano até ali para
-   `netIncome`, ambíguos sem desambiguação (decisão de produto: `netIncome`
-   trimestral passa a significar o trimestre isolado, mesmo espírito do DFP
-   anual). Ambos corrigidos e reexecutados com sucesso: `fundamental_snapshots`
-   chega a 21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). No mesmo dia
-   (`DEC-060`), o runtime de fundamentos foi ativado em `read-only` em
-   produção — mesmo padrão de `DEC-041`/`DEC-042` para eventos oficiais —
-   e verificado com sessão autenticada real (`200`, 21 linhas lidas via
-   RLS). Rota `/fundamentos` e item de navegação visíveis em produção.
-   Restam: demais competências/exercícios de CVM anteriores a 2025.
-3. Agendamento automático de `refresh-market-data`. Em 29 de julho de 2026
-   (`DEC-052`), dados de mercado passaram a ser globais —
-   `market_asset_prices` e `market_exchange_rates`, tabelas novas e
-   independentes, sem `user_id`, leitura `authenticated`, escrita exclusiva de
-   `service_role` via RPC transacional, mesmo padrão de
-   `fundamental_snapshots`. Aplicado e com dado real: 12 preços e 1 câmbio
-   persistidos via disparo real da Edge Function em produção. Em seguida
-   (`DEC-053`), o consumo migrou por completo: `refresh-market-data` passou a
-   ler/escrever exclusivamente nas tabelas globais via `service_role`
-   (aceitando sessão de usuário real ou o próprio `service_role` como
-   chamador de confiança, para uso futuro por `pg_cron`); `AssetPriceRepository`
-   e `ExchangeRateRepository` (app) migraram para as tabelas globais; os
-   quatro hooks (Dashboard, Carteira, Estratégia, Novo Aporte) passaram a
-   resolver `ticker` → `Asset.id` localmente; a edição manual de câmbio
-   (`saveManualUsdBrl`, componente `ExchangeRateSetup`) foi **removida por
-   completo** — câmbio global não tem dono individual para sobrescrever, e a
-   atualização automática já roda de verdade. As tabelas antigas por usuário
-   (`asset_prices`, `exchange_rates`) permanecem intocadas no schema, sem mais
-   nenhum consumidor no app. Em seguida (`DEC-054`), o agendamento automático
-   foi aplicado: `pg_cron`/`pg_net` disparam `refresh-market-data-hourly` a
-   cada hora, autenticado como `service_role` via segredo lido do Supabase
-   Vault (nunca versionado). **Sprint 5 completo.**
-4. Persistência do plano de aporte. Em 29 de julho de 2026 (`DEC-055`),
-   `contribution_plans` e `contribution_plan_items` saíram de "planejada e
-   adiada" para aplicadas — por usuário, RLS com `(select auth.uid())`,
-   ownership validado nas relações, mesmo padrão de
-   `purchases`/`allocation_targets`. O fluxo real: simular aporte persiste um
-   `ContributionPlan` (status `presented`); o usuário aceita ou rejeita
-   explicitamente; ao registrar as compras realizadas para um plano aceito,
-   cada `ContributionPlanItem` é ligado à `Purchase` real via `purchase_id`
-   e o plano vai para `confirmed`. `ContributionPlanItem.plannedPurchase`
-   (dependência que motivava o adiamento original, `AGENTS.md` seção 14) fica
-   resolvido. O motor continua sem executar ordens e sem persistir plano
-   automaticamente — toda transição de status é ação explícita do usuário.
-   **Sprint 6 completo.**
-5. IA explicativa consumindo o Dossiê Técnico. Em 29 de julho de 2026
-   (`DEC-056`), integrada: `TechnicalDossierV1` (montado no cliente a partir
-   dos contratos já existentes — carteira, estratégia, mercado, plano
-   técnico) é enviado à Edge Function `explain-contribution-plan`, que chama
-   o OpenRouter server-side (`OPENROUTER_API_KEY`, nunca `VITE_*`, roteando
-   para `anthropic/claude-sonnet-4.5`) e devolve
-   um `AiExplanationV1` versionado (fatos, interpretação, grau de convicção,
-   reapresentação do plano técnico, explicação comparativa) exibido no Novo
-   Aporte. A IA nunca cria, seleciona ou modifica o plano — só interpreta o
-   que o motor já calculou. Falha em qualquer ponto degrada silenciosamente
-   para `null` (`explainContributionPlanBestEffort`), nunca bloqueando o
-   plano determinístico. **Sprint 7 completo.**
-6. Notícias editoriais seguem em `NO-GO` (`DEC-036`). Nenhum provider editorial
-   foi aprovado.
-7. Auditoria e polimento final. Em 29 de julho de 2026 (`DEC-057`):
-   code-splitting por rota eliminou o aviso de bundle >500 kB (maior chunk
-   232 kB); `rls_user_isolation.test.sql` ampliado de 43 para 58 asserções,
-   cobrindo `contribution_plans`/`contribution_plan_items` e o padrão
-   RPC-only das tabelas globais de mercado; `get_advisors` auditado sem
-   achado corrigível novo; varredura de secrets limpa;
-   `docs/PROJECT_HANDOFF.md` §17 e trechos remanescentes de
-   `docs/ARCHITECTURE.md`/`docs/PRODUCT.md` que ainda descreviam o projeto
-   pré-persistência corrigidos. `auth_leaked_password_protection`
-   permanece pendente de ação manual do usuário (configuração de painel).
-   **Sprint 8 completo — plano de 8 sprints encerrado (`DEC-057`).**
+1. **Backfill competências CVM anteriores a 2025** — opcional, sem prazo.
+   Suporte a `filings.files` no SEC EDGAR é desenvolvimento novo, não
+   execução.
 
-O domínio puro e os três providers oficiais — CVM IPE para ações, CVM Fund
-Delivery para FIIs e SEC EDGAR para ETFs — estão concluídos e aplicados em
-produção. O contrato global de storage, sua migration, o adapter Supabase
-transacional, o executor server-side e o backfill controlado estão concluídos
-e aplicados. O repository global de leitura, o runtime opcional e a
-apresentação UI estão concluídos, aplicados e ativados em `read-only`. Os itens
-1 a 16 da sequência de eventos oficiais, mais os 12 itens da fase operacional,
-estão concluídos. O item 17, auditoria Editorial News Providers V2, está
-concluído com decisão `NO-GO`; isso não significa provider editorial
-implementado.
+2. **Auth leaked password protection** — configuração painel Supabase
+   (Authentication → Policies → Enable leaked password protection).
+   Não alterável por código.
+
+3. **Notícias editoriais** — `NO-GO` (DEC-036). Nenhum provider editorial
+   aprovado.
 
 ## Fase operacional — concluída
 
