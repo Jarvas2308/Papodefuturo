@@ -1,16 +1,58 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '../../auth/RequireAuth'
 import { AppShell } from '../../components/layout/AppShell'
-import { DashboardPage } from '../../pages/DashboardPage'
-import { FundamentalsPage } from '../../pages/FundamentalsPage'
-import { HistoryPage } from '../../pages/HistoryPage'
 import { LoginPage } from '../../pages/LoginPage'
-import { NewContributionPage } from '../../pages/NewContributionPage'
 import { NotFoundPage } from '../../pages/NotFoundPage'
-import { OfficialEventsPage } from '../../pages/OfficialEventsPage'
-import { PortfolioPage } from '../../pages/PortfolioPage'
-import { SettingsPage } from '../../pages/SettingsPage'
-import { StrategyPage } from '../../pages/StrategyPage'
+
+const DashboardPage = lazy(() =>
+  import('../../pages/DashboardPage').then((module) => ({
+    default: module.DashboardPage,
+  }))
+)
+const FundamentalsPage = lazy(() =>
+  import('../../pages/FundamentalsPage').then((module) => ({
+    default: module.FundamentalsPage,
+  }))
+)
+const HistoryPage = lazy(() =>
+  import('../../pages/HistoryPage').then((module) => ({
+    default: module.HistoryPage,
+  }))
+)
+const NewContributionPage = lazy(() =>
+  import('../../pages/NewContributionPage').then((module) => ({
+    default: module.NewContributionPage,
+  }))
+)
+const OfficialEventsPage = lazy(() =>
+  import('../../pages/OfficialEventsPage').then((module) => ({
+    default: module.OfficialEventsPage,
+  }))
+)
+const PortfolioPage = lazy(() =>
+  import('../../pages/PortfolioPage').then((module) => ({
+    default: module.PortfolioPage,
+  }))
+)
+const SettingsPage = lazy(() =>
+  import('../../pages/SettingsPage').then((module) => ({
+    default: module.SettingsPage,
+  }))
+)
+const StrategyPage = lazy(() =>
+  import('../../pages/StrategyPage').then((module) => ({
+    default: module.StrategyPage,
+  }))
+)
+
+function RouteLoadingFallback() {
+  return (
+    <p role="status" className="text-sm text-[var(--color-text-muted)]">
+      Carregando...
+    </p>
+  )
+}
 
 export function AppRouter() {
   return (
@@ -19,14 +61,70 @@ export function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/carteira" element={<PortfolioPage />} />
-          <Route path="/novo-aporte" element={<NewContributionPage />} />
-          <Route path="/historico" element={<HistoryPage />} />
-          <Route path="/eventos-oficiais" element={<OfficialEventsPage />} />
-          <Route path="/fundamentos" element={<FundamentalsPage />} />
-          <Route path="/estrategia" element={<StrategyPage />} />
-          <Route path="/configuracoes" element={<SettingsPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <DashboardPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/carteira"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <PortfolioPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/novo-aporte"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <NewContributionPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/historico"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <HistoryPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/eventos-oficiais"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <OfficialEventsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/fundamentos"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <FundamentalsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/estrategia"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <StrategyPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/configuracoes"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SettingsPage />
+              </Suspense>
+            }
+          />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />
