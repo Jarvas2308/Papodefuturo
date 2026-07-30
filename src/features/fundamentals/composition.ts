@@ -2,10 +2,9 @@ import { createFundamentalsRuntimeV1 } from '../../application/context/fundament
 import type { FundamentalsRuntimeV1 } from '../../application/context/fundamentals/runtime'
 import type { FundamentalsUiDependenciesV1 } from './types'
 
-// Ativação em produção é decisão separada, como foi para eventos oficiais
-// (DEC-041). Este PR entrega o runtime e a apresentação; permanece 'disabled'
-// até autorização explícita própria.
-export const FUNDAMENTALS_REAL_UI_MODE: 'disabled' | 'read-only' = 'disabled'
+// Ativado em produção em 30/07/2026 (DEC-060), mesmo padrão de DEC-041/042
+// para eventos oficiais, após fundamental_snapshots ter dado real (21 linhas).
+export const FUNDAMENTALS_REAL_UI_MODE: 'disabled' | 'read-only' = 'read-only'
 
 function defaultDisabledRuntime(): FundamentalsRuntimeV1 {
   return createFundamentalsRuntimeV1({
