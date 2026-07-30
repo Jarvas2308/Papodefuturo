@@ -149,6 +149,7 @@ export function StrategyEditor({
       <StrategyToolbar
         isEditing={isEditing}
         isValid={validation.isValid}
+        isDemo={isDemo}
         hasChanges={hasChanges && !isSaving}
         onEdit={startEditing}
         onApply={() => void applyChanges()}

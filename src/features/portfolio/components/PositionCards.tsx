@@ -70,9 +70,7 @@ export function PositionCards({ positions }: PositionCardsProps) {
               </dd>
             </div>
             <div>
-              <dt className="text-[var(--color-text-muted)]">
-                Cotação demonstrativa
-              </dt>
+              <dt className="text-[var(--color-text-muted)]">Cotação atual</dt>
               <dd className="mt-1 font-medium text-[var(--color-text)]">
                 {position.currentQuote}
               </dd>

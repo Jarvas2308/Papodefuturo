@@ -26,7 +26,7 @@ export function ContributionPreview({
       <div className="bg-[var(--color-brand-subtle)] px-6 py-6 sm:px-7">
         <span className="inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_srgb,var(--color-brand)_25%,white)] bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-brand-strong)]">
           <BadgeInfo className="size-3.5" aria-hidden="true" />
-          Simulação demonstrativa
+          Simulação
         </span>
         <h2 className="mt-5 text-2xl font-semibold tracking-tight text-[var(--color-text)]">
           Uma prévia antes de qualquer decisão
@@ -51,7 +51,7 @@ export function ContributionPreview({
             <p className="mt-1 font-semibold text-[var(--color-text)]">
               {isTargetAllocation
                 ? 'Plano técnico multiativos'
-                : 'Proporcional demonstrativa'}
+                : 'Proporcional simples'}
             </p>
           </div>
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-4">

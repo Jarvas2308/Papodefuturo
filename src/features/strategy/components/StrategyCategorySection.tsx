@@ -159,7 +159,7 @@ export function StrategyCategorySection({
       <div className="hidden xl:block">
         <table className="w-full border-collapse">
           <caption className="sr-only">
-            Metas demonstrativas dos ativos de {category.name}
+            Metas dos ativos de {category.name}
           </caption>
           <thead>
             <tr>

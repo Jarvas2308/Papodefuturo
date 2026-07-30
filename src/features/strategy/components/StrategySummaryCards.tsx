@@ -33,7 +33,7 @@ export function StrategySummaryCards({
     {
       label: 'Ativos monitorados',
       value: String(countAssets(allocations)),
-      helper: 'Mesmos ativos da carteira demonstrativa',
+      helper: 'Mesmos ativos da carteira',
       icon: ListChecks,
     },
     {
