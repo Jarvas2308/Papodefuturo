@@ -757,7 +757,21 @@ pendente:
    job foi reexecutado com sucesso (`DEC-048`): `fetchedEventCount: 298`,
    `persistedAttemptCount: 298`, `rejectedItemCount: 170`. Os três providers
    oficiais já têm pelo menos uma execução real bem-sucedida contra produção.
-   Restam: demais competências/anos/janelas de cada provider.
+   Em 30 de julho de 2026 (`DEC-058`), o escopo foi ampliado para 2026
+   completo mais 2025 inteiro: CVM IPE (`--year=2025`, 500 eventos, mesmo
+   padrão de rejeição de `DEC-048`) e CVM Fund Delivery (6 meses restantes
+   de 2026 mais os 12 meses de 2025) rodaram com sucesso total, sem falha
+   nem conflito. `official_asset_events` foi de 302 para 902 linhas. SEC
+   EDGAR encontrou um limite estrutural: só as janelas 2026-01 e 2026-07
+   tiveram sucesso (0 eventos); 2026-02 a 2026-06 e um teste em 2025-12
+   falharam porque o provider só lê `filings.recent` da SEC e recusa por
+   design quando a janela cai em `historicalFiles` (índice paginado antigo,
+   já documentado como fora de escopo da versão atual do provider). Não é
+   bug — é funcionalidade não implementada. Usuário decidiu aceitar o
+   limite por ora em vez de abrir desenvolvimento novo. Restam: suporte a
+   `filings.files` no provider SEC EDGAR (item de desenvolvimento, não de
+   execução) e demais competências/anos anteriores a 2025 dos três
+   providers, se decidido no futuro.
 2. Ingestão real de fundamentos, um provider por execução (`DEC-049`, 28 de
    julho de 2026). `cvm-fii --year=2026`: sucesso, 4 registros (um por FII).
    `cvm-stocks --source=DFP --year=2025`: sucesso após corrigir um bug real no
