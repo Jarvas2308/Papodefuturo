@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select extensions.plan(43);
+select extensions.plan(58);
 
 create function public.__test_statement_is_blocked(statement text)
 returns boolean
@@ -183,6 +183,55 @@ values
     'manual'
   );
 
+insert into public.contribution_plans (
+  id,
+  user_id,
+  input_amount_minor,
+  currency,
+  status
+)
+values
+  (
+    '50000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    100000,
+    'BRL',
+    'presented'
+  ),
+  (
+    '51000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000002',
+    200000,
+    'BRL',
+    'presented'
+  );
+
+insert into public.contribution_plan_items (
+  id,
+  user_id,
+  contribution_plan_id,
+  asset_id,
+  planned_amount_minor,
+  currency
+)
+values
+  (
+    '52000000-0000-4000-8000-000000000001',
+    '10000000-0000-4000-8000-000000000001',
+    '50000000-0000-4000-8000-000000000001',
+    '11000000-0000-4000-8000-000000000001',
+    50000,
+    'BRL'
+  ),
+  (
+    '53000000-0000-4000-8000-000000000002',
+    '20000000-0000-4000-8000-000000000002',
+    '51000000-0000-4000-8000-000000000002',
+    '22000000-0000-4000-8000-000000000002',
+    60000,
+    'USD'
+  );
+
 select extensions.policies_are(
   'public',
   'profiles',
@@ -255,6 +304,43 @@ select extensions.policies_are(
   'exchange_rates exposes only the expected user-scoped policies'
 );
 
+select extensions.policies_are(
+  'public',
+  'contribution_plans',
+  array[
+    'Users can select their own contribution plans',
+    'Users can insert their own contribution plans',
+    'Users can update their own contribution plans',
+    'Users can delete their own contribution plans'
+  ],
+  'contribution_plans exposes only the expected user-scoped policies'
+);
+
+select extensions.policies_are(
+  'public',
+  'contribution_plan_items',
+  array[
+    'Users can select their own contribution plan items',
+    'Users can insert their own contribution plan items',
+    'Users can update their own contribution plan items'
+  ],
+  'contribution_plan_items exposes only the expected user-scoped policies (no delete — cascade only)'
+);
+
+select extensions.policies_are(
+  'public',
+  'market_asset_prices',
+  array['Authenticated users can read global market asset prices'],
+  'market_asset_prices exposes only a select-only global policy'
+);
+
+select extensions.policies_are(
+  'public',
+  'market_exchange_rates',
+  array['Authenticated users can read global market exchange rates'],
+  'market_exchange_rates exposes only a select-only global policy'
+);
+
 select extensions.ok(
   has_function_privilege(
     'authenticated',
@@ -319,6 +405,44 @@ select extensions.results_eq(
   'select count(*) from public.exchange_rates',
   array[1::bigint],
   'user A sees only their own exchange rates'
+);
+
+select extensions.results_eq(
+  'select count(*) from public.contribution_plans',
+  array[1::bigint],
+  'user A sees only their own contribution plans'
+);
+
+select extensions.results_eq(
+  'select count(*) from public.contribution_plan_items',
+  array[1::bigint],
+  'user A sees only their own contribution plan items'
+);
+
+select extensions.ok(
+  public.__test_statement_is_blocked(
+    $$
+      insert into public.market_asset_prices (
+        ticker, market, currency, price_minor, priced_at, source
+      ) values (
+        'TSTA3', 'BR', 'BRL', 1000, '2026-07-13 12:00:00+00', 'market-provider'
+      )
+    $$
+  ),
+  'authenticated cannot write directly to market_asset_prices (RPC-only)'
+);
+
+select extensions.ok(
+  public.__test_statement_is_blocked(
+    $$
+      insert into public.market_exchange_rates (
+        base_currency, quote_currency, rate_scaled, priced_at, source
+      ) values (
+        'USD', 'BRL', 5400000, '2026-07-13 12:00:00+00', 'market-provider'
+      )
+    $$
+  ),
+  'authenticated cannot write directly to market_exchange_rates (RPC-only)'
 );
 
 select extensions.lives_ok(
@@ -617,6 +741,90 @@ select extensions.ok(
   'user A cannot insert an asset target with a mismatched category'
 );
 
+select extensions.lives_ok(
+  $$
+    insert into public.contribution_plans (
+      id, user_id, input_amount_minor, currency, status
+    ) values (
+      '54000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000001',
+      30000,
+      'BRL',
+      'draft'
+    )
+  $$,
+  'user A can insert a contribution plan in their own scope'
+);
+
+select extensions.ok(
+  public.__test_statement_is_blocked(
+    $$
+      insert into public.contribution_plans (
+        id, user_id, input_amount_minor, currency, status
+      ) values (
+        '55000000-0000-4000-8000-000000000002',
+        '20000000-0000-4000-8000-000000000002',
+        30000,
+        'BRL',
+        'draft'
+      )
+    $$
+  ),
+  'user A cannot insert a contribution plan for user B'
+);
+
+select extensions.lives_ok(
+  $$
+    insert into public.contribution_plan_items (
+      id, user_id, contribution_plan_id, asset_id, planned_amount_minor, currency
+    ) values (
+      '56000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000001',
+      '50000000-0000-4000-8000-000000000001',
+      '15000000-0000-4000-8000-000000000001',
+      15000,
+      'BRL'
+    )
+  $$,
+  'user A can insert an item for their own plan and asset'
+);
+
+select extensions.ok(
+  public.__test_statement_is_blocked(
+    $$
+      insert into public.contribution_plan_items (
+        id, user_id, contribution_plan_id, asset_id, planned_amount_minor, currency
+      ) values (
+        '57000000-0000-4000-8000-000000000002',
+        '10000000-0000-4000-8000-000000000001',
+        '51000000-0000-4000-8000-000000000002',
+        '15000000-0000-4000-8000-000000000001',
+        15000,
+        'BRL'
+      )
+    $$
+  ),
+  'user A cannot insert an item into user B contribution plan'
+);
+
+select extensions.ok(
+  public.__test_statement_is_blocked(
+    $$
+      insert into public.contribution_plan_items (
+        id, user_id, contribution_plan_id, asset_id, planned_amount_minor, currency
+      ) values (
+        '58000000-0000-4000-8000-000000000002',
+        '10000000-0000-4000-8000-000000000001',
+        '50000000-0000-4000-8000-000000000001',
+        '22000000-0000-4000-8000-000000000002',
+        15000,
+        'USD'
+      )
+    $$
+  ),
+  'user A cannot insert an item referencing user B asset'
+);
+
 select extensions.results_ne(
   $$
     update public.assets
@@ -769,6 +977,18 @@ select extensions.results_eq(
   'select count(*) from public.exchange_rates',
   array[1::bigint],
   'user B sees only their own exchange rates'
+);
+
+select extensions.results_eq(
+  'select count(*) from public.contribution_plans',
+  array[1::bigint],
+  'user B sees only their own contribution plans'
+);
+
+select extensions.results_eq(
+  'select count(*) from public.contribution_plan_items',
+  array[1::bigint],
+  'user B sees only their own contribution plan items'
 );
 
 select extensions.results_eq(
