@@ -6,6 +6,7 @@ type StrategyToolbarProps = {
   isEditing: boolean
   isValid: boolean
   hasChanges: boolean
+  isDemo: boolean
   onEdit: () => void
   onApply: () => void
   onCancel: () => void
@@ -16,6 +17,7 @@ export function StrategyToolbar({
   isEditing,
   isValid,
   hasChanges,
+  isDemo,
   onEdit,
   onApply,
   onCancel,
@@ -25,11 +27,12 @@ export function StrategyToolbar({
     <Card className="flex flex-col gap-5 border-[color:color-mix(in_srgb,var(--color-brand)_22%,var(--color-border))] bg-[color:color-mix(in_srgb,var(--color-brand-subtle)_45%,white)] sm:flex-row sm:items-center sm:justify-between">
       <div>
         <span className="inline-flex rounded-full bg-[var(--color-brand-subtle)] px-3 py-1 text-xs font-semibold text-[var(--color-brand-strong)]">
-          Configuração demonstrativa
+          {isDemo ? 'Configuração demonstrativa' : 'Configuração da sua conta'}
         </span>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
-          As alterações ficam somente nesta sessão e não são persistidas. Um
-          refresh restaura a estratégia padrão.
+          {isDemo
+            ? 'As alterações ficam somente nesta sessão e não são persistidas. Um refresh restaura a estratégia padrão.'
+            : 'As metas aplicadas ficam salvas na sua conta e passam a orientar o cálculo do próximo aporte.'}
         </p>
         {isEditing ? (
           <p className="mt-2 text-sm font-semibold text-[var(--color-brand-strong)]">

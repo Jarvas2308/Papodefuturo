@@ -1773,3 +1773,44 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   não há execução parcial possível. Os dados do ensaio, incluindo o plano
   com moeda incorreta, permanecem em produção como evidência até a
   limpeza do próximo ciclo.
+
+## DEC-063 — A interface deixa de chamar dado real de demonstrativo
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: o ensaio do Sprint 9 (`DEC-062`) mostrou rótulos de demonstração
+  aparecendo em sessão autenticada real, sobre dado real. O caso mais grave
+  estava na Estratégia: `StrategyToolbar` afirmava, com texto fixo, que "as
+  alterações ficam somente nesta sessão e não são persistidas" — mas
+  `saveStrategy` grava de verdade em `allocation_targets`, e o ensaio
+  persistiu 15 linhas enquanto a tela dizia o contrário.
+- Agravante: `StrategyPage` passava `key={JSON.stringify(strategy)}` ao
+  editor. Como `saveStrategy` atualiza a estratégia do hook, a key mudava
+  no instante do salvamento e remontava o componente, descartando o estado
+  local — inclusive a mensagem "Estratégia salva com sucesso na sua conta",
+  que nunca chegava a ser exibida. Somados, os dois defeitos faziam um
+  salvamento bem-sucedido parecer um no-op.
+- Decisão, em duas linhas distintas:
+  - Onde o texto realmente depende do modo, passa a depender: o
+    `StrategyToolbar` recebe `isDemo` e, em sessão real, diz que as metas
+    ficam salvas na conta e orientam o próximo aporte. Mesmo padrão que
+    `HistoryPanel` e `HistoryTable` já aplicavam.
+  - Onde o adjetivo era apenas ruído, foi removido: "Cotação
+    demonstrativa", "Posições demonstrativas", "Metas demonstrativas",
+    "Registros demonstrativos", "Simulação demonstrativa" e as descrições
+    de navegação viraram rótulos neutros, corretos nos dois modos. O modo
+    demo continua sinalizado onde importa — pelo badge de cabeçalho de cada
+    página, que já é condicional.
+  - `key` derivada de conteúdo removida de `StrategyPage`. O editor é
+    montado depois do carregamento, já com dados, e mantém a própria cópia
+    aplicada a partir daí.
+  - A estratégia V1 do Novo Aporte passa a se chamar "Proporcional
+    simples", em vez de "Proporcional demonstrativa": ela roda sobre dado
+    real e não tem nada de demonstrativo.
+- Fora do escopo, registrado para ciclo próprio: o padrão do seletor de
+  estratégia do Novo Aporte continua sendo a proporcional V1, e não o Motor
+  V2 — mudar isso é decisão de produto, não correção de texto. Também
+  seguem abertos o banner "Algumas cotações não puderam ser atualizadas",
+  que dispara com warning de cotação já atualizada (situação normal) e por
+  isso é praticamente permanente, e as notificações demonstrativas do
+  cabeçalho, que serão removidas com a persistência de Configurações.

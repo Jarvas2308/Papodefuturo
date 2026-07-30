@@ -107,6 +107,6 @@ export function getContributionStrategyLabel(
   strategy: ContributionStrategyType
 ): string {
   return strategy === 'proportional'
-    ? 'Proporcional demonstrativa'
+    ? 'Proporcional simples'
     : 'Déficit projetado'
 }

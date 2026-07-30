@@ -8,7 +8,7 @@ export function HistorySummaryCards({ summary }: { summary: HistorySummary }) {
     {
       label: 'Movimentações',
       value: String(summary.movementCount),
-      helper: 'Registros demonstrativos',
+      helper: 'Registros no período',
       icon: ListChecks,
     },
     {

@@ -11,7 +11,7 @@ export function HistoryEmptyState({ onClear }: { onClear: () => void }) {
         Nenhuma movimentação encontrada
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--color-text-muted)]">
-        Não existem movimentações demonstrativas para os filtros escolhidos.
+        Não existem movimentações para os filtros escolhidos.
       </p>
       <Button variant="secondary" onClick={onClear} className="mt-5">
         Limpar filtros

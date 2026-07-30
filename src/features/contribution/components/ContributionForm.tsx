@@ -42,8 +42,8 @@ export function ContributionForm({
             Defina o valor do aporte
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-            Escolha como o simulador demonstrativo deve distribuir o valor entre
-            as posições da carteira.
+            Escolha como o simulador deve distribuir o valor entre as posições
+            da carteira.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export function ContributionForm({
                 }
                 className="mt-2 min-h-12 w-full rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-text)] outline-none transition focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-ring)]"
               >
-                <option value="proportional">Proporcional demonstrativa</option>
+                <option value="proportional">Proporcional simples</option>
                 <option value="target-allocation">
                   Plano técnico multiativos
                 </option>

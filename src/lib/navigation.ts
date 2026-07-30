@@ -82,7 +82,7 @@ export const pageCopyByPath: Record<string, PageCopy> = {
   },
   '/historico': {
     title: 'Histórico',
-    description: 'Consulte as movimentações demonstrativas da sua carteira.',
+    description: 'Consulte as movimentações da sua carteira.',
   },
   '/eventos-oficiais': {
     title: 'Eventos Oficiais',
@@ -96,7 +96,7 @@ export const pageCopyByPath: Record<string, PageCopy> = {
   },
   '/estrategia': {
     title: 'Estratégia',
-    description: 'Defina e acompanhe metas demonstrativas de alocação.',
+    description: 'Defina e acompanhe suas metas de alocação.',
   },
   '/configuracoes': {
     title: 'Configurações',

@@ -53,8 +53,16 @@ export function StrategyPage() {
         </p>
       ) : null}
 
+      {/*
+        Sem `key` derivada do conteúdo: `saveStrategy` atualiza a estratégia do
+        hook, e uma key por conteúdo remontava o editor exatamente no instante
+        do salvamento, descartando o estado local — inclusive a mensagem
+        "Estratégia salva com sucesso na sua conta", que nunca chegava a
+        aparecer. O editor já é montado depois do carregamento (as guardas de
+        `loading` e de estratégia nula estão acima) e mantém a própria cópia
+        aplicada a partir daí.
+      */}
       <StrategyEditor
-        key={JSON.stringify(strategyData.strategy)}
         initialStrategy={strategyData.strategy}
         defaultStrategy={strategyData.defaultStrategy}
         positions={strategyData.positions}

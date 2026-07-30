@@ -11,7 +11,7 @@ export function PositionsTable({ positions }: PositionsTableProps) {
     <div className="hidden overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] xl:block">
       <table className="w-full table-fixed border-collapse">
         <caption className="sr-only">
-          Posições demonstrativas da carteira conforme o filtro selecionado
+          Posições da carteira conforme o filtro selecionado
         </caption>
         <thead className="bg-[var(--color-surface-muted)]">
           <tr>
@@ -76,7 +76,7 @@ export function PositionsTable({ positions }: PositionsTableProps) {
                   {position.averagePrice}
                 </span>
                 <span className="mt-1 block text-xs text-[var(--color-text-muted)]">
-                  Cotação demo {position.currentQuote}
+                  Cotação {position.currentQuote}
                 </span>
               </td>
               <td className="px-3 py-4 text-right text-sm font-medium text-[var(--color-text)]">
