@@ -49,6 +49,47 @@ function providerFailureWarning(
   }
 }
 
+function storageFailureWarning(scope: string): MarketDataWarning {
+  return {
+    provider: 'storage',
+    message: `Não foi possível gravar ${scope} nesta execução.`,
+  }
+}
+
+// A RPC de upsert e' transacional e recusa o lote inteiro diante de uma unica
+// linha invalida. Duas defesas antes de enviar, porque uma execucao parcial e'
+// muito melhor que nenhuma:
+//   1. descartar preco nao positivo, que viola
+//      market_asset_prices_price_minor_positive;
+//   2. deduplicar por (ticker, source, priced_at), porque ON CONFLICT DO
+//      UPDATE falha com 21000 se a mesma chave aparecer duas vezes no mesmo
+//      comando.
+export function sanitizeMarketPriceRows(rows: readonly MarketPriceInsert[]): {
+  rows: MarketPriceInsert[]
+  discarded: number
+} {
+  const byIdentity = new Map<string, MarketPriceInsert>()
+  let discarded = 0
+
+  for (const row of rows) {
+    if (!Number.isSafeInteger(row.price_minor) || row.price_minor <= 0) {
+      discarded += 1
+      continue
+    }
+
+    const identity = `${row.ticker}|${row.source}|${row.priced_at}`
+
+    if (byIdentity.has(identity)) {
+      discarded += 1
+      continue
+    }
+
+    byIdentity.set(identity, row)
+  }
+
+  return { rows: Array.from(byIdentity.values()), discarded }
+}
+
 function staleQuoteWarning(
   provider: 'b3-cotahist' | 'twelve-data',
   ticker: string
@@ -184,8 +225,27 @@ export async function refreshMarketData({
     }
   }
 
-  if (priceRows.length > 0) {
-    await storage.insertMarketPrices(priceRows)
+  const sanitizedPrices = sanitizeMarketPriceRows(priceRows)
+  let persistedPriceCount = 0
+
+  if (sanitizedPrices.discarded > 0) {
+    warnings.push(
+      storageFailureWarning(
+        `${sanitizedPrices.discarded} cotação(ões) com dado inconsistente`
+      )
+    )
+  }
+
+  if (sanitizedPrices.rows.length > 0) {
+    // Uma falha de escrita vira warning, nunca 500: o cron dispara via pg_net
+    // e um 500 aqui e' invisivel em cron.job_run_details. Degradar mantem o
+    // restante do resultado utilizavel e observavel.
+    try {
+      await storage.insertMarketPrices(sanitizedPrices.rows)
+      persistedPriceCount = sanitizedPrices.rows.length
+    } catch {
+      warnings.push(storageFailureWarning('as cotações de mercado'))
+    }
   }
 
   let updatedExchangeRates = 0
@@ -198,15 +258,21 @@ export async function refreshMarketData({
       const quote = await twelveData.getUsdBrlQuote()
 
       if (isStrictlyNewerTimestamp(quote.pricedAt, latestAutomaticRate)) {
-        await storage.insertMarketExchangeRate({
-          base_currency: 'USD',
-          quote_currency: 'BRL',
-          rate_scaled: quote.rateScaled,
-          rate_scale: 1_000_000,
-          priced_at: quote.pricedAt,
-          source: 'market-provider',
-        })
-        updatedExchangeRates = 1
+        if (!Number.isSafeInteger(quote.rateScaled) || quote.rateScaled <= 0) {
+          warnings.push(
+            storageFailureWarning('a cotação USD/BRL inconsistente')
+          )
+        } else {
+          await storage.insertMarketExchangeRate({
+            base_currency: 'USD',
+            quote_currency: 'BRL',
+            rate_scaled: quote.rateScaled,
+            rate_scale: 1_000_000,
+            priced_at: quote.pricedAt,
+            source: 'market-provider',
+          })
+          updatedExchangeRates = 1
+        }
       } else {
         warnings.push(staleQuoteWarning('twelve-data', 'USDBRL'))
       }
@@ -217,7 +283,7 @@ export async function refreshMarketData({
 
   return {
     refreshedAt: now.toISOString(),
-    updatedPrices: priceRows.length,
+    updatedPrices: persistedPriceCount,
     skippedFreshPrices,
     updatedExchangeRates,
     skippedFreshExchangeRates,

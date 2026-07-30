@@ -1710,3 +1710,66 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   erro de console e um `Promise.reject` disparado no browser produziu
   `"Promise rejeitada sem tratamento."` no console, confirmando o registro
   efetivo no `window`. Baseline de testes: 138 arquivos, 2192 testes.
+
+## DEC-062 — Primeiro ensaio real ponta a ponta e as duas correções bloqueantes
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: até 30 de julho de 2026 nenhuma compra jamais tinha sido
+  cadastrada em produção (`purchases`, `allocation_targets` e
+  `contribution_plans` com 0 linhas). Motor V2, Dossiê Técnico, plano
+  persistido e IA explicativa nunca haviam rodado sobre uma carteira real.
+  O Sprint 9 executou o ensaio com dados fictícios, em sessão autenticada
+  real, para descobrir defeitos antes do primeiro uso de verdade.
+- Resultado do ensaio: a cadeia funciona ponta a ponta.
+  `allocation_targets` foi de 0 para 15 linhas (3 categorias + 12 ativos),
+  `purchases` de 0 para 3 (uma por categoria, incluindo uma em USD),
+  `contribution_plans` de 0 para 1 em status `presented`. O Motor V2
+  reduziu o desvio de 141,58 p.p. para 84,70 p.p. e a Edge Function
+  `explain-contribution-plan` respondeu `200` em 14,8 s com uma explicação
+  fiel aos números do plano.
+- Defeito 1 — moeda incorreta nos itens do plano (integridade financeira):
+  `buildContributionPlanCreateInput`
+  (`src/features/contribution/hooks/useContributionData.ts`) gravava
+  `currency: getContributionAssetCurrency(asset)` em cada item, enquanto
+  `plannedAmountInMinorUnits` vem da distribuição do motor, que trabalha
+  exclusivamente em BRL — preços de ativos em USD já são convertidos em
+  `buildContributionInputs`. O ensaio gravou VNQ com `152970`/`USD`, mas
+  R$ 1.529,70 são 3 × US$ 99,50 convertidos pela cotação do dia: um erro
+  de fator igual ao câmbio. `buildContributionConfirmationItems` sempre
+  tratou o mesmo valor como BRL (`suggestedAmountInBrlMinorUnits`), o que
+  confirma qual dos dois lados estava errado. Corrigido para `'BRL'`, a
+  mesma moeda do plano. A suíte não pegava porque todos os testes desse
+  builder usavam ativos brasileiros; adicionado teste de regressão com
+  ativo cotado em USD.
+- Defeito 2 — `refresh-market-data` falhando em silêncio: 14 das 24
+  execuções horárias das últimas 24 h responderam `500`, e
+  `cron.job_run_details` registrava todas como `succeeded`, porque
+  `pg_net` apenas enfileira a requisição. Exatamente o cenário que a seção
+  17 de `docs/PROJECT_HANDOFF.md` mandava não presumir resolvido. A causa
+  permanecia invisível porque o handler terminava em `catch {}` sem
+  log algum.
+- Decisão sobre o defeito 2: instrumentar e endurecer, em vez de apenas
+  diagnosticar.
+  - `index.ts` passa a registrar nome e mensagem do erro em
+    `console.error` antes do `500` — nunca segredo, token, header ou corpo
+    de resposta de provider.
+  - `sanitizeMarketPriceRows` (`core.ts`) descarta preço não positivo, que
+    viola `market_asset_prices_price_minor_positive`, e deduplica por
+    `(ticker, source, priced_at)`. A segunda defesa é necessária porque
+    `upsert_market_asset_prices_v1` usa `ON CONFLICT DO UPDATE`, que falha
+    com `21000` — "cannot affect row a second time" — quando a mesma chave
+    aparece duas vezes no mesmo comando; reproduzido diretamente contra a
+    RPC em produção.
+  - Falha de escrita de preços passa a virar `warning` de provider
+    `storage`, nunca `500`. Uma execução parcial é melhor que nenhuma, e o
+    resultado continua observável.
+  - `updatedPrices` passa a refletir o que foi de fato persistido, não o
+    que foi montado.
+- Consequências: a RPC continua transacional e recusando lote inválido —
+  o endurecimento está no chamador, que é quem tem contexto para degradar.
+  As leituras iniciais (`listMarketPrices`/`listMarketExchangeRates`)
+  continuam podendo gerar `500`, agora com log: se o banco não responde,
+  não há execução parcial possível. Os dados do ensaio, incluindo o plano
+  com moeda incorreta, permanecem em produção como evidência até a
+  limpeza do próximo ciclo.

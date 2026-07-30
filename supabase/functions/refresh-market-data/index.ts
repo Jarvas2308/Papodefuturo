@@ -141,7 +141,20 @@ Deno.serve(async (request) => {
     })
 
     return jsonResponse(result)
-  } catch {
+  } catch (error) {
+    // O 500 era mudo: sem log, uma falha do cron ficava invisivel, porque
+    // pg_net apenas enfileira a requisicao e cron.job_run_details registra
+    // "succeeded" mesmo quando esta funcao responde 500. Registrar so nome e
+    // mensagem do erro - nunca segredo, token, header ou corpo de resposta de
+    // provider.
+    console.error(
+      JSON.stringify({
+        event: 'refresh-market-data-failed',
+        name: error instanceof Error ? error.name : 'UnknownError',
+        detail: error instanceof Error ? error.message : String(error),
+      })
+    )
+
     return jsonResponse(
       { message: 'Não foi possível atualizar os dados de mercado.' },
       500

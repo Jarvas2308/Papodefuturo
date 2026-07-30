@@ -1,5 +1,5 @@
 export type MarketDataWarningProvider =
-  'b3-cotahist' | 'twelve-data' | 'configuration'
+  'b3-cotahist' | 'twelve-data' | 'configuration' | 'storage'
 
 export type MarketDataWarning = {
   provider: MarketDataWarningProvider
