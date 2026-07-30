@@ -124,6 +124,9 @@ seus mocks não substituem a fonte de verdade do domínio autenticado.
 ### Atual
 
 - Supabase Auth real com isolamento por usuário e fallback demo;
+- contenção de falha na interface (`DEC-061`): uma falha inesperada em qualquer
+  tela mostra um aviso nomeando a tela afetada e declarando que nenhum dado foi
+  alterado, em vez de tela branca, preservando shell e navegação;
 - compras reais persistidas e Histórico autenticado;
 - carteira real derivada somente de compras confirmadas;
 - Estratégia real persistida em pontos-base;

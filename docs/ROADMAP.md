@@ -815,19 +815,60 @@ ativados read-only. 17 itens eventos oficiais + 12 itens fase operacional
 concluídos. Item 17 auditoria Editorial News Providers V2 concluído com
 decisão `NO-GO`.
 
-## Próximo
+## Ciclo de prontidão para uso — Sprints 9 a 15
 
-Pós-plano de 8 sprints. Sem infraestrutura pendente — decisão de produto:
+Aprovado em 30 de julho de 2026. O plano de 8 sprints entregou toda a
+infraestrutura, mas o levantamento de prontidão encontrou o fato decisivo:
+`purchases`, `allocation_targets` e `contribution_plans` estavam com **0 linhas**
+em produção. Motor V2, Dossiê Técnico, plano persistido e IA explicativa nunca
+rodaram sobre uma carteira real. O sistema estava tecnicamente completo e sem
+evidência de funcionamento.
+
+Escopo decidido: **single-user** — só o próprio usuário no primeiro momento.
+
+### Sprint 9 — Primeiro uso real ponta a ponta (bloqueante)
+
+1. Rede de segurança de pré-voo — **concluído** (`DEC-061`): error boundary
+   raiz e por rota, logger em memória, handlers globais de exceção não
+   capturada e promise rejeitada.
+2. Ensaio ponta a ponta com dados fictícios — em aberto.
+3. Correções dos defeitos encontrados no ensaio — em aberto.
+4. Limpeza dos dados de ensaio e primeiro uso com a carteira real — em aberto.
+
+### Sprint 10 — Recuperação de senha (bloqueante)
+
+`resetPasswordForEmail`/`updatePassword` em `AuthProvider`, rotas públicas
+`/recuperar-senha` e `/redefinir-senha`, e habilitação de
+`auth_leaked_password_protection` no painel Supabase. Com um único
+`auth.users` e sem fluxo de recuperação, senha perdida hoje significa perda
+permanente dos dados.
+
+### Sprint 11 — Superfície honesta e segura (bloqueante)
+
+Configurações deixam de ser mock (persistência real com RLS do subconjunto
+útil; remoção da seção de notificações, que nunca teve canal de envio) e
+headers de segurança no `vercel.json`.
+
+### Sprint 12 — Observabilidade e frescor de dados (bloqueante para uso continuado)
+
+Log estruturado nas Edge Functions, aviso de preço obsoleto na interface,
+`npm run check:health` contra `cron.job_run_details`, e
+`docs/runbooks/OPERATIONS_V1.md`.
+
+### Sprints 13 a 15 — pós-uso
+
+13. Testes de interação (`jsdom` + Testing Library), com prioridade para
+    `src/auth` e para as mutações de compras.
+14. Reconciliação documental e limpeza de código morto.
+15. Multiusuário — somente se houver segundo usuário.
+
+## Itens abertos sem prazo
 
 1. **Backfill competências CVM anteriores a 2025** — opcional, sem prazo.
    Suporte a `filings.files` no SEC EDGAR é desenvolvimento novo, não
    execução.
 
-2. **Auth leaked password protection** — configuração painel Supabase
-   (Authentication → Policies → Enable leaked password protection).
-   Não alterável por código.
-
-3. **Notícias editoriais** — `NO-GO` (DEC-036). Nenhum provider editorial
+2. **Notícias editoriais** — `NO-GO` (DEC-036). Nenhum provider editorial
    aprovado.
 
 ## Fase operacional — concluída

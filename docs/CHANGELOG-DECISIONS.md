@@ -1672,3 +1672,41 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   continua sem score, ranking ou recomendação (`'no-fundamental-score'`/
   `'no-score'`/`'no-ranking'` permanecem verdadeiros). Nenhuma escrita foi
   afetada; esta é puramente uma mudança de leitura/apresentação.
+
+## DEC-061 — Contenção de falha: error boundary, logger e handlers globais
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: o plano de 8 sprints entregou toda a infraestrutura, mas o
+  levantamento de prontidão para uso encontrou zero observabilidade no
+  frontend: nenhum error boundary React, nenhum `window.onerror` ou
+  `unhandledrejection`, nenhum logger. Qualquer exceção de render virava tela
+  branca sem rastro — inaceitável antes do primeiro uso real, em que o
+  objetivo é justamente descobrir defeitos ao tocar dado de carteira pela
+  primeira vez (mesmo padrão de `DEC-047`, `DEC-051` e `DEC-059`, onde só o
+  dado real revelou o bug).
+- Decisão: três peças mínimas, sem dependência externa e sem custo.
+  - `src/lib/logger.ts` — logger com buffer em memória limitado
+    (`DEFAULT_MAX_ENTRIES = 50`), relógio e sink injetáveis, `describeError`
+    que normaliza qualquer valor lançado sem nunca lançar, e
+    `registerGlobalErrorHandlers`, que cobre exceção não capturada e promise
+    rejeitada sem tratamento. Um sink que falhe nunca derruba o fluxo que
+    estava sendo registrado.
+  - `src/app/ErrorBoundary.tsx` — boundary de classe com `ErrorFallback`
+    exportado à parte, para ser testável sem DOM. A tela de falha nomeia a
+    tela afetada, mostra a mensagem técnica e afirma que nenhum dado foi
+    alterado.
+  - Fiação: boundary raiz em `AppComposition`, boundary por rota em
+    `RouteContent` (`src/app/router/AppRouter.tsx`, por fora do `Suspense`,
+    de modo que falha de chunk também seja contida) e boundary no `/login`.
+    `registerGlobalErrorHandlers(window, appLogger)` em `src/main.tsx`.
+- Alternativa descartada: Sentry ou APM equivalente. Adicionaria dependência,
+  custo e superfície de vazamento de dado financeiro para um sistema que
+  ainda tem um único usuário. Reavaliar apenas se houver volume que
+  justifique.
+- Consequências: o logger não envia nada para fora do browser — é diagnóstico
+  local, e nunca deve receber segredo, credencial ou valor financeiro
+  identificável. Verificado com o dev server real: a aplicação carrega sem
+  erro de console e um `Promise.reject` disparado no browser produziu
+  `"Promise rejeitada sem tratamento."` no console, confirmando o registro
+  efetivo no `window`. Baseline de testes: 138 arquivos, 2192 testes.

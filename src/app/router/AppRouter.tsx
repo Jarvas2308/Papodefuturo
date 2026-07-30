@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '../../auth/RequireAuth'
 import { AppShell } from '../../components/layout/AppShell'
 import { LoginPage } from '../../pages/LoginPage'
 import { NotFoundPage } from '../../pages/NotFoundPage'
+import { ErrorBoundary } from '../ErrorBoundary'
 
 const DashboardPage = lazy(() =>
   import('../../pages/DashboardPage').then((module) => ({
@@ -54,75 +55,99 @@ function RouteLoadingFallback() {
   )
 }
 
+type RouteContentProps = {
+  scope: string
+  children: ReactNode
+}
+
+/**
+ * Isola cada rota: uma falha de render ou de carregamento do chunk não pode
+ * derrubar o shell inteiro nem apagar a navegação.
+ */
+function RouteContent({ scope, children }: RouteContentProps) {
+  return (
+    <ErrorBoundary scope={scope}>
+      <Suspense fallback={<RouteLoadingFallback />}>{children}</Suspense>
+    </ErrorBoundary>
+  )
+}
+
 export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <ErrorBoundary scope="Login">
+            <LoginPage />
+          </ErrorBoundary>
+        }
+      />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route
             path="/dashboard"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Painel">
                 <DashboardPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/carteira"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Carteira">
                 <PortfolioPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/novo-aporte"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Novo Aporte">
                 <NewContributionPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/historico"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Histórico">
                 <HistoryPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/eventos-oficiais"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Eventos Oficiais">
                 <OfficialEventsPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/fundamentos"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Fundamentos">
                 <FundamentalsPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/estrategia"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Estratégia">
                 <StrategyPage />
-              </Suspense>
+              </RouteContent>
             }
           />
           <Route
             path="/configuracoes"
             element={
-              <Suspense fallback={<RouteLoadingFallback />}>
+              <RouteContent scope="Configurações">
                 <SettingsPage />
-              </Suspense>
+              </RouteContent>
             }
           />
         </Route>
