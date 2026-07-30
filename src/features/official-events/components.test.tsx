@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
+import { AuthProvider } from '../../auth/AuthProvider'
 import { describe, expect, it } from 'vitest'
 import {
   createOfficialEventsRuntimeV1,
@@ -125,7 +126,11 @@ describe('official events page and feature mode', () => {
           }}
         >
           <MemoryRouter>
-            <SidebarContent collapsed={false} />
+            {/* Sem env pública do Supabase o AuthProvider cai em modo demo,
+                que é o estado correto para este teste de navegação. */}
+            <AuthProvider>
+              <SidebarContent collapsed={false} />
+            </AuthProvider>
           </MemoryRouter>
         </FundamentalsUiProvider>
       </OfficialEventsUiProvider>

@@ -1855,3 +1855,29 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   mas a verificação daquele ciclo foi feita por consulta direta à RPC, não
   pela interface. A lição operacional é que ativar uma rota exige exercitá-la
   pela tela, com sessão real, e não apenas confirmar que o dado responde.
+
+## DEC-065 — Rodapé da barra lateral e rótulo de compras em sessão real
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: acabamento do que `DEC-063` deixou registrado como fora de
+  escopo. Ao percorrer as dez rotas com sessão autenticada real, dois
+  textos ainda descreviam dado real como demonstração.
+- Decisão:
+  - `SidebarContent` passa a consumir `useAuth`, no mesmo padrão que o
+    `Header` já aplicava: as iniciais vêm do e-mail da conta e o rodapé diz
+    "Sua conta" com o e-mail, em vez de "Perfil demonstrativo" e "Dados de
+    exemplo" fixos. O ramo demo permanece idêntico.
+  - `HistorySummaryCards` deixa de chamar as compras confirmadas de "Ordens
+    simuladas no período" — elas são fatos registrados pelo usuário, e o
+    produto nunca executa ordem. Passa a "Compras confirmadas no período".
+- Mantido deliberadamente: o painel de notificações do `Header` continua
+  como está. Diferente do toggle de Configurações, ele não simula uma
+  funcionalidade — declara em texto que as notificações reais virão em uma
+  etapa futura e que o painel apenas mostra onde os avisos aparecerão. É um
+  placeholder honesto, não uma afirmação falsa.
+- Consequências: `components.test.tsx` de eventos oficiais passou a
+  envolver `SidebarContent` em `AuthProvider`, já que o componente agora
+  exige o contexto. O novo `Sidebar.test.tsx` cobre apenas o ramo demo —
+  montar uma sessão autenticada exige DOM real, e fica para a suíte de
+  interação do Sprint 13.
