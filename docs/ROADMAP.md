@@ -826,14 +826,27 @@ evidência de funcionamento.
 
 Escopo decidido: **single-user** — só o próprio usuário no primeiro momento.
 
-### Sprint 9 — Primeiro uso real ponta a ponta (bloqueante)
+### Sprint 9 — Primeiro uso real ponta a ponta (bloqueante) — **concluído**
 
 1. Rede de segurança de pré-voo — **concluído** (`DEC-061`): error boundary
    raiz e por rota, logger em memória, handlers globais de exceção não
    capturada e promise rejeitada.
-2. Ensaio ponta a ponta com dados fictícios — em aberto.
-3. Correções dos defeitos encontrados no ensaio — em aberto.
-4. Limpeza dos dados de ensaio e primeiro uso com a carteira real — em aberto.
+2. Ensaio ponta a ponta com dados fictícios — **concluído** (`DEC-062`):
+   ciclo completo `presented → accepted → confirmed` executado pela primeira
+   vez, com Motor V2, Dossiê Técnico e IA explicativa rodando sobre carteira
+   real. `purchases`, `allocation_targets` e `contribution_plans` saíram de
+   0 linhas.
+3. Correções dos defeitos encontrados no ensaio — **concluído**: moeda
+   incorreta nos itens do plano e falha silenciosa do `refresh-market-data`
+   (`DEC-062`); textos de demonstração sobre dado real na Estratégia
+   (`DEC-063`) e na barra lateral/histórico (`DEC-065`); leitura de eventos
+   oficiais quebrada desde a ativação em `DEC-041`/`DEC-042`, nunca
+   verificada pela interface (`DEC-064`); banner de cotação disparando em
+   situação normal (`DEC-066`).
+4. Limpeza dos dados de ensaio e primeiro uso com a carteira real —
+   **concluído**: `purchases`, `allocation_targets`, `contribution_plans` e
+   `contribution_plan_items` de ensaio removidos em 30 de julho de 2026.
+   Carteira em produção pronta para o cadastro real do usuário.
 
 ### Sprint 10 — Recuperação de senha (bloqueante)
 

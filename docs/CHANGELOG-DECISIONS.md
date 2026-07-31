@@ -1917,3 +1917,27 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   ramo de erro genérico. Verificado após o deploy: disparo manual da
   função continuou respondendo `200`, e o frontend consumiu a resposta sem
   lançar `Invalid market data refresh response`.
+
+## DEC-067 — Limpeza dos dados de ensaio e encerramento do Sprint 9
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: `DEC-062` gerou compras, metas e planos fictícios em produção
+  para provar a cadeia ponta a ponta pela primeira vez. Esses dados
+  cumpriram o papel de evidência ao longo do Sprint 9 e precisavam sair
+  antes do usuário cadastrar a carteira real.
+- Decisão: confirmadas as 6 `purchases`, 15 `allocation_targets`, 3
+  `contribution_plans` e 9 `contribution_plan_items` como pertencentes
+  inteiramente ao único usuário da conta (`06c2a497-ef0d-4dc0-83cd-
+6c5898848698`) antes de remover — sem filtro por data, por conteúdo
+  ainda ser 100% de ensaio. `DELETE` transacional nas quatro tabelas, na
+  ordem que respeita a FK de `contribution_plan_items` para
+  `contribution_plans`.
+- Verificação: as quatro tabelas confirmadas em 0 linhas após a remoção;
+  `/dashboard` em produção mostra "Nenhuma" compra e R$ 0,00, o estado
+  correto para uma conta sem carteira cadastrada.
+- Consequências: Sprint 9 (`docs/ROADMAP.md`) fecha com os quatro itens
+  concluídos. `allocation_targets`, `purchases` e `contribution_plans`
+  voltam a 0 linhas — não porque a cadeia falhou, mas porque a evidência do
+  ensaio foi removida de propósito. O próximo aporte real registrado pelo
+  usuário será o primeiro dado de produção de verdade nessas tabelas.
