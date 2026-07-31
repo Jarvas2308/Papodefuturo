@@ -358,6 +358,7 @@ describe('resilient persistence (DEC-062)', () => {
 
     expect(result.warnings).toContainEqual({
       provider: 'storage',
+      kind: 'storage-failed',
       message: 'Não foi possível gravar as cotações de mercado nesta execução.',
     })
     expect(result.updatedPrices).toBe(0)

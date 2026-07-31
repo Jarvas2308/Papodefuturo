@@ -71,9 +71,19 @@ function parseMarketDataRefreshResult(value: unknown): MarketDataRefreshResult {
     !result.warnings.every(
       (warning) =>
         warning &&
-        ['b3-cotahist', 'twelve-data', 'configuration'].includes(
+        // 'storage' faltava aqui: qualquer aviso de falha de escrita
+        // (DEC-062) derrubava a resposta inteira nesta validação, e
+        // refreshMarketDataBestEffort convertia isso no mesmo aviso
+        // genérico, escondendo o motivo real.
+        ['b3-cotahist', 'twelve-data', 'configuration', 'storage'].includes(
           warning.provider
         ) &&
+        [
+          'provider-failed',
+          'stale-quote',
+          'configuration',
+          'storage-failed',
+        ].includes(warning.kind) &&
         typeof warning.message === 'string' &&
         (warning.ticker === undefined || typeof warning.ticker === 'string')
     )

@@ -44,6 +44,7 @@ function providerFailureWarning(
 ): MarketDataWarning {
   return {
     provider,
+    kind: 'provider-failed',
     ticker,
     message: `Não foi possível atualizar a cotação automática de ${ticker}.`,
   }
@@ -52,6 +53,7 @@ function providerFailureWarning(
 function storageFailureWarning(scope: string): MarketDataWarning {
   return {
     provider: 'storage',
+    kind: 'storage-failed',
     message: `Não foi possível gravar ${scope} nesta execução.`,
   }
 }
@@ -96,6 +98,7 @@ function staleQuoteWarning(
 ): MarketDataWarning {
   return {
     provider,
+    kind: 'stale-quote',
     ticker,
     message: `A cotação automática de ${ticker} não é mais recente que a armazenada.`,
   }
@@ -135,6 +138,7 @@ export async function refreshMarketData({
   if (!twelveData) {
     warnings.push({
       provider: 'configuration',
+      kind: 'configuration',
       message: 'Twelve Data não está configurada para atualização automática.',
     })
   }
