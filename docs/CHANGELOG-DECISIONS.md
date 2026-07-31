@@ -1906,7 +1906,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   genérico — mascarando exatamente o tipo de degradação que o aviso deveria
   expor.
 - Decisão: `MarketDataWarning` ganha `kind: 'provider-failed' |
-  'stale-quote' | 'configuration' | 'storage-failed'`, na Edge Function
+'stale-quote' | 'configuration' | 'storage-failed'`, na Edge Function
   (`supabase/functions/refresh-market-data/types.ts`) e no contrato do
   frontend (`src/data/repositories/contracts.ts`). O banner só aparece
   quando existe pelo menos um aviso com `kind !== 'stale-quote'`. O
