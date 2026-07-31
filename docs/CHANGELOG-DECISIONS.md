@@ -1929,7 +1929,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
 - Decisão: confirmadas as 6 `purchases`, 15 `allocation_targets`, 3
   `contribution_plans` e 9 `contribution_plan_items` como pertencentes
   inteiramente ao único usuário da conta (`06c2a497-ef0d-4dc0-83cd-
-  6c5898848698`) antes de remover — sem filtro por data, por conteúdo
+6c5898848698`) antes de remover — sem filtro por data, por conteúdo
   ainda ser 100% de ensaio. `DELETE` transacional nas quatro tabelas, na
   ordem que respeita a FK de `contribution_plan_items` para
   `contribution_plans`.
