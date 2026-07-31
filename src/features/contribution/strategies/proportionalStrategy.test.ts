@@ -61,7 +61,7 @@ describe('proportionalStrategy', () => {
     ).toBe(0)
   })
 
-  it('rejects duplicate IDs, empty portfolios and zero-value portfolios', () => {
+  it('rejects duplicate IDs and empty portfolios', () => {
     expect(() =>
       proportionalStrategy.execute(
         input(100, [position('a', 1), position('a', 2)])
@@ -70,9 +70,29 @@ describe('proportionalStrategy', () => {
     expect(() => proportionalStrategy.execute(input(100, []))).toThrow(
       RangeError
     )
-    expect(() =>
-      proportionalStrategy.execute(input(100, [position('a', 0)]))
-    ).toThrow(RangeError)
+  })
+
+  it('splits equally across an all-zero portfolio instead of throwing', () => {
+    const result = proportionalStrategy.execute(
+      input(100, [position('a', 0), position('b', 0), position('c', 0)])
+    )
+    expect(result.distribuicao).toEqual([
+      { assetId: 'a', valorEmCentavos: 34 },
+      { assetId: 'b', valorEmCentavos: 33 },
+      { assetId: 'c', valorEmCentavos: 33 },
+    ])
+    expect(result.totalDistribuidoEmCentavos).toBe(100)
+  })
+
+  it('allocates the whole contribution to a single zero-value position', () => {
+    expect(
+      proportionalStrategy.execute(input(100_000, [position('a', 0)]))
+    ).toEqual({
+      strategy: 'proportional',
+      distribuicao: [{ assetId: 'a', valorEmCentavos: 100_000 }],
+      totalDistribuidoEmCentavos: 100_000,
+      saldoNaoAlocadoEmCentavos: 0,
+    })
   })
 
   it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(

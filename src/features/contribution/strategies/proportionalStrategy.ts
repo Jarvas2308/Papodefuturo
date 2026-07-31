@@ -50,17 +50,20 @@ function executeProportionalStrategy(
     0
   )
 
-  if (!Number.isSafeInteger(totalCurrentValue) || totalCurrentValue <= 0) {
+  if (!Number.isSafeInteger(totalCurrentValue) || totalCurrentValue < 0) {
     throw new RangeError(
-      'Portfolio current value must be a positive safe integer'
+      'Portfolio current value must be a non-negative safe integer'
     )
   }
 
+  // Carteira zerada não tem peso pra manter proporção: cai pra divisão
+  // igualitária entre as posições em vez de estourar erro.
+  const isEmptyPortfolio = totalCurrentValue === 0
   const allocations = allocateByWeights(
     input.valorAporteEmCentavos,
     input.carteiraAtual.map((position, originalOrder) => ({
       id: position.assetId,
-      weight: position.currentValueInCents,
+      weight: isEmptyPortfolio ? 1 : position.currentValueInCents,
       originalOrder,
     }))
   )

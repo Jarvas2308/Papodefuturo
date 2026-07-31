@@ -180,6 +180,8 @@ function executeTargetAllocationStrategy(
   let currentDeviation = deviationBefore
   let remaining = BigInt(input.valorAporteEmCentavos)
   let stopReason: ContributionStopReason = 'zero-contribution'
+  const isInitiallyEmpty =
+    initialValues.reduce((sum, value) => sum + value, 0n) === 0n
 
   while (remaining > 0n) {
     let bestIndex: number | null = null
@@ -211,7 +213,10 @@ function executeTargetAllocationStrategy(
       stopReason = 'no-affordable-unit'
       break
     }
-    if (compareDeviation(bestDeviation, currentDeviation) >= 0) {
+    if (
+      !isInitiallyEmpty &&
+      compareDeviation(bestDeviation, currentDeviation) >= 0
+    ) {
       stopReason = 'no-improving-purchase'
       break
     }

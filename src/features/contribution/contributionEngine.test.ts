@@ -59,4 +59,48 @@ describe('calculateContribution', () => {
       'Unsupported contribution strategy: unsupported'
     )
   })
+
+  it('allocates from zero-value portfolio to meet targets (primary use case)', () => {
+    const emptyPortfolioInput: ContributionInput = {
+      valorAporteEmCentavos: 100_000,
+      carteiraAtual: [
+        {
+          assetId: 'stock-a',
+          category: 'brazilian-stocks',
+          currentValueInCents: 0,
+          unitPriceInCents: 1_000,
+        },
+        {
+          assetId: 'stock-b',
+          category: 'brazilian-stocks',
+          currentValueInCents: 0,
+          unitPriceInCents: 2_000,
+        },
+        {
+          assetId: 'international-etf',
+          category: 'international',
+          currentValueInCents: 0,
+          unitPriceInCents: 5_000,
+        },
+      ],
+      metasAlocacao: [
+        { category: 'brazilian-stocks', targetPercentage: 70 },
+        { category: 'international', targetPercentage: 30 },
+      ],
+      metasGlobaisPorAtivo: [
+        { assetId: 'stock-a', targetInBasisPoints: 3_500 },
+        { assetId: 'stock-b', targetInBasisPoints: 3_500 },
+        { assetId: 'international-etf', targetInBasisPoints: 3_000 },
+      ],
+      strategy: 'target-allocation',
+    }
+
+    const result = calculateContribution(emptyPortfolioInput)
+
+    expect(result.strategy).toBe('target-allocation')
+    expect(result.totalDistribuidoEmCentavos).toBe(100_000)
+    expect(result.saldoNaoAlocadoEmCentavos).toBeLessThanOrEqual(5_000)
+    expect(result.distribuicao.length).toBeGreaterThan(0)
+    expect(result.distribuicao.some((d) => d.valorEmCentavos > 0)).toBe(true)
+  })
 })
