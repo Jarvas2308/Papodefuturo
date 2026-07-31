@@ -796,8 +796,16 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
   bugs reais de dado: denominação alternativa da XPLG11 na CVM ("FII XP
   LOG") e ambiguidade real do `netIncome` do ITR entre trimestre isolado e
   acumulado (decisão: trimestre isolado). `fundamental_snapshots` chega a
-  21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). `purchases` segue com
-  0;
+  21 linhas (5 DFP, 5 ITR, 3 SEC N-PORT, 8 CVM FII). Em 30 de julho de
+  2026, o Sprint 9 executou o primeiro ensaio real ponta a ponta
+  (`DEC-062` a `DEC-066`): `purchases`, `allocation_targets` e
+  `contribution_plans` saíram de 0 pela primeira vez, o ciclo completo
+  `presented → accepted → confirmed` foi exercitado com Motor V2, Dossiê
+  Técnico e IA explicativa, e cinco defeitos reais foram corrigidos e
+  validados em produção — incluindo a leitura de `/eventos-oficiais`, que
+  nunca havia funcionado pela interface desde a ativação em `DEC-041`/
+  `DEC-042`. Os dados do ensaio foram removidos ao final do ciclo;
+  `purchases` volta a 0, aguardando o cadastro real do usuário;
 - proteção contra senha vazada (leaked password protection) permanece
   desabilitada no Auth; é configuração de painel, não alterável por ciclo de
   código;
