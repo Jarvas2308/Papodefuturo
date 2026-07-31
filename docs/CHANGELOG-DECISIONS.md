@@ -1881,3 +1881,39 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   exige o contexto. O novo `Sidebar.test.tsx` cobre apenas o ramo demo —
   montar uma sessão autenticada exige DOM real, e fica para a suíte de
   interação do Sprint 13.
+
+## DEC-066 — Banner de cotação deixa de disparar em situação normal
+
+- Data: 30 de julho de 2026
+- Status: Aceita
+- Contexto: "Algumas cotações não puderam ser atualizadas" aparecia em
+  `/dashboard`, `/carteira` e `/novo-aporte` mesmo com os 12 tickers do
+  universo fechado com preço em dia, tornando o aviso praticamente
+  permanente nas telas onde o usuário decide dinheiro.
+- Causa raiz: `refreshMarketDataBestEffort`
+  (`src/data/marketDataRefresh.ts`) exibia o banner sempre que
+  `result.warnings.length > 0`, sem diferenciar tipo de aviso. Mas
+  `staleQuoteWarning` (`supabase/functions/refresh-market-data/core.ts`) é
+  emitido no caminho normal: o provider respondeu, a cotação não é mais
+  recente que a já armazenada, e nada é escrito de propósito. Confirmado
+  disparando a função em produção: todos os warnings da execução real eram
+  `stale-quote`.
+- Bug relacionado, corrigido no mesmo ciclo: `parseMarketDataRefreshResult`
+  (`src/data/repositories/supabaseRepositories.ts`) validava
+  `warning.provider` contra apenas três valores, sem incluir `'storage'`.
+  Qualquer aviso de falha de escrita introduzido em `DEC-062` derrubava a
+  resposta inteira nesta validação, e o motivo real virava o mesmo banner
+  genérico — mascarando exatamente o tipo de degradação que o aviso deveria
+  expor.
+- Decisão: `MarketDataWarning` ganha `kind: 'provider-failed' |
+  'stale-quote' | 'configuration' | 'storage-failed'`, na Edge Function
+  (`supabase/functions/refresh-market-data/types.ts`) e no contrato do
+  frontend (`src/data/repositories/contracts.ts`). O banner só aparece
+  quando existe pelo menos um aviso com `kind !== 'stale-quote'`. O
+  validador do frontend passa a aceitar `'storage'` e a checar `kind`.
+- Consequências: a Edge Function precisa de redeploy para o campo `kind`
+  chegar em produção — sem isso, o parser do frontend rejeitaria a
+  resposta por falta do campo, e o banner voltaria a aparecer sempre pelo
+  ramo de erro genérico. Verificado após o deploy: disparo manual da
+  função continuou respondendo `200`, e o frontend consumiu a resposta sem
+  lançar `Invalid market data refresh response`.

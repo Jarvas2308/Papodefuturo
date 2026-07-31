@@ -1,8 +1,16 @@
 export type MarketDataWarningProvider =
   'b3-cotahist' | 'twelve-data' | 'configuration' | 'storage'
 
+// `stale-quote` é o caso normal: o provider respondeu, mas a cotação não é
+// mais recente que a já armazenada, então nada foi escrito de propósito. Os
+// demais são degradação real e merecem alertar o usuário; `stale-quote` não,
+// ou o aviso apareceria em toda consulta com preços em dia.
+export type MarketDataWarningKind =
+  'provider-failed' | 'stale-quote' | 'configuration' | 'storage-failed'
+
 export type MarketDataWarning = {
   provider: MarketDataWarningProvider
+  kind: MarketDataWarningKind
   ticker?: string
   message: string
 }

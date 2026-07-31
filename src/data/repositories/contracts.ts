@@ -93,8 +93,15 @@ export type AllocationTargetRepository = {
   replaceAll(targets: readonly AllocationTarget[]): Promise<AllocationTarget[]>
 }
 
+// `stale-quote` é o caso normal: o provider respondeu, mas a cotação não é
+// mais recente que a já armazenada, então nada foi escrito de propósito. Só
+// os demais tipos representam degradação real e devem virar aviso na tela.
+export type MarketDataWarningKind =
+  'provider-failed' | 'stale-quote' | 'configuration' | 'storage-failed'
+
 export type MarketDataWarning = {
-  provider: 'b3-cotahist' | 'twelve-data' | 'configuration'
+  provider: 'b3-cotahist' | 'twelve-data' | 'configuration' | 'storage'
+  kind: MarketDataWarningKind
   ticker?: string
   message: string
 }
