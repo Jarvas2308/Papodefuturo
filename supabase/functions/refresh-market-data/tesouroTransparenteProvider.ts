@@ -34,8 +34,12 @@ function toIsoDate(brazilianDate: string): string {
   return `${year}-${month}-${day}`
 }
 
-export function parseTesouroTransparenteCsv(rawLatin1Text: string): TesouroCsvRow[] {
-  const lines = rawLatin1Text.split(/\r?\n/).filter((line) => line.trim() !== '')
+export function parseTesouroTransparenteCsv(
+  rawLatin1Text: string
+): TesouroCsvRow[] {
+  const lines = rawLatin1Text
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== '')
 
   if (lines.length === 0) {
     throw new Error('CSV do Tesouro Transparente veio vazio.')

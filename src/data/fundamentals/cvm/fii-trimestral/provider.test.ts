@@ -157,9 +157,13 @@ function createResultFixture(fund: CvmRealEstateFund): ResultFixture {
 }
 
 function generalToCsv(row: GeneralFixture): string {
-  return [row.cnpj, row.referenceDate, row.version, row.officialName, row.isin].join(
-    ';'
-  )
+  return [
+    row.cnpj,
+    row.referenceDate,
+    row.version,
+    row.officialName,
+    row.isin,
+  ].join(';')
 }
 
 function propertyToCsv(row: PropertyFixture): string {
@@ -198,9 +202,12 @@ function tenantToCsv(row: TenantFixture): string {
 }
 
 function resultToCsv(row: ResultFixture): string {
-  return [row.cnpj, row.referenceDate, row.version, row.quarterlyNetResult].join(
-    ';'
-  )
+  return [
+    row.cnpj,
+    row.referenceDate,
+    row.version,
+    row.quarterlyNetResult,
+  ].join(';')
 }
 
 function buildDocuments(
@@ -247,11 +254,31 @@ function buildDocuments(
   ].join('\n')
 
   return [
-    { fileName: 'inf_trimestral_fii_geral_2026.csv', type: 'general', content: generalContent },
-    { fileName: 'inf_trimestral_fii_imovel_2026.csv', type: 'property', content: propertyContent },
-    { fileName: 'inf_trimestral_fii_complemento_2026.csv', type: 'complement', content: complementContent },
-    { fileName: 'inf_trimestral_fii_imovel_renda_acabado_inquilino_2026.csv', type: 'tenant', content: tenantContent },
-    { fileName: 'inf_trimestral_fii_resultado_contabil_financeiro_2026.csv', type: 'result', content: resultContent },
+    {
+      fileName: 'inf_trimestral_fii_geral_2026.csv',
+      type: 'general',
+      content: generalContent,
+    },
+    {
+      fileName: 'inf_trimestral_fii_imovel_2026.csv',
+      type: 'property',
+      content: propertyContent,
+    },
+    {
+      fileName: 'inf_trimestral_fii_complemento_2026.csv',
+      type: 'complement',
+      content: complementContent,
+    },
+    {
+      fileName: 'inf_trimestral_fii_imovel_renda_acabado_inquilino_2026.csv',
+      type: 'tenant',
+      content: tenantContent,
+    },
+    {
+      fileName: 'inf_trimestral_fii_resultado_contabil_financeiro_2026.csv',
+      type: 'result',
+      content: resultContent,
+    },
   ]
 }
 
@@ -301,9 +328,9 @@ describe('extractCvmRealEstateFundVacancy', () => {
         amountInMinorUnits: 5_687_921_447,
         currency: 'BRL',
       })
-      expect(
-        record.provenance.quarterlyNetFinancialResult?.rawValue
-      ).toBe('56879214.47')
+      expect(record.provenance.quarterlyNetFinancialResult?.rawValue).toBe(
+        '56879214.47'
+      )
       // WALE real da HGRU11: media ponderada por receita dos pontos medios
       // das faixas de vencimento, incluindo duas em notacao cientifica.
       expect(record.facts.waleInMonthsScaledBy100).toBe(3587)

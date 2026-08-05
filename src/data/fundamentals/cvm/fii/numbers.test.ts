@@ -29,9 +29,10 @@ describe('parseNullableCvmFiiExactDecimalQuantity', () => {
   // cientifica, ex. "6.8E-05" para Percentual_Vencimento_Receita_FII.
   // Sem suporte a expoente aqui, essas linhas reais quebravam o parser.
   it('parses scientific notation with a negative exponent', () => {
-    expect(
-      parseNullableCvmFiiExactDecimalQuantity('6.8E-05', 'test')
-    ).toEqual({ unscaledValue: 68, scale: 6 })
+    expect(parseNullableCvmFiiExactDecimalQuantity('6.8E-05', 'test')).toEqual({
+      unscaledValue: 68,
+      scale: 6,
+    })
   })
 
   it('parses scientific notation with an uppercase E and no decimal point', () => {
@@ -42,15 +43,17 @@ describe('parseNullableCvmFiiExactDecimalQuantity', () => {
   })
 
   it('parses scientific notation with a lowercase e', () => {
-    expect(parseNullableCvmFiiExactDecimalQuantity('7.5e-05', 'test')).toEqual(
-      { unscaledValue: 75, scale: 6 }
-    )
+    expect(parseNullableCvmFiiExactDecimalQuantity('7.5e-05', 'test')).toEqual({
+      unscaledValue: 75,
+      scale: 6,
+    })
   })
 
   it('parses scientific notation with a positive exponent', () => {
-    expect(parseNullableCvmFiiExactDecimalQuantity('1.5E+2', 'test')).toEqual(
-      { unscaledValue: 150, scale: 0 }
-    )
+    expect(parseNullableCvmFiiExactDecimalQuantity('1.5E+2', 'test')).toEqual({
+      unscaledValue: 150,
+      scale: 0,
+    })
   })
 
   it('parses scientific notation with no exponent sign (implicit positive)', () => {
@@ -67,9 +70,9 @@ describe('parseNullableCvmFiiExactDecimalQuantity', () => {
   })
 
   it('rejects a negative value', () => {
-    expect(() =>
-      parseNullableCvmFiiExactDecimalQuantity('-1', 'test')
-    ).toThrow('Invalid CVM FII test')
+    expect(() => parseNullableCvmFiiExactDecimalQuantity('-1', 'test')).toThrow(
+      'Invalid CVM FII test'
+    )
   })
 })
 
@@ -105,8 +108,8 @@ describe('parseNullableCvmFiiNonNegativeInteger', () => {
   })
 
   it('rejects a negative value', () => {
-    expect(() =>
-      parseNullableCvmFiiNonNegativeInteger('-1', 'test')
-    ).toThrow('Invalid CVM FII test')
+    expect(() => parseNullableCvmFiiNonNegativeInteger('-1', 'test')).toThrow(
+      'Invalid CVM FII test'
+    )
   })
 })

@@ -86,7 +86,7 @@ async function main() {
   console.log(JSON.stringify(data, null, 2))
   console.log(
     '\nLembrete: "succeeded" aqui é o pg_net, não a lógica interna da ' +
-      "função — confira os logs da Edge Function para falha real."
+      'função — confira os logs da Edge Function para falha real.'
   )
 
   if (problems.length > 0) {

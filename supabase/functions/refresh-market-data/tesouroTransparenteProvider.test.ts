@@ -30,9 +30,11 @@ describe('parseTesouroTransparenteCsv', () => {
     const rows = parseTesouroTransparenteCsv(REAL_SAMPLE)
 
     expect(rows).toHaveLength(9)
-    expect(rows.every((row) => row.tipoTitulo === 'Tesouro IPCA+ com Juros Semestrais')).toBe(
-      true
-    )
+    expect(
+      rows.every(
+        (row) => row.tipoTitulo === 'Tesouro IPCA+ com Juros Semestrais'
+      )
+    ).toBe(true)
   })
 
   it('throws on an unexpected header', () => {
@@ -97,8 +99,7 @@ describe('parseNtnbLongaRate', () => {
 describe('createTesouroTransparenteProvider', () => {
   it('decodes the response as Latin-1 and returns the parsed rate', async () => {
     const latin1Bytes = new TextEncoder().encode(REAL_SAMPLE)
-    const fetchMock = async () =>
-      new Response(latin1Bytes, { status: 200 })
+    const fetchMock = async () => new Response(latin1Bytes, { status: 200 })
 
     const provider = createTesouroTransparenteProvider(fetchMock)
     const rate = await provider.getNtnbLongaRate()

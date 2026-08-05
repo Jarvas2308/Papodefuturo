@@ -29,10 +29,14 @@ export type ShillerCapeSnapshotStorage = {
 
 function toInsertRow(record: ShillerCapeRecord): ShillerCapeUpsertRowV1 {
   if (!Number.isSafeInteger(record.valueScaled) || record.valueScaled <= 0) {
-    throw new RangeError(`Invalid Shiller CAPE scaled value: ${record.valueScaled}`)
+    throw new RangeError(
+      `Invalid Shiller CAPE scaled value: ${record.valueScaled}`
+    )
   }
   if (record.valueScale !== 1_000_000) {
-    throw new RangeError(`Invalid Shiller CAPE value scale: ${record.valueScale}`)
+    throw new RangeError(
+      `Invalid Shiller CAPE value scale: ${record.valueScale}`
+    )
   }
 
   return {

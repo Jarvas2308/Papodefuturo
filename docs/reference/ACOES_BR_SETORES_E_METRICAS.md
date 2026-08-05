@@ -108,13 +108,13 @@ se tivesse vacância.
 Diferente da FII, não havia documento anterior com erro para corrigir — mas
 verifiquei os 5 contra CNPJ real da CVM antes de assumir qualquer coisa.
 
-| Ticker | Empresa | Setor | CNPJ confirmado |
-|---|---|---|---|
-| **BBAS3** | Banco do Brasil | Banco | 00.000.000/0001-91 |
-| **ITSA4** | Itaúsa | Holding (ação PN) | 61.532.644/0001-15 |
-| **TAEE11** | Taesa | Transmissão de energia (regulado) | verificado por fonte de mercado, CNPJ não baixado nesta sessão |
-| **WEGE3** | WEG | Industrial (motores/equipamentos) | 84.429.695/0001-11 |
-| **PSSA3** | Porto Seguro | Seguros | verificado por fonte de mercado, CNPJ não baixado nesta sessão |
+| Ticker     | Empresa         | Setor                             | CNPJ confirmado                                                |
+| ---------- | --------------- | --------------------------------- | -------------------------------------------------------------- |
+| **BBAS3**  | Banco do Brasil | Banco                             | 00.000.000/0001-91                                             |
+| **ITSA4**  | Itaúsa          | Holding (ação PN)                 | 61.532.644/0001-15                                             |
+| **TAEE11** | Taesa           | Transmissão de energia (regulado) | verificado por fonte de mercado, CNPJ não baixado nesta sessão |
+| **WEGE3**  | WEG             | Industrial (motores/equipamentos) | 84.429.695/0001-11                                             |
+| **PSSA3**  | Porto Seguro    | Seguros                           | verificado por fonte de mercado, CNPJ não baixado nesta sessão |
 
 Todos batem com o nome já cadastrado em `assetUniverse.ts`. Nenhum erro de
 categoria encontrado — ao contrário da v1 de FII, aqui o cadastro já nasceu
@@ -222,11 +222,11 @@ Pergunta natural olhando o universo: as 5 ações pagam dividendo, então dá pr
 tratar como um grupo e aplicar a mesma régua de DY? **Não.** Verificado com
 dado de mercado em 31/07/2026:
 
-| Ticker | DY 12m (aprox.) | Padrão de payout |
-|---|---|---|
-| **TAEE11** | ~8,4% | Estatuto mínimo 90%, frequentemente 100% |
-| **WEGE3** | ~4,4% | Baixo por escolha — dividendo por ação cresce ~19% a.a. via crescimento do lucro, não via % maior |
-| **BBAS3** | — | **Caiu de média histórica ~45% para 30% neste ano** |
+| Ticker     | DY 12m (aprox.) | Padrão de payout                                                                                  |
+| ---------- | --------------- | ------------------------------------------------------------------------------------------------- |
+| **TAEE11** | ~8,4%           | Estatuto mínimo 90%, frequentemente 100%                                                          |
+| **WEGE3**  | ~4,4%           | Baixo por escolha — dividendo por ação cresce ~19% a.a. via crescimento do lucro, não via % maior |
+| **BBAS3**  | —               | **Caiu de média histórica ~45% para 30% neste ano**                                               |
 
 **TAEE11 distribui quase tudo porque a estrutura obriga, não porque é
 "melhor pagadora".** É concessão de transmissão — sem licitar concessão nova,
@@ -338,13 +338,13 @@ companhias abertas em geral — inclusive as versões trimestrais existem
 
 19 arquivos por ano, entre eles:
 
-| Arquivo CVM | O que contém |
-|---|---|
-| `dfp_cia_aberta_BPA_con` / `BPP_con` | Balanço Patrimonial Ativo/Passivo, consolidado |
-| `dfp_cia_aberta_DRE_con` | Demonstração de Resultado — inclui a linha `3.11` "Lucro/Prejuízo Consolidado do Período", **confirmada idêntica** para WEG (industrial) e Banco do Brasil (banco) |
-| `dfp_cia_aberta_DFC_MD_con` / `DFC_MI_con` | Fluxo de Caixa, método direto/indireto |
-| `dfp_cia_aberta_composicao_capital` | **Número de ações** — ON, PN, total, e em tesouraria |
-| `dfp_cia_aberta_DVA_con` | Valor Adicionado |
+| Arquivo CVM                                | O que contém                                                                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dfp_cia_aberta_BPA_con` / `BPP_con`       | Balanço Patrimonial Ativo/Passivo, consolidado                                                                                                                     |
+| `dfp_cia_aberta_DRE_con`                   | Demonstração de Resultado — inclui a linha `3.11` "Lucro/Prejuízo Consolidado do Período", **confirmada idêntica** para WEG (industrial) e Banco do Brasil (banco) |
+| `dfp_cia_aberta_DFC_MD_con` / `DFC_MI_con` | Fluxo de Caixa, método direto/indireto                                                                                                                             |
+| `dfp_cia_aberta_composicao_capital`        | **Número de ações** — ON, PN, total, e em tesouraria                                                                                                               |
+| `dfp_cia_aberta_DVA_con`                   | Valor Adicionado                                                                                                                                                   |
 
 **Achado confirmado com dado real:** o código `3.11` da DRE é padronizado pela
 CVM e idêntico para os três tipos de empresa testados — WEG (industrial),
@@ -383,19 +383,19 @@ pipeline existente.
 
 ### 6.3 Quadro consolidado
 
-| Sinal | Insumos | Situação |
-|---|---|---|
-| **Lucro líquido** | DRE código `3.11` | Confirmado, universal entre setores testados |
-| **LPA** | lucro líquido ÷ `composicao_capital` (classe certa) | Confirmado, requer atenção à classe ON/PN |
-| **P/L** | preço (`asset_prices`) + LPA | Requer novo provider CVM DFP/ITR |
-| **ROE** | lucro líquido ÷ patrimônio (`BPP_con`) | Requer novo provider |
-| **P/VP** | preço + patrimônio ÷ ações | Requer novo provider |
-| **Margem líquida/EBITDA** | DRE completa | Requer novo provider; só aplicável a industrial |
-| **Dívida líquida/EBITDA** | `BPP_con` + DRE | Requer novo provider; não aplicável a banco |
-| **Dividend Yield / Payout** | dividendos pagos | **Sem fonte aberta confirmada** — ver 6.2 |
-| Basileia, NIM, NPL (banco) | — | Não confirmado nos datasets CVM padrão nesta sessão |
-| Índice combinado (seguradora) | — | Não confirmado nos datasets CVM padrão nesta sessão |
-| RAB, prazo de concessão (regulado) | — | Fonte provavelmente ANEEL, não pesquisada nesta sessão |
+| Sinal                              | Insumos                                             | Situação                                               |
+| ---------------------------------- | --------------------------------------------------- | ------------------------------------------------------ |
+| **Lucro líquido**                  | DRE código `3.11`                                   | Confirmado, universal entre setores testados           |
+| **LPA**                            | lucro líquido ÷ `composicao_capital` (classe certa) | Confirmado, requer atenção à classe ON/PN              |
+| **P/L**                            | preço (`asset_prices`) + LPA                        | Requer novo provider CVM DFP/ITR                       |
+| **ROE**                            | lucro líquido ÷ patrimônio (`BPP_con`)              | Requer novo provider                                   |
+| **P/VP**                           | preço + patrimônio ÷ ações                          | Requer novo provider                                   |
+| **Margem líquida/EBITDA**          | DRE completa                                        | Requer novo provider; só aplicável a industrial        |
+| **Dívida líquida/EBITDA**          | `BPP_con` + DRE                                     | Requer novo provider; não aplicável a banco            |
+| **Dividend Yield / Payout**        | dividendos pagos                                    | **Sem fonte aberta confirmada** — ver 6.2              |
+| Basileia, NIM, NPL (banco)         | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão    |
+| Índice combinado (seguradora)      | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão    |
+| RAB, prazo de concessão (regulado) | —                                                   | Fonte provavelmente ANEEL, não pesquisada nesta sessão |
 
 **Conclusão operacional, no mesmo padrão do FII:** antes de qualquer regra de
 veto, o schema precisa de um campo de **setor/regime** (banco, seguradora,

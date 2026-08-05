@@ -81,7 +81,12 @@ function createRepositories(rates: ExchangeRate[]) {
     aiExplanation: { explain: vi.fn() },
     profile: { get: vi.fn(), update: vi.fn() },
     userPreferences: { get: vi.fn(), update: vi.fn() },
-    signalRules: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+    signalRules: {
+      list: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+    },
   } as AppRepositories
 }
 

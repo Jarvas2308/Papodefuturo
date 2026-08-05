@@ -104,8 +104,7 @@ export function computeWeightedAverageVacancyInBasisPoints(
     throw new RangeError('Weighted average vacancy exceeds safe integer range')
   }
 
-  const weightSumScaledNumerator =
-    weightSum * 10n ** WEIGHT_SUM_STORAGE_SCALE
+  const weightSumScaledNumerator = weightSum * 10n ** WEIGHT_SUM_STORAGE_SCALE
   const weightSumDenominator = 10n ** BigInt(commonScale)
   const weightSumQuotient = weightSumScaledNumerator / weightSumDenominator
   const weightSumRemainder = weightSumScaledNumerator % weightSumDenominator
@@ -268,7 +267,10 @@ export function computeWaleInMonths(
   pairs: readonly { midpointMonthsX100: number; weight: ExactDecimalQuantity }[]
 ): { monthsScaledBy100: number | null; weightSum: ExactDecimalQuantity } {
   if (pairs.length === 0) {
-    return { monthsScaledBy100: null, weightSum: { unscaledValue: 0, scale: 0 } }
+    return {
+      monthsScaledBy100: null,
+      weightSum: { unscaledValue: 0, scale: 0 },
+    }
   }
 
   const commonScale = pairs.reduce(
@@ -286,7 +288,10 @@ export function computeWaleInMonths(
   }
 
   if (weightSum <= 0n) {
-    return { monthsScaledBy100: null, weightSum: { unscaledValue: 0, scale: 0 } }
+    return {
+      monthsScaledBy100: null,
+      weightSum: { unscaledValue: 0, scale: 0 },
+    }
   }
 
   const quotient = numerator / weightSum

@@ -13,7 +13,8 @@ const DATA_SHEET_NAME = 'Data'
 // unica com "Date" na coluna A e "CAPE" em alguma coluna da mesma linha.
 function isHeaderRow(row: unknown[]): boolean {
   return (
-    row[0] === 'Date' && row.some((cell) => typeof cell === 'string' && cell.trim() === 'CAPE')
+    row[0] === 'Date' &&
+    row.some((cell) => typeof cell === 'string' && cell.trim() === 'CAPE')
   )
 }
 
@@ -42,9 +43,10 @@ function decodeShillerDate(rawDate: number): { year: number; month: number } {
   return { year, month }
 }
 
-export function parseShillerCapeXls(
-  buffer: ArrayBuffer
-): { sheetName: string; rows: ShillerCapeXlsRow[] } {
+export function parseShillerCapeXls(buffer: ArrayBuffer): {
+  sheetName: string
+  rows: ShillerCapeXlsRow[]
+} {
   const workbook = XLSX.read(buffer, { type: 'array' })
   const sheet = workbook.Sheets[DATA_SHEET_NAME]
   if (!sheet) {

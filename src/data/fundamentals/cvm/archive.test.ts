@@ -81,9 +81,7 @@ describe('official CVM archive', () => {
   it('reads the capital composition document, distinct from the statement files', () => {
     const document = readCvmCapitalCompositionDocument(createArchive())
 
-    expect(document.fileName).toBe(
-      'dfp_cia_aberta_composicao_capital_2025.csv'
-    )
+    expect(document.fileName).toBe('dfp_cia_aberta_composicao_capital_2025.csv')
     expect(document.content).toContain('QT_ACAO_ORDIN_CAP_INTEGR')
   })
 

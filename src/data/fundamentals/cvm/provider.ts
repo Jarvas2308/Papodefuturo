@@ -240,7 +240,9 @@ function selectCapitalCompositionRow(
   const candidates = rows
     .map((row) => ({ row, version: parseCvmVersion(row.version) }))
     .filter(
-      (candidate): candidate is { row: CvmCapitalCompositionRow; version: number } =>
+      (
+        candidate
+      ): candidate is { row: CvmCapitalCompositionRow; version: number } =>
         normalizeCvmCnpj(candidate.row.cnpj) === expectedCnpj &&
         candidate.version !== null &&
         isValidCivilDate(candidate.row.referenceDate)

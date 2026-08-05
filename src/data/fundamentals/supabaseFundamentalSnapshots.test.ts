@@ -301,7 +301,8 @@ describe('Supabase fundamental snapshot persistence', () => {
       ...createRow(),
       issued_shares_unscaled: 5_730_834_040,
       issued_shares_scale: 0,
-      provenance: sentArgs!.records[0]!.provenance as FundamentalSnapshotRow['provenance'],
+      provenance: sentArgs!.records[0]!
+        .provenance as FundamentalSnapshotRow['provenance'],
     }
     const snapshot = mapFundamentalSnapshotRow(row, 'asset-bbas3')
 

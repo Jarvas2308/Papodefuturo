@@ -1,13 +1,12 @@
 import type { SignedMonetaryFact } from '../../../../domain/fundamentals'
 import type { CvmArchiveFetcher } from '../types'
-import type { CvmFiiRawFieldProvenance, CvmRealEstateFundTicker } from '../fii/types'
+import type {
+  CvmFiiRawFieldProvenance,
+  CvmRealEstateFundTicker,
+} from '../fii/types'
 
 export type CvmFiiTrimestralDocumentType =
-  | 'general'
-  | 'property'
-  | 'complement'
-  | 'tenant'
-  | 'result'
+  'general' | 'property' | 'complement' | 'tenant' | 'result'
 
 export type CvmFiiTrimestralDocument = {
   fileName: string

@@ -23,9 +23,7 @@ export type UserSettings = {
 }
 
 export type SettingsField =
-  | 'displayName'
-  | 'defaultContributionStrategy'
-  | 'contributionReminderDay'
+  'displayName' | 'defaultContributionStrategy' | 'contributionReminderDay'
 
 export type SettingsValidationIssue = {
   field: SettingsField

@@ -62,7 +62,10 @@ describe('extractShillerCapeRecord', () => {
   })
 
   it('zero-pads single-digit months in referenceDate (October float quirk)', () => {
-    const buffer = buildWorkbookBuffer([HEADER_ROW, [2020.1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 28]])
+    const buffer = buildWorkbookBuffer([
+      HEADER_ROW,
+      [2020.1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 28],
+    ])
 
     const record = extractShillerCapeRecord(buffer)
 

@@ -39,9 +39,7 @@ describe('ResetPasswordPage', () => {
     renderPage()
 
     expect(screen.getByText('Link inválido ou expirado')).toBeInTheDocument()
-    expect(
-      screen.queryByLabelText('Nova senha')
-    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Nova senha')).not.toBeInTheDocument()
   })
 
   it('shows the form when a recovery session is present', () => {

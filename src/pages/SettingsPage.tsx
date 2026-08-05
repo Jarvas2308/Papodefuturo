@@ -143,17 +143,13 @@ export function SettingsPage() {
 
     if (isEditing) {
       setDraft(defaultSettings)
-      setFeedback(
-        'Configurações padrão preparadas. Aplique para salvar.'
-      )
+      setFeedback('Configurações padrão preparadas. Aplique para salvar.')
       return
     }
 
     setDraft(defaultSettings)
     setIsEditing(true)
-    setFeedback(
-      'Configurações padrão preparadas. Aplique para salvar.'
-    )
+    setFeedback('Configurações padrão preparadas. Aplique para salvar.')
   }
 
   return (

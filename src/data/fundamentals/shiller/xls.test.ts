@@ -42,8 +42,20 @@ describe('parseShillerCapeXls', () => {
 
     expect(sheetName).toBe('Data')
     expect(rows).toEqual([
-      { rawDateValue: 2020.01, rawCapeValue: 30.1234, year: 2020, month: 1, cape: 30.1234 },
-      { rawDateValue: 2020.02, rawCapeValue: 30.5, year: 2020, month: 2, cape: 30.5 },
+      {
+        rawDateValue: 2020.01,
+        rawCapeValue: 30.1234,
+        year: 2020,
+        month: 1,
+        cape: 30.1234,
+      },
+      {
+        rawDateValue: 2020.02,
+        rawCapeValue: 30.5,
+        year: 2020,
+        month: 2,
+        cape: 30.5,
+      },
     ])
   })
 
@@ -56,7 +68,13 @@ describe('parseShillerCapeXls', () => {
     const { rows } = parseShillerCapeXls(buffer)
 
     expect(rows).toEqual([
-      { rawDateValue: 2020.1, rawCapeValue: 28.9, year: 2020, month: 10, cape: 28.9 },
+      {
+        rawDateValue: 2020.1,
+        rawCapeValue: 28.9,
+        year: 2020,
+        month: 10,
+        cape: 28.9,
+      },
     ])
   })
 
@@ -102,7 +120,10 @@ describe('parseShillerCapeXls', () => {
     const workbook = XLSX.utils.book_new()
     const sheet = XLSX.utils.aoa_to_sheet([['nothing here']])
     XLSX.utils.book_append_sheet(workbook, sheet, 'NotData')
-    const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xls' }) as ArrayBuffer
+    const buffer = XLSX.write(workbook, {
+      type: 'array',
+      bookType: 'xls',
+    }) as ArrayBuffer
 
     expect(() => parseShillerCapeXls(buffer)).toThrow(
       'Missing Shiller CAPE "Data" sheet in workbook'
@@ -121,8 +142,13 @@ describe('parseShillerCapeXls', () => {
   })
 
   it('throws on an invalid encoded month', () => {
-    const buffer = buildWorkbookBuffer([HEADER_ROW, [2020.99, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30]])
+    const buffer = buildWorkbookBuffer([
+      HEADER_ROW,
+      [2020.99, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30],
+    ])
 
-    expect(() => parseShillerCapeXls(buffer)).toThrow('Invalid Shiller CAPE date encoding')
+    expect(() => parseShillerCapeXls(buffer)).toThrow(
+      'Invalid Shiller CAPE date encoding'
+    )
   })
 })

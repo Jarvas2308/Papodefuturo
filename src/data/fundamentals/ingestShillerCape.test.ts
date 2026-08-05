@@ -60,9 +60,9 @@ describe('ingestShillerCapeFundamentals', () => {
     const upsertMany = vi.fn()
     const storage: ShillerCapeSnapshotStorage = { upsertMany }
 
-    await expect(ingestShillerCapeFundamentals({ storage, fetcher })).rejects.toThrow(
-      'Failed to download Shiller CAPE data: HTTP 500'
-    )
+    await expect(
+      ingestShillerCapeFundamentals({ storage, fetcher })
+    ).rejects.toThrow('Failed to download Shiller CAPE data: HTTP 500')
     expect(upsertMany).not.toHaveBeenCalled()
   })
 })

@@ -99,7 +99,10 @@ describe('settings utilities', () => {
   })
 
   it('restores display and planning defaults while preserving the given profile', () => {
-    const currentProfile = { displayName: 'Outro Nome', email: 'outro@exemplo.com' }
+    const currentProfile = {
+      displayName: 'Outro Nome',
+      email: 'outro@exemplo.com',
+    }
     const restored = restoreDefaultSettings(currentProfile)
 
     expect(restored.profile).toEqual(currentProfile)

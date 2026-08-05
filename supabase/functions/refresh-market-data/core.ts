@@ -302,12 +302,9 @@ export async function refreshMarketData({
   let updatedReferenceRates = 0
   let skippedFreshReferenceRates = 0
   const latestNtnbLonga =
-    persistedReferenceRates.find((rate) => rate.series === 'ntnb-longa') ??
-    null
+    persistedReferenceRates.find((rate) => rate.series === 'ntnb-longa') ?? null
 
-  if (
-    isReferenceRateFreshForToday(latestNtnbLonga?.pricedAt ?? null, now)
-  ) {
+  if (isReferenceRateFreshForToday(latestNtnbLonga?.pricedAt ?? null, now)) {
     skippedFreshReferenceRates = 1
   } else if (tesouroTransparente) {
     try {
@@ -333,7 +330,8 @@ export async function refreshMarketData({
     warnings.push({
       provider: 'configuration',
       kind: 'configuration',
-      message: 'Tesouro Transparente não está configurado para atualização automática.',
+      message:
+        'Tesouro Transparente não está configurado para atualização automática.',
     })
   }
 

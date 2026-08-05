@@ -66,10 +66,7 @@ describe('LoginPage', () => {
     const auth = mockAuth()
     renderLoginPage()
 
-    await userEvent.type(
-      screen.getByLabelText('E-mail'),
-      'usuario@exemplo.com'
-    )
+    await userEvent.type(screen.getByLabelText('E-mail'), 'usuario@exemplo.com')
     await userEvent.type(screen.getByLabelText('Senha'), 'senha-correta')
     await userEvent.click(screen.getByRole('button', { name: /Entrar/ }))
 
@@ -91,7 +88,9 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Senha'), 'errada')
     await userEvent.click(screen.getByRole('button', { name: /Entrar/ }))
 
-    expect(await screen.findByText('E-mail ou senha inválidos.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('E-mail ou senha inválidos.')
+    ).toBeInTheDocument()
     expect(auth.signIn).toHaveBeenCalled()
   })
 })

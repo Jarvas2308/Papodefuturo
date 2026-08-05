@@ -34,7 +34,9 @@ describe('parseCvmFiiTrimestralGeneralCsv', () => {
       '29.641.226/0001-53;2026-03-31;2;PÁTRIA RENDA URBANA - FII - RESPONSABILIDADE LIMITADA;BRHGRUCTF002',
     ].join('\n')
 
-    expect(parseCvmFiiTrimestralGeneralCsv(document('general', content))).toEqual([
+    expect(
+      parseCvmFiiTrimestralGeneralCsv(document('general', content))
+    ).toEqual([
       {
         fileName: 'inf_trimestral_fii_general_2026.csv',
         cnpj: '29.641.226/0001-53',
@@ -47,7 +49,8 @@ describe('parseCvmFiiTrimestralGeneralCsv', () => {
   })
 
   it('rejects a document missing a required header', () => {
-    const content = 'CNPJ_Fundo_Classe;Data_Referencia\n29.641.226/0001-53;2026-03-31'
+    const content =
+      'CNPJ_Fundo_Classe;Data_Referencia\n29.641.226/0001-53;2026-03-31'
     expect(() =>
       parseCvmFiiTrimestralGeneralCsv(document('general', content))
     ).toThrow('Missing CVM FII trimestral CSV header')
@@ -165,7 +168,9 @@ describe('parseCvmFiiTrimestralComplementCsv', () => {
     ].join(';')
     const content = [COMPLEMENT_HEADER, row].join('\n')
 
-    const rows = parseCvmFiiTrimestralComplementCsv(document('complement', content))
+    const rows = parseCvmFiiTrimestralComplementCsv(
+      document('complement', content)
+    )
 
     expect(rows).toHaveLength(1)
     expect(rows[0]!.ipcaRevenueShare).toBe('0.867201')

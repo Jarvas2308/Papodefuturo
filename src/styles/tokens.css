@@ -30,8 +30,7 @@
   --color-ink-text-muted: #a3a08d;
 
   --font-display: 'Fraunces', ui-serif, Georgia, serif;
-  --font-body:
-    'Inter', 'Segoe UI', BlinkMacSystemFont, system-ui, sans-serif;
+  --font-body: 'Inter', 'Segoe UI', BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
 
   --radius-md: 0.625rem;

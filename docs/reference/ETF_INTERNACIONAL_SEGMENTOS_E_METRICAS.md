@@ -63,11 +63,11 @@ plausível a corrigir — são os três ETFs mais conhecidos e documentados da
 Vanguard, replicados por milhões de investidores. Verificação de propósito,
 não de ticker:
 
-| Ticker | Nome | Índice replicado | Categoria de ativo |
-|---|---|---|---|
-| **VOO** | Vanguard S&P 500 ETF | S&P 500 | Ações americanas, large cap, mercado amplo |
-| **VNQ** | Vanguard Real Estate ETF | MSCI US Investable Market Real Estate 25/50 | REITs americanos — o equivalente americano do FII de tijolo |
-| **VEA** | Vanguard FTSE Developed Markets ETF | FTSE Developed All Cap ex US | Ações de mercados desenvolvidos fora dos EUA (Europa, Japão, Canadá, etc.) |
+| Ticker  | Nome                                | Índice replicado                            | Categoria de ativo                                                         |
+| ------- | ----------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------- |
+| **VOO** | Vanguard S&P 500 ETF                | S&P 500                                     | Ações americanas, large cap, mercado amplo                                 |
+| **VNQ** | Vanguard Real Estate ETF            | MSCI US Investable Market Real Estate 25/50 | REITs americanos — o equivalente americano do FII de tijolo                |
+| **VEA** | Vanguard FTSE Developed Markets ETF | FTSE Developed All Cap ex US                | Ações de mercados desenvolvidos fora dos EUA (Europa, Japão, Canadá, etc.) |
 
 **Achado que liga direto ao seu schema atual:** as 3 fórmulas já
 implementadas (`etf-liabilities-to-assets`, `etf-net-assets-to-assets`,
@@ -238,14 +238,14 @@ não é fonte nova.
 
 ### 6.2 O que exige fonte nova
 
-| Sinal | Fonte | Situação |
-|---|---|---|
-| **Prêmio/desconto sobre NAV** | N-PORT, campos ainda não extraídos | Requer expandir parser existente, não fonte nova |
-| **Expense ratio** | Não confirmado nesta sessão | Ver 6.3 |
-| **Tracking difference** | Retorno do fundo (preço) + retorno do índice | Requer série do índice, não confirmada nesta sessão |
-| **CAPE do S&P 500 (VOO)** | Shiller Data, Yale | **Confirmado, aberto, sem chave** |
-| **Spread de VNQ sobre TIPS 10 anos** | FRED, série `DFII10` | **Confirmado, requer chave gratuita** |
-| **CAPE de mercados desenvolvidos ex-US (VEA)** | — | **Sem fonte aberta única confirmada** — pesquisa adicional necessária |
+| Sinal                                          | Fonte                                        | Situação                                                              |
+| ---------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
+| **Prêmio/desconto sobre NAV**                  | N-PORT, campos ainda não extraídos           | Requer expandir parser existente, não fonte nova                      |
+| **Expense ratio**                              | Não confirmado nesta sessão                  | Ver 6.3                                                               |
+| **Tracking difference**                        | Retorno do fundo (preço) + retorno do índice | Requer série do índice, não confirmada nesta sessão                   |
+| **CAPE do S&P 500 (VOO)**                      | Shiller Data, Yale                           | **Confirmado, aberto, sem chave**                                     |
+| **Spread de VNQ sobre TIPS 10 anos**           | FRED, série `DFII10`                         | **Confirmado, requer chave gratuita**                                 |
+| **CAPE de mercados desenvolvidos ex-US (VEA)** | —                                            | **Sem fonte aberta única confirmada** — pesquisa adicional necessária |
 
 ### 6.3 Expense ratio — gap sinalizado, não resolvido
 

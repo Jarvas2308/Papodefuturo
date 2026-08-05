@@ -694,8 +694,7 @@ export function createSupabaseSignalRuleRepository(
       return (data ?? []).map(mapSignalRuleRow)
     },
     async create(input) {
-      const { data: userData, error: userError } =
-        await client.auth.getUser()
+      const { data: userData, error: userError } = await client.auth.getUser()
 
       if (userError || !userData.user) {
         throw createRepositoryQueryError('signal rules', {

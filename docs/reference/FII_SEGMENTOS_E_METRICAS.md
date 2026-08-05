@@ -82,16 +82,16 @@ número seria lixo com aparência de análise.
 Verificado em 31 de julho de 2026 contra Funds Explorer, Investidor10, Clube
 FII e fiis.com.br.
 
-| Ticker | v1 dizia | Correto |
-|---|---|---|
-| **MXRF11** | Logística ABCD (tijolo) | **Papel** — carteira de CRI, gestão XP |
-| **KNCR11** | Varejo / Híbrido (tijolo) | **Papel** — CRI indexado a CDI, gestão Kinea |
-| **GGRC11** | "Corporativo Paulista excelente" | **Tijolo — logística/industrial** (hoje Zagros Renda Imobiliária) |
-| **BRCR11** | "Galpões distribuição" | **Tijolo — lajes corporativas** (BC Fund) |
-| **ABCP11** | "Absoluto Agro — terras arrendadas" | **Tijolo — shopping** (Grand Plaza Shopping) |
-| **FLRV11** | "Fleury — laboratório/farmácia" | Ticker não localizado. Fleury é **ação (FLRY3)**, não FII |
-| **HGJH11** | "Magia — prédios classe A" | Ticker não confirmado |
-| **BBPO11** | "B3 Properties — prédios modulares" | Nome incorreto; BB Progressivo II, agências bancárias |
+| Ticker     | v1 dizia                            | Correto                                                           |
+| ---------- | ----------------------------------- | ----------------------------------------------------------------- |
+| **MXRF11** | Logística ABCD (tijolo)             | **Papel** — carteira de CRI, gestão XP                            |
+| **KNCR11** | Varejo / Híbrido (tijolo)           | **Papel** — CRI indexado a CDI, gestão Kinea                      |
+| **GGRC11** | "Corporativo Paulista excelente"    | **Tijolo — logística/industrial** (hoje Zagros Renda Imobiliária) |
+| **BRCR11** | "Galpões distribuição"              | **Tijolo — lajes corporativas** (BC Fund)                         |
+| **ABCP11** | "Absoluto Agro — terras arrendadas" | **Tijolo — shopping** (Grand Plaza Shopping)                      |
+| **FLRV11** | "Fleury — laboratório/farmácia"     | Ticker não localizado. Fleury é **ação (FLRY3)**, não FII         |
+| **HGJH11** | "Magia — prédios classe A"          | Ticker não confirmado                                             |
+| **BBPO11** | "B3 Properties — prédios modulares" | Nome incorreto; BB Progressivo II, agências bancárias             |
 
 Acertos da v1, para registro: **PMLL11** (Pátria Malls — shopping) e o
 enquadramento geral de shopping/logística/lajes como segmentos distintos.
@@ -339,8 +339,8 @@ Como não é tijolo, precisa de leitura própria.
   volátil.
 - **Prefixado:** perde se juro sobe.
 
-**Qualidade de crédito:** CRI *high grade* (devedor grande, garantia sólida)
-rende menos e quebra menos. *High yield* rende mais porque o risco é maior.
+**Qualidade de crédito:** CRI _high grade_ (devedor grande, garantia sólida)
+rende menos e quebra menos. _High yield_ rende mais porque o risco é maior.
 Um DY alto num fundo de papel frequentemente significa carteira high yield —
 o prêmio está pagando risco de inadimplência, não é almoço grátis.
 
@@ -382,14 +382,14 @@ O provider atual (`cvm-fii-inf-mensal`) lê o **Informe Mensal**. Existe um
 
 Ele vem em 6 tabelas relacionadas por CNPJ e data de referência:
 
-| Tabela CVM | Granularidade | Campos relevantes |
-|---|---|---|
-| `geral` | 1 linha/fundo/trimestre | segmento declarado pelo próprio fundo, mandato, tipo de gestão |
-| `imovel` | 1 linha/imóvel | `Percentual_Vacancia`, `Percentual_Inadimplencia`, `Percentual_Locado`, `Percentual_Receitas_FII`, área, endereço |
-| `imovel_renda_acabado_contrato` | 1 linha/imóvel | `Caracteristicas_Contratuais` (texto livre) |
-| `imovel_renda_acabado_inquilino` | 1 linha/inquilino/imóvel | `Setor_Atuacao`, `Percentual_Receita_Imovel`, `Percentual_Receitas_FII` |
-| `complemento` | 1 linha/fundo/trimestre | 13 faixas de vencimento de receita e de valor total (insumo de WALE), percentual por indexador (IPCA/IGP-M/INCC/INPC) |
-| `resultado_contabil_financeiro` | 1 linha/fundo/trimestre | `Resultado_Liquido_Total_Financeiro`, `Resultado_Financeiro_Liquido_Acumulado`, `Receita_Aluguel_Investimento_Financeiro` — resultado caixa, equivalente brasileiro de FFO |
+| Tabela CVM                       | Granularidade            | Campos relevantes                                                                                                                                                          |
+| -------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `geral`                          | 1 linha/fundo/trimestre  | segmento declarado pelo próprio fundo, mandato, tipo de gestão                                                                                                             |
+| `imovel`                         | 1 linha/imóvel           | `Percentual_Vacancia`, `Percentual_Inadimplencia`, `Percentual_Locado`, `Percentual_Receitas_FII`, área, endereço                                                          |
+| `imovel_renda_acabado_contrato`  | 1 linha/imóvel           | `Caracteristicas_Contratuais` (texto livre)                                                                                                                                |
+| `imovel_renda_acabado_inquilino` | 1 linha/inquilino/imóvel | `Setor_Atuacao`, `Percentual_Receita_Imovel`, `Percentual_Receitas_FII`                                                                                                    |
+| `complemento`                    | 1 linha/fundo/trimestre  | 13 faixas de vencimento de receita e de valor total (insumo de WALE), percentual por indexador (IPCA/IGP-M/INCC/INPC)                                                      |
+| `resultado_contabil_financeiro`  | 1 linha/fundo/trimestre  | `Resultado_Liquido_Total_Financeiro`, `Resultado_Financeiro_Liquido_Acumulado`, `Receita_Aluguel_Investimento_Financeiro` — resultado caixa, equivalente brasileiro de FFO |
 
 Confirmado com HGRU11 real: 3 imóveis com vacância 0% e inadimplência 0%,
 inquilinos identificados (Sam's Club Morumbi — 3,53% da receita do fundo,
@@ -424,21 +424,21 @@ precisa ficar explícita no código, não fixada num vencimento que expira.
 
 ### 7.3 Quadro consolidado
 
-| Sinal | Insumos | Situação |
-|---|---|---|
-| **P/VP** | `asset_prices` + `fii-net-asset-value-per-issued-share.v1` | Pronto para implementar |
-| **DY 12m** | eventos `dividend-or-distribution` + Informe Trimestral | Requer novo provider CVM trimestral |
-| **FFO / resultado recorrente** | `resultado_contabil_financeiro` | Requer novo provider CVM trimestral |
-| **Spread sobre NTN-B** | DY + Tesouro Transparente CSV | Requer novo provider Tesouro |
-| **Vacância física e financeira** | tabela `imovel` | Requer novo provider CVM trimestral |
-| **Concentração por inquilino** | tabela `imovel_renda_acabado_inquilino` | Requer novo provider CVM trimestral |
-| **WALE (vencimento de contrato)** | faixas de `complemento` | Requer novo provider CVM trimestral |
-| **Indexador da carteira** | `complemento` | Requer novo provider CVM trimestral |
-| Contrato típico/atípico | texto livre de `imovel_renda_acabado_contrato` | Campo existe, mas exige leitura de texto — não é flag pronta |
-| Cap rate exato | NOI ÷ valor de mercado do imóvel | Sem fonte aberta para valor de mercado |
-| Leasing spread, same-store | comparação entre trimestres | Exige série própria acumulada, não campo único |
-| **Tipo do fundo (papel/tijolo/FOF)** | — | **Não existe no schema** |
-| **Segmento** | — | **Não existe no schema** |
+| Sinal                                | Insumos                                                    | Situação                                                     |
+| ------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------ |
+| **P/VP**                             | `asset_prices` + `fii-net-asset-value-per-issued-share.v1` | Pronto para implementar                                      |
+| **DY 12m**                           | eventos `dividend-or-distribution` + Informe Trimestral    | Requer novo provider CVM trimestral                          |
+| **FFO / resultado recorrente**       | `resultado_contabil_financeiro`                            | Requer novo provider CVM trimestral                          |
+| **Spread sobre NTN-B**               | DY + Tesouro Transparente CSV                              | Requer novo provider Tesouro                                 |
+| **Vacância física e financeira**     | tabela `imovel`                                            | Requer novo provider CVM trimestral                          |
+| **Concentração por inquilino**       | tabela `imovel_renda_acabado_inquilino`                    | Requer novo provider CVM trimestral                          |
+| **WALE (vencimento de contrato)**    | faixas de `complemento`                                    | Requer novo provider CVM trimestral                          |
+| **Indexador da carteira**            | `complemento`                                              | Requer novo provider CVM trimestral                          |
+| Contrato típico/atípico              | texto livre de `imovel_renda_acabado_contrato`             | Campo existe, mas exige leitura de texto — não é flag pronta |
+| Cap rate exato                       | NOI ÷ valor de mercado do imóvel                           | Sem fonte aberta para valor de mercado                       |
+| Leasing spread, same-store           | comparação entre trimestres                                | Exige série própria acumulada, não campo único               |
+| **Tipo do fundo (papel/tijolo/FOF)** | —                                                          | **Não existe no schema**                                     |
+| **Segmento**                         | —                                                          | **Não existe no schema**                                     |
 
 **Conclusão operacional, mantida da v2:** antes de qualquer regra de veto, o
 schema precisa de **tipo** e **segmento**. Sem eles uma regra de tijolo

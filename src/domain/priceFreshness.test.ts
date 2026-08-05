@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Asset, AssetPrice } from './models'
-import { getStaleAssetPrices, UI_STALE_PRICE_THRESHOLD_MS } from './priceFreshness'
+import {
+  getStaleAssetPrices,
+  UI_STALE_PRICE_THRESHOLD_MS,
+} from './priceFreshness'
 
 const NOW = new Date('2026-07-31T12:00:00.000Z')
 
@@ -78,11 +81,7 @@ describe('getStaleAssetPrices', () => {
     const priceA = price('p1', 'asset-a', '2026-07-20T12:00:00.000Z')
     const priceB = price('p2', 'asset-b', '2026-07-10T12:00:00.000Z')
 
-    const result = getStaleAssetPrices(
-      [assetA, assetB],
-      [priceA, priceB],
-      NOW
-    )
+    const result = getStaleAssetPrices([assetA, assetB], [priceA, priceB], NOW)
 
     expect(result.map((item) => item.ticker)).toEqual(['BBBB3', 'AAAA3'])
   })

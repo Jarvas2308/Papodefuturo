@@ -26,9 +26,7 @@ export type RealEstateFundFundamentalSnapshotStorage = {
 // Informe Mensal (agregacao por imovel, sem PL/cotas/cotistas), entao nao
 // compartilha o record type mensal (ver DEC-076).
 export type RealEstateFundVacancySnapshotStorage = {
-  upsertMany(
-    records: readonly CvmRealEstateFundVacancyRecord[]
-  ): Promise<void>
+  upsertMany(records: readonly CvmRealEstateFundVacancyRecord[]): Promise<void>
 }
 
 export type InternationalEtfFundamentalSnapshotStorage = {

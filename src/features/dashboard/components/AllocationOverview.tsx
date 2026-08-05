@@ -41,7 +41,9 @@ export function AllocationOverview({ allocation }: AllocationOverviewProps) {
                     <p className="figure text-sm font-semibold text-[var(--color-text)]">
                       Atual {item.currentLabel}
                     </p>
-                    <p className={`figure mt-1 text-xs font-medium ${toneClass}`}>
+                    <p
+                      className={`figure mt-1 text-xs font-medium ${toneClass}`}
+                    >
                       {item.differenceLabel}
                     </p>
                   </div>

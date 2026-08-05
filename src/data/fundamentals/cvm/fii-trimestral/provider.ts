@@ -48,12 +48,16 @@ function compactCnpjForLookup(value: string): string {
 function parsePositiveVersion(value: string, ticker: string): number {
   const trimmed = value.trim()
   if (!/^\d+$/.test(trimmed)) {
-    throw new Error(`Invalid CVM FII trimestral version for ${ticker}: ${value}`)
+    throw new Error(
+      `Invalid CVM FII trimestral version for ${ticker}: ${value}`
+    )
   }
 
   const version = Number(trimmed)
   if (!Number.isSafeInteger(version) || version <= 0) {
-    throw new Error(`Invalid CVM FII trimestral version for ${ticker}: ${value}`)
+    throw new Error(
+      `Invalid CVM FII trimestral version for ${ticker}: ${value}`
+    )
   }
   return version
 }
@@ -447,7 +451,9 @@ function buildRecord(
       ),
     }))
     .filter(
-      (pair): pair is { sector: string; share: NonNullable<typeof pair.share> } =>
+      (
+        pair
+      ): pair is { sector: string; share: NonNullable<typeof pair.share> } =>
         pair.share !== null
     )
   const tenantConcentration = computeTenantConcentration(tenantSharePairs)
@@ -655,4 +661,3 @@ export function extractCvmRealEstateFundVacancy(input: {
     )
   )
 }
-

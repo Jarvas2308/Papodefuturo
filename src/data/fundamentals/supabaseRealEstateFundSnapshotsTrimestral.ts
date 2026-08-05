@@ -9,10 +9,7 @@
 // motor de score (Fase 5) precisar consumi-la; ate la,
 // listRealEstateFundSnapshots (leitura usada pela tela /fundamentos real)
 // continua filtrando source='cvm-fii-inf-mensal' e ignorando estas linhas.
-import type {
-  Json,
-  TablesInsert,
-} from '../../lib/database.types'
+import type { Json, TablesInsert } from '../../lib/database.types'
 import { normalizeAssetTicker } from '../assetUniverse'
 import type { RealEstateFundVacancySnapshotStorage } from './contracts'
 import type { CvmRealEstateFundVacancyRecord } from './cvm/fii-trimestral/types'
@@ -147,7 +144,10 @@ function toInsertRow(
   )
   assertNullableMoney(record.facts.quarterlyNetFinancialResult)
   assertWaleMonthsInRange(record.facts.waleInMonthsScaledBy100)
-  if (record.source !== 'cvm-fii-inf-trimestral' || record.period !== 'quarterly') {
+  if (
+    record.source !== 'cvm-fii-inf-trimestral' ||
+    record.period !== 'quarterly'
+  ) {
     throw new Error(
       `Invalid CVM FII trimestral record identity for ${record.ticker}`
     )
@@ -178,14 +178,10 @@ function toInsertRow(
     net_assets_minor: null,
     operating_cash_flow_minor: null,
     vacancy_basis_points: record.facts.vacancyInBasisPoints,
-    ipca_revenue_share_basis_points:
-      record.facts.ipcaRevenueShareInBasisPoints,
-    igpm_revenue_share_basis_points:
-      record.facts.igpmRevenueShareInBasisPoints,
-    inpc_revenue_share_basis_points:
-      record.facts.inpcRevenueShareInBasisPoints,
-    incc_revenue_share_basis_points:
-      record.facts.inccRevenueShareInBasisPoints,
+    ipca_revenue_share_basis_points: record.facts.ipcaRevenueShareInBasisPoints,
+    igpm_revenue_share_basis_points: record.facts.igpmRevenueShareInBasisPoints,
+    inpc_revenue_share_basis_points: record.facts.inpcRevenueShareInBasisPoints,
+    incc_revenue_share_basis_points: record.facts.inccRevenueShareInBasisPoints,
     tenant_concentration_basis_points:
       record.facts.tenantConcentrationInBasisPoints,
     quarterly_net_financial_result_minor:

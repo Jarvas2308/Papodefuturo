@@ -963,7 +963,7 @@ integração com o motor, editável).
      porque as formas de provenance dos dois informes são estruturalmente
      diferentes. Escrita isolada em
      `supabaseRealEstateFundSnapshotsTrimestral.ts` (`source:
-     'cvm-fii-inf-trimestral'`); a leitura usada pela tela `/fundamentos`
+'cvm-fii-inf-trimestral'`); a leitura usada pela tela `/fundamentos`
      real (`listRealEstateFundSnapshots`) foi filtrada para continuar
      enxergando só `cvm-fii-inf-mensal` — leitura da vacância fica para a
      Fase 5, quando o motor de score for consumi-la. Coluna
@@ -1058,10 +1058,10 @@ integração com o motor, editável).
    explícito `unavailable` (sem provider) e `stale` (dado velho, limiar
    por fonte — não um número global, ver frescor por fonte abaixo).
 6. **Integração no motor** — `desvioAjustado = desvioCandidato − (score ×
-   peso)`, aplicado somente entre candidatos que já passam
+peso)`, aplicado somente entre candidatos que já passam
    `compareDeviation(bestDeviation, currentDeviation) < 0`. Score nunca
    aprova compra que não melhora o desvio — `stopReason:
-   'no-improving-purchase'` continua sendo o piso de segurança.
+'no-improving-purchase'` continua sendo o piso de segurança.
 7. **Dossiê e IA** — `TechnicalDossierV1` ganha bloco `signals` com valor,
    fonte, status e pontos. IA continua só explicando, nunca decidindo.
 8. **Documentação** — atualizar `PRODUCT.md`, `ARCHITECTURE.md`; revisar

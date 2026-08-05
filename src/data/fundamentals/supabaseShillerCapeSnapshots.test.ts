@@ -6,7 +6,9 @@ import {
 } from './supabaseShillerCapeSnapshots'
 import type { ShillerCapeRecord } from './shiller/types'
 
-function buildRecord(overrides: Partial<ShillerCapeRecord> = {}): ShillerCapeRecord {
+function buildRecord(
+  overrides: Partial<ShillerCapeRecord> = {}
+): ShillerCapeRecord {
   return {
     series: 'shiller-cape-sp500',
     source: 'shiller-yale',
@@ -55,7 +57,9 @@ describe('createSupabaseShillerCapeSnapshotStorage', () => {
   })
 
   it('wraps an RPC error with a descriptive message', async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } })
+    const rpc = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: { message: 'boom' } })
     const client: MarketValuationRatiosRpcClientV1 = { rpc }
     const storage = createSupabaseShillerCapeSnapshotStorage(client)
 
@@ -70,7 +74,9 @@ describe('createSupabaseShillerCapeSnapshotStorage', () => {
     const storage = createSupabaseShillerCapeSnapshotStorage(client)
 
     await expect(
-      storage.upsertMany([buildRecord({ valueScaled: Number.MAX_SAFE_INTEGER + 10 })])
+      storage.upsertMany([
+        buildRecord({ valueScaled: Number.MAX_SAFE_INTEGER + 10 }),
+      ])
     ).rejects.toThrow(RangeError)
     expect(rpc).not.toHaveBeenCalled()
   })
@@ -80,7 +86,9 @@ describe('createSupabaseShillerCapeSnapshotStorage', () => {
     const client: MarketValuationRatiosRpcClientV1 = { rpc }
     const storage = createSupabaseShillerCapeSnapshotStorage(client)
 
-    await expect(storage.upsertMany([buildRecord({ valueScaled: 0 })])).rejects.toThrow(RangeError)
+    await expect(
+      storage.upsertMany([buildRecord({ valueScaled: 0 })])
+    ).rejects.toThrow(RangeError)
     expect(rpc).not.toHaveBeenCalled()
   })
 

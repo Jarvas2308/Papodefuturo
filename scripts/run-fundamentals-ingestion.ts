@@ -94,7 +94,9 @@ async function main(): Promise<void> {
   const plan = buildFundamentalsIngestionPlanV1(planArgv)
 
   const targetTable =
-    plan.provider === 'shiller-cape' ? 'market_valuation_ratios' : 'fundamental_snapshots'
+    plan.provider === 'shiller-cape'
+      ? 'market_valuation_ratios'
+      : 'fundamental_snapshots'
 
   console.log('=== Fundamentals ingestion: preview ===')
   console.log(

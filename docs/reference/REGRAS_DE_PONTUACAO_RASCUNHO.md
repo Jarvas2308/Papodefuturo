@@ -25,6 +25,7 @@ sistema trata dado ausente (`fundamental-derived-facts`,
 sei" com "neutro", que são coisas diferentes.
 
 **Coluna Status:**
+
 - **Pronto hoje** — calculável com dado já ingerido, sem provider novo
 - **Precisa provider X** — dado existe na fonte confirmada nos documentos de
   referência, falta construir o parser/ingestão
@@ -35,35 +36,35 @@ sei" com "neutro", que são coisas diferentes.
 
 ## 1. FII — tijolo
 
-| Sinal | Regra proposta | Pontos | Status | Referência |
-|---|---|---|---|---|
-| P/VP | < 0,90 | +2 | Pronto hoje | FII 3.1 |
-| P/VP | 0,90 – 1,00 | +1 | Pronto hoje | FII 3.1 |
-| P/VP | 1,00 – 1,10 | 0 | Pronto hoje | FII 3.1 |
-| P/VP | > 1,10 | -2 | Pronto hoje | FII 3.1 |
-| Spread DY sobre NTN-B longa | > 1,5 p.p. | +2 | Precisa provider CVM Trimestral + Tesouro Transparente | FII 3.2, 7.2 |
-| Spread DY sobre NTN-B longa | 0 – 1,5 p.p. | 0 | idem | FII 3.2 |
-| Spread DY sobre NTN-B longa | < 0 | -2 | idem | FII 3.2 |
-| Vacância financeira | < 5% | +1 | Precisa provider CVM Trimestral | FII 3.3, 7.1 |
-| Vacância financeira | 5% – 15% | 0 | idem | FII 3.3 |
-| Vacância financeira | > 15% | -1 | idem | FII 3.3 |
-| Receita vencendo em 24 meses (proxy de WALE) | < 20% | +1 | Precisa provider CVM Trimestral | FII 3.4, 7.1 |
-| Receita vencendo em 24 meses | > 50% | -1 | idem | FII 3.4 |
-| Concentração do maior inquilino | > 40% da receita do imóvel | -1 | Precisa provider CVM Trimestral | FII 3.5, 7.1 |
+| Sinal                                        | Regra proposta             | Pontos | Status                                                 | Referência   |
+| -------------------------------------------- | -------------------------- | ------ | ------------------------------------------------------ | ------------ |
+| P/VP                                         | < 0,90                     | +2     | Pronto hoje                                            | FII 3.1      |
+| P/VP                                         | 0,90 – 1,00                | +1     | Pronto hoje                                            | FII 3.1      |
+| P/VP                                         | 1,00 – 1,10                | 0      | Pronto hoje                                            | FII 3.1      |
+| P/VP                                         | > 1,10                     | -2     | Pronto hoje                                            | FII 3.1      |
+| Spread DY sobre NTN-B longa                  | > 1,5 p.p.                 | +2     | Precisa provider CVM Trimestral + Tesouro Transparente | FII 3.2, 7.2 |
+| Spread DY sobre NTN-B longa                  | 0 – 1,5 p.p.               | 0      | idem                                                   | FII 3.2      |
+| Spread DY sobre NTN-B longa                  | < 0                        | -2     | idem                                                   | FII 3.2      |
+| Vacância financeira                          | < 5%                       | +1     | Precisa provider CVM Trimestral                        | FII 3.3, 7.1 |
+| Vacância financeira                          | 5% – 15%                   | 0      | idem                                                   | FII 3.3      |
+| Vacância financeira                          | > 15%                      | -1     | idem                                                   | FII 3.3      |
+| Receita vencendo em 24 meses (proxy de WALE) | < 20%                      | +1     | Precisa provider CVM Trimestral                        | FII 3.4, 7.1 |
+| Receita vencendo em 24 meses                 | > 50%                      | -1     | idem                                                   | FII 3.4      |
+| Concentração do maior inquilino              | > 40% da receita do imóvel | -1     | Precisa provider CVM Trimestral                        | FII 3.5, 7.1 |
 
 ## 2. FII — papel
 
 Métricas de tijolo (vacância, WALE, concentração de inquilino) não se
 aplicam — permanecem `unavailable` por definição, não por falta de dado.
 
-| Sinal | Regra proposta | Pontos | Status | Referência |
-|---|---|---|---|---|
-| P/VP | < 0,98 | +1 | Pronto hoje | FII 3.1, 5 |
-| P/VP | 0,98 – 1,02 | 0 | Pronto hoje | FII 3.1 |
-| P/VP | > 1,02 | -1 | Pronto hoje | FII 3.1 |
-| Spread DY sobre NTN-B longa | > 1,5 p.p. | +2 | Precisa provider | FII 3.2 |
-| Spread DY sobre NTN-B longa | < 0 | -2 | idem | FII 3.2 |
-| Indexador da carteira (CDI/IPCA/prefixado) | — | 0 (informativo, não pontua sozinho) | Precisa provider | FII 5 |
+| Sinal                                      | Regra proposta | Pontos                              | Status           | Referência |
+| ------------------------------------------ | -------------- | ----------------------------------- | ---------------- | ---------- |
+| P/VP                                       | < 0,98         | +1                                  | Pronto hoje      | FII 3.1, 5 |
+| P/VP                                       | 0,98 – 1,02    | 0                                   | Pronto hoje      | FII 3.1    |
+| P/VP                                       | > 1,02         | -1                                  | Pronto hoje      | FII 3.1    |
+| Spread DY sobre NTN-B longa                | > 1,5 p.p.     | +2                                  | Precisa provider | FII 3.2    |
+| Spread DY sobre NTN-B longa                | < 0            | -2                                  | idem             | FII 3.2    |
+| Indexador da carteira (CDI/IPCA/prefixado) | —              | 0 (informativo, não pontua sozinho) | Precisa provider | FII 5      |
 
 ---
 
@@ -72,16 +73,16 @@ aplicam — permanecem `unavailable` por definição, não por falta de dado.
 Aplicar métrica fora do regime correto é o erro central documentado em
 Ações BR, seção 1. Tabela abaixo já filtra por regime.
 
-| Sinal | Regra proposta | Pontos | Aplica a | Status | Referência |
-|---|---|---|---|---|---|
-| ROE | > 15% | +2 | Todos exceto holding pura | Precisa provider DFP/ITR expandido | Ações 3.3, 6.1 |
-| ROE | 8% – 15% | 0 | idem | idem | Ações 3.3 |
-| ROE | < 8% | -1 | idem | idem | Ações 3.3 |
-| Payout, variação ano contra ano | queda > 10 p.p. | -2 | Todos | Precisa provider + série histórica | Ações 3.7 |
-| Payout, variação ano contra ano | dentro de ±5 p.p. do padrão do próprio regime | 0 | Todos | idem | Ações 3.7 |
-| Dívida líquida / EBITDA | > 3x | -1 | Todos exceto banco | Precisa provider | Ações 3.5 |
-| Dívida líquida / EBITDA | < 1x | +1 | idem | idem | Ações 3.5 |
-| P/L vs própria série histórica | abaixo do próprio quartil inferior | +1 | Todos exceto banco/seguradora | Precisa série própria acumulada | Ações 3.1 |
+| Sinal                           | Regra proposta                                | Pontos | Aplica a                      | Status                             | Referência     |
+| ------------------------------- | --------------------------------------------- | ------ | ----------------------------- | ---------------------------------- | -------------- |
+| ROE                             | > 15%                                         | +2     | Todos exceto holding pura     | Precisa provider DFP/ITR expandido | Ações 3.3, 6.1 |
+| ROE                             | 8% – 15%                                      | 0      | idem                          | idem                               | Ações 3.3      |
+| ROE                             | < 8%                                          | -1     | idem                          | idem                               | Ações 3.3      |
+| Payout, variação ano contra ano | queda > 10 p.p.                               | -2     | Todos                         | Precisa provider + série histórica | Ações 3.7      |
+| Payout, variação ano contra ano | dentro de ±5 p.p. do padrão do próprio regime | 0      | Todos                         | idem                               | Ações 3.7      |
+| Dívida líquida / EBITDA         | > 3x                                          | -1     | Todos exceto banco            | Precisa provider                   | Ações 3.5      |
+| Dívida líquida / EBITDA         | < 1x                                          | +1     | idem                          | idem                               | Ações 3.5      |
+| P/L vs própria série histórica  | abaixo do próprio quartil inferior            | +1     | Todos exceto banco/seguradora | Precisa série própria acumulada    | Ações 3.1      |
 
 **Nota deliberada:** nenhum limiar fixo de nível de payout (ex.: "payout <
 X% é ruim"). TAEE11 (90–100% normal) e WEGE3 (baixo normal) quebrariam régua
@@ -96,14 +97,14 @@ fora do score até pesquisa dedicada.
 
 ## 4. ETF
 
-| Sinal | Regra proposta | Pontos | Aplica a | Status | Referência |
-|---|---|---|---|---|---|
-| CAPE vs própria média histórica de 10 anos | abaixo da média | +2 | VOO | Fonte confirmada (Shiller/Yale) | ETF 4.1, 6.2 |
-| CAPE vs própria média histórica de 10 anos | acima da média | -1 | VOO | idem | ETF 4.1 |
-| Spread DY sobre TIPS 10 anos | > 1 p.p. | +2 | VNQ | Fonte confirmada (FRED), precisa provider | ETF 4.2, 6.2 |
-| Spread DY sobre TIPS 10 anos | < 0 | -2 | VNQ | idem | ETF 4.2 |
-| Prêmio/desconto sobre NAV | \|desvio\| > 0,5% | -1 | Todos | Precisa expandir parser N-PORT | ETF 3.3, 6.1 |
-| — | sem sinal de preço confiável | `unavailable` | VEA | Gap de pesquisa — sem fonte de CAPE fechada | ETF 4.3, 6.2 |
+| Sinal                                      | Regra proposta               | Pontos        | Aplica a | Status                                      | Referência   |
+| ------------------------------------------ | ---------------------------- | ------------- | -------- | ------------------------------------------- | ------------ |
+| CAPE vs própria média histórica de 10 anos | abaixo da média              | +2            | VOO      | Fonte confirmada (Shiller/Yale)             | ETF 4.1, 6.2 |
+| CAPE vs própria média histórica de 10 anos | acima da média               | -1            | VOO      | idem                                        | ETF 4.1      |
+| Spread DY sobre TIPS 10 anos               | > 1 p.p.                     | +2            | VNQ      | Fonte confirmada (FRED), precisa provider   | ETF 4.2, 6.2 |
+| Spread DY sobre TIPS 10 anos               | < 0                          | -2            | VNQ      | idem                                        | ETF 4.2      |
+| Prêmio/desconto sobre NAV                  | \|desvio\| > 0,5%            | -1            | Todos    | Precisa expandir parser N-PORT              | ETF 3.3, 6.1 |
+| —                                          | sem sinal de preço confiável | `unavailable` | VEA      | Gap de pesquisa — sem fonte de CAPE fechada | ETF 4.3, 6.2 |
 
 ---
 

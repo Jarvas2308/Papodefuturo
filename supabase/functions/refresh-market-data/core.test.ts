@@ -407,7 +407,9 @@ describe('reference rate (NTN-B)', () => {
   it('skips fetching when today already has a stored rate', async () => {
     const { result, providers } = await runRefresh()
 
-    expect(providers.tesouroTransparente.getNtnbLongaRate).not.toHaveBeenCalled()
+    expect(
+      providers.tesouroTransparente.getNtnbLongaRate
+    ).not.toHaveBeenCalled()
     expect(result.skippedFreshReferenceRates).toBe(1)
     expect(result.updatedReferenceRates).toBe(0)
   })

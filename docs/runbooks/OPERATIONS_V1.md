@@ -13,11 +13,11 @@ de backfill (ver `OFFICIAL_EVENTS_SECURITY_CHECKLIST_V1.md`).
 
 ## 2. As três peças
 
-| Peça | Onde | O que resolve |
-|---|---|---|
-| Log estruturado | `supabase/functions/refresh-market-data/index.ts`, `supabase/functions/explain-contribution-plan/index.ts` | Sucesso e falha da lógica interna da função ficam no log, não só a resposta HTTP |
-| `check:health` | `scripts/check-health.mjs` + RPC `check_market_data_health_v1` | Confirma se o `pg_cron` está disparando `refresh-market-data-hourly` no intervalo esperado |
-| Aviso de preço obsoleto | `src/domain/priceFreshness.ts`, exibido em `/carteira` | Usuário vê, na própria tela, quando um preço automático está velho — não precisa confiar cegamente |
+| Peça                    | Onde                                                                                                       | O que resolve                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Log estruturado         | `supabase/functions/refresh-market-data/index.ts`, `supabase/functions/explain-contribution-plan/index.ts` | Sucesso e falha da lógica interna da função ficam no log, não só a resposta HTTP                   |
+| `check:health`          | `scripts/check-health.mjs` + RPC `check_market_data_health_v1`                                             | Confirma se o `pg_cron` está disparando `refresh-market-data-hourly` no intervalo esperado         |
+| Aviso de preço obsoleto | `src/domain/priceFreshness.ts`, exibido em `/carteira`                                                     | Usuário vê, na própria tela, quando um preço automático está velho — não precisa confiar cegamente |
 
 ## 3. Log estruturado — o que cada evento significa
 
@@ -94,12 +94,12 @@ decidiu aquele valor, não um provider automático parando de responder.
 
 ## 6. Cenários e o que fazer
 
-| Sintoma | Onde olhar | Ação |
-|---|---|---|
-| `check:health` sai com código 1, job não existe/inativo | `cron.job` no painel Supabase | Reaplicar a migration `20260729120000_schedule_refresh_market_data_cron.sql` ou reativar o job manualmente |
-| `check:health` OK, mas preço obsoleto aparece em `/carteira` | Logs da Edge Function, filtrar `refresh-market-data-failed` | Cron está disparando mas a função está falhando por dentro — provider fora do ar, chave de API expirada, etc. |
-| `check:health` sai com código 1 por minutos desde a última execução | Painel do Supabase, `pg_cron` extension status | Confirmar que a extensão `pg_cron` segue habilitada no projeto |
-| Nenhum aviso na tela, mas usuário desconfia do preço | `/carteira`, comparar com fonte externa | Sistema funcionando dentro do esperado — 4 dias é o limite antes de avisar, não garantia de atualização diária |
+| Sintoma                                                             | Onde olhar                                                  | Ação                                                                                                           |
+| ------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `check:health` sai com código 1, job não existe/inativo             | `cron.job` no painel Supabase                               | Reaplicar a migration `20260729120000_schedule_refresh_market_data_cron.sql` ou reativar o job manualmente     |
+| `check:health` OK, mas preço obsoleto aparece em `/carteira`        | Logs da Edge Function, filtrar `refresh-market-data-failed` | Cron está disparando mas a função está falhando por dentro — provider fora do ar, chave de API expirada, etc.  |
+| `check:health` sai com código 1 por minutos desde a última execução | Painel do Supabase, `pg_cron` extension status              | Confirmar que a extensão `pg_cron` segue habilitada no projeto                                                 |
+| Nenhum aviso na tela, mas usuário desconfia do preço                | `/carteira`, comparar com fonte externa                     | Sistema funcionando dentro do esperado — 4 dias é o limite antes de avisar, não garantia de atualização diária |
 
 ## 7. Limitações deste runbook
 

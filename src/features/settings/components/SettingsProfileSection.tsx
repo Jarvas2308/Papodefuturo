@@ -85,9 +85,7 @@ export function SettingsProfileSection({
           )}
 
           <div>
-            <dt className="text-sm text-[var(--color-text-muted)]">
-              E-mail
-            </dt>
+            <dt className="text-sm text-[var(--color-text-muted)]">E-mail</dt>
             <dd className="mt-1 break-all font-semibold text-[var(--color-text)]">
               {settings.profile.email}
             </dd>

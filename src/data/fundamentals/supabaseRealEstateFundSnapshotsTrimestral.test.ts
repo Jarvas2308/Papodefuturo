@@ -228,7 +228,8 @@ describe('Supabase FII trimestral vacancy snapshot storage', () => {
           content: COMPLEMENT_HEADER,
         },
         {
-          fileName: 'inf_trimestral_fii_imovel_renda_acabado_inquilino_2026.csv',
+          fileName:
+            'inf_trimestral_fii_imovel_renda_acabado_inquilino_2026.csv',
           type: 'tenant',
           content:
             'CNPJ_Fundo_Classe;Data_Referencia;Versao;Nome_Imovel;Setor_Atuacao;Percentual_Receitas_FII',

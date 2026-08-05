@@ -128,7 +128,9 @@ function buildHeaderIndexes(
 ): { rows: string[][]; indexes: Map<string, number> } {
   const [headers, ...rows] = parseDelimitedRows(document.content)
   if (!headers) {
-    throw new Error(`Empty CVM FII trimestral CSV document: ${document.fileName}`)
+    throw new Error(
+      `Empty CVM FII trimestral CSV document: ${document.fileName}`
+    )
   }
 
   const bomPattern = new RegExp(`^${String.fromCharCode(0xfeff)}`)
@@ -266,7 +268,10 @@ export function parseCvmFiiTrimestralTenantCsv(
       `Expected CVM FII trimestral tenant document: ${document.fileName}`
     )
   }
-  const { rows, indexes } = buildHeaderIndexes(document, TENANT_REQUIRED_HEADERS)
+  const { rows, indexes } = buildHeaderIndexes(
+    document,
+    TENANT_REQUIRED_HEADERS
+  )
 
   return rows.map((values) => ({
     fileName: document.fileName,
@@ -287,7 +292,10 @@ export function parseCvmFiiTrimestralResultCsv(
       `Expected CVM FII trimestral result document: ${document.fileName}`
     )
   }
-  const { rows, indexes } = buildHeaderIndexes(document, RESULT_REQUIRED_HEADERS)
+  const { rows, indexes } = buildHeaderIndexes(
+    document,
+    RESULT_REQUIRED_HEADERS
+  )
 
   return rows.map((values) => ({
     fileName: document.fileName,

@@ -4,7 +4,9 @@ import type { ShillerCapeFetcher } from './types'
 
 describe('SHILLER_CAPE_URL', () => {
   it('points at the real Yale econ HTTP endpoint', () => {
-    expect(SHILLER_CAPE_URL).toBe('http://www.econ.yale.edu/~shiller/data/ie_data.xls')
+    expect(SHILLER_CAPE_URL).toBe(
+      'http://www.econ.yale.edu/~shiller/data/ie_data.xls'
+    )
   })
 })
 

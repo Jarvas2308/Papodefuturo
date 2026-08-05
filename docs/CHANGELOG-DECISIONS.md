@@ -2140,7 +2140,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
      interno, evitando expor `cron` na API ou adicionar dependência nova
      de conexão Postgres direta.
 - Limite documentado, não escondido: `cron.job_run_details.status =
-  'succeeded'` confirma que o `pg_net` entregou a chamada HTTP e recebeu
+'succeeded'` confirma que o `pg_net` entregou a chamada HTTP e recebeu
   resposta — **não** que a lógica interna da função funcionou (a função
   pode responder 500 e o cron mesmo assim registrar `succeeded`,
   confirmado no comentário original da `DEC-062`). `check:health` e os
@@ -2326,7 +2326,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
      usuário revisar, não fato pronto para gravar; população real
      acontece na Fase 5, quando a regra e o código que a consome nascem
      juntos. Peso do score (`desvioAjustado = desvioCandidato − score ×
-     peso`, seção 5 do rascunho) virou coluna em `user_preferences` em vez
+peso`, seção 5 do rascunho) virou coluna em `user_preferences` em vez
      de tabela própria — é uma preferência única por usuário. Default de
      50 pontos-base por ponto é valor de partida mecânico, não julgamento
      financeiro.
@@ -2425,7 +2425,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
      `Percentual_Receitas_FII` de cada imóvel não soma 1 no dado real (a
      HGRU11, com 100 imóveis, soma ~0,868 — o resto é receita não alocada
      a imóvel específico). A fórmula é `Σ(vacância_i × peso_i) /
-     Σ(peso_i)`, com a soma real dos pesos no denominador — nunca
+Σ(peso_i)`, com a soma real dos pesos no denominador — nunca
      assumida normalizada.
   2. **Aritmética inteira do início ao fim.** `Percentual_Vacancia` e
      `Percentual_Receitas_FII` vêm como frações decimais (0-1, separador
@@ -2466,7 +2466,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
      `vacancy_basis_points integer` (CHECK 0-10000) e reescreve os dois
      CHECKs de identidade/metadados de `fundamental_snapshots` para um
      terceiro ramo (`kind='real-estate-fund' and
-     source='cvm-fii-inf-trimestral'`), exigindo `net_asset_value_minor`/
+source='cvm-fii-inf-trimestral'`), exigindo `net_asset_value_minor`/
      `issued_shares_*`/`shareholder_count` nulos nesse ramo — espelha a
      mesma exigência inversa já existente para o ramo mensal. Aplicada
      em produção; confirmado por `execute_sql` que as 8 linhas mensais
@@ -2865,7 +2865,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
      (`presentation.ts`: "Provento ou distribuição") — só nunca era
      emitido porque nenhuma categoria real apontava pra lá. Um teste
      existente (`provider.test.ts`, "never emits event types outside the
-     closed approved mapping") até *proibia* explicitamente esse tipo de
+     closed approved mapping") até _proibia_ explicitamente esse tipo de
      evento, documentando o estado "ainda não implementado" com um teste
      que passava por ausência, não por design.
   2. **Mudança de uma linha no mapeamento fechado, não um provider
@@ -2935,7 +2935,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   3. **Shiller/Yale CAPE — fonte real, mas decisão de dependência não
      tomada.** Confirmado que `ie_data.xls` (Yale, ~1,6 MB) está
      publicamente acessível sem chave (`HTTP 200`, `Content-Type:
-     application/vnd.ms-excel`) — mas é `.xls` binário legado (formato
+application/vnd.ms-excel`) — mas é `.xls` binário legado (formato
      OLE2/BIFF, não XML como `.xlsx`), não parseável com o padrão já
      usado no projeto (parser de texto/CSV/XML próprio, sem dependência
      externa). Adicionar uma biblioteca de parsing binário — ou escrever
@@ -3016,7 +3016,7 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
      `2020.10` para `2020.1` como float (mesmo valor numérico, zero à
      direita insignificante) — confirmado contra uma série real completa
      de 12 meses. `year = Math.floor(date)`, `month = Math.round((date -
-     year) * 100)`.
+year) * 100)`.
   5. **`valueScaled` via `Math.round`, não parsing exato de texto — exceção
      documentada à disciplina de BigInt/decimal exato do resto do
      projeto.** Células numéricas do `xlsx` são `float` IEEE754 puro, sem
