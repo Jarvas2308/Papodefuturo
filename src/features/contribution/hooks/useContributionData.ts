@@ -120,8 +120,9 @@ export async function loadContributionAssetScoresBestEffort(
       createSupabaseRealEstateFundSnapshotRepository(client)
     const fiiSnapshots =
       await fiiSnapshotRepository.listRealEstateFundSnapshots(assets)
+    const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
-      generatedAt: new Date().toISOString(),
+      generatedAt: now,
       assets,
       snapshots: fiiSnapshots,
     })
@@ -146,6 +147,7 @@ export async function loadContributionAssetScoresBestEffort(
         derived,
         latestPricesByAsset,
         rules,
+        now,
       }),
       scoreWeightInBasisPoints: preferences.scoreWeightInBasisPoints,
     }

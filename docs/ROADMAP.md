@@ -1097,9 +1097,15 @@ peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    motor ainda não expõe o histórico de candidatos avaliados a cada
    iteração, só o resultado priorizado. Cada nova fatia (ação, ETF, spread
    de DY) reabre a mesma revisão.
-9. **Testes** — determinismo, trava de segurança do laço guloso,
-   priorização com scores diferentes, sinal `unavailable`/`stale` não
-   quebra cálculo, cenário real com ativo sem sinal disponível.
+9. **Testes — implementados para a fatia FII tijolo (`DEC-089`).**
+   Determinismo, trava de segurança do laço guloso e priorização com
+   scores diferentes cobertos desde `DEC-086`. Estado `stale` (dado com
+   `referenceDate` além do limiar de frescor da fonte,
+   `CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS = 180`, ponto de partida editável)
+   implementado e testado nesta entrada — contribui 0 pontos, expõe o
+   valor observado, nunca pontua com dado velho silenciosamente. Cenário
+   de ativo sem sinal disponível (`missing-input`/`wrong-regime`) coberto
+   desde `DEC-085`.
 
 Frescor por fonte, confirmado antes do planejamento (não uniforme — o teto
 é da fonte, não do sistema): preço de mercado já roda a cada hora

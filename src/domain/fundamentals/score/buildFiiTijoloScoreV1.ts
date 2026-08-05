@@ -1,4 +1,4 @@
-// Motor de score, fatia 1 (FII tijolo) - Sprint 16, Fase 5 (DEC-085/DEC-086).
+// Motor de score, fatia 1 (FII tijolo) - Sprint 16, Fase 5 (DEC-085/DEC-086/DEC-089).
 //
 // Cobre 4 dos 6 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
 // (secao 1): vacancia financeira, concentracao do maior inquilino, WALE
@@ -7,9 +7,15 @@
 // derivado, DEC-086). Spread de DY sobre NTN-B (precisa valor de provento,
 // ainda nao extraido - DEC-082) fica para a proxima fatia. FII papel e FOF
 // nao existem no universo fechado hoje - regime errado sempre gera
-// 'wrong-regime', nunca um numero.
+// 'wrong-regime', nunca um numero. Dado com referenceDate mais velha que o
+// limiar de frescor da fonte vira 'stale' (DEC-089), nunca 'applied' com
+// numero desatualizado silenciosamente.
 import type { FiiAssetType } from '../../models/asset'
 import { computeFiiPvpScaledV1 } from './computeFiiPvpScaledV1'
+import {
+  CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
+  isReferenceDateStale,
+} from './staleness'
 import type {
   FundamentalDerivedFactsAsset,
   ScaledMonetaryPerQuantity,
@@ -21,10 +27,12 @@ import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 export type FiiTijoloSignalKey =
   'fii_vacancy' | 'fii_tenant_concentration' | 'fii_wale_months' | 'fii_pvp'
 
+type DatedValue = { value: number; referenceDate: string } | null
+
 type LatestTrimestralFacts = {
-  vacancyInBasisPoints: number | null
-  tenantConcentrationInBasisPoints: number | null
-  waleMonthsScaledBy100: number | null
+  vacancyInBasisPoints: DatedValue
+  tenantConcentrationInBasisPoints: DatedValue
+  waleMonthsScaledBy100: DatedValue
 }
 
 function extractLatestTrimestralFacts(
@@ -53,17 +61,22 @@ function extractLatestTrimestralFacts(
     }
   }
 
+  const referenceDate = latest.referenceDate
+  const dated = (value: number | null): DatedValue =>
+    value === null ? null : { value, referenceDate }
+
   return {
-    vacancyInBasisPoints: latest.facts.vacancyInBasisPoints,
-    tenantConcentrationInBasisPoints:
-      latest.facts.tenantConcentrationInBasisPoints,
-    waleMonthsScaledBy100: latest.facts.waleMonthsScaledBy100,
+    vacancyInBasisPoints: dated(latest.facts.vacancyInBasisPoints),
+    tenantConcentrationInBasisPoints: dated(
+      latest.facts.tenantConcentrationInBasisPoints
+    ),
+    waleMonthsScaledBy100: dated(latest.facts.waleMonthsScaledBy100),
   }
 }
 
 function extractLatestNavPerShare(
   derivedAsset: FundamentalDerivedFactsAsset | undefined
-): ScaledMonetaryPerQuantity | null {
+): { value: ScaledMonetaryPerQuantity; referenceDate: string } | null {
   if (!derivedAsset) {
     return null
   }
@@ -86,7 +99,10 @@ function extractLatestNavPerShare(
     null
   )
   const metric = latest?.metrics.netAssetValuePerIssuedShare
-  return metric && metric.status === 'available' ? metric.value : null
+  if (!latest || !metric || metric.status !== 'available') {
+    return null
+  }
+  return { value: metric.value, referenceDate: latest.referenceDate }
 }
 
 function findMatchingRule(
@@ -107,25 +123,45 @@ function findMatchingRule(
 
 function scoreSignal(
   signalKey: FiiTijoloSignalKey,
-  value: number | null,
-  rules: readonly SignalRuleV1[]
+  dated: DatedValue,
+  rules: readonly SignalRuleV1[],
+  now: string
 ): AssetScoreSignal {
-  if (value === null) {
+  if (dated === null) {
     return { signalKey, status: 'unavailable', reason: 'missing-input' }
   }
-  const rule = findMatchingRule(rules, signalKey, value)
+  if (
+    isReferenceDateStale(
+      dated.referenceDate,
+      now,
+      CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS
+    )
+  ) {
+    return {
+      signalKey,
+      status: 'stale',
+      observedValue: dated.value,
+      referenceDate: dated.referenceDate,
+      staleAfterDays: CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
+    }
+  }
+  const rule = findMatchingRule(rules, signalKey, dated.value)
   return {
     signalKey,
     status: 'applied',
-    observedValue: value,
+    observedValue: dated.value,
     points: rule?.points ?? 0,
   }
 }
 
 function scorePvpSignal(
-  navPerShare: ScaledMonetaryPerQuantity | null,
+  navPerShare: {
+    value: ScaledMonetaryPerQuantity
+    referenceDate: string
+  } | null,
   marketPriceInMinorUnits: number | null,
-  rules: readonly SignalRuleV1[]
+  rules: readonly SignalRuleV1[],
+  now: string
 ): AssetScoreSignal {
   if (
     navPerShare === null ||
@@ -140,8 +176,23 @@ function scorePvpSignal(
   }
   const pvpScaled = computeFiiPvpScaledV1({
     marketPriceInMinorUnits,
-    netAssetValuePerIssuedShare: navPerShare,
+    netAssetValuePerIssuedShare: navPerShare.value,
   })
+  if (
+    isReferenceDateStale(
+      navPerShare.referenceDate,
+      now,
+      CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS
+    )
+  ) {
+    return {
+      signalKey: 'fii_pvp',
+      status: 'stale',
+      observedValue: pvpScaled,
+      referenceDate: navPerShare.referenceDate,
+      staleAfterDays: CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
+    }
+  }
   const rule = findMatchingRule(rules, 'fii_pvp', pvpScaled)
   return {
     signalKey: 'fii_pvp',
@@ -157,6 +208,7 @@ export function buildFiiTijoloScoreV1(input: {
   latestMarketPriceInMinorUnits?: number | null
   assetType: FiiAssetType | null
   rules: readonly SignalRuleV1[]
+  now: string
 }): AssetScoreV1 {
   const signalKeys: FiiTijoloSignalKey[] = [
     'fii_vacancy',
@@ -182,17 +234,29 @@ export function buildFiiTijoloScoreV1(input: {
   const facts = extractLatestTrimestralFacts(input.asset)
   const navPerShare = extractLatestNavPerShare(input.derivedAsset)
   const signals: AssetScoreSignal[] = [
-    scoreSignal('fii_vacancy', facts.vacancyInBasisPoints, input.rules),
+    scoreSignal(
+      'fii_vacancy',
+      facts.vacancyInBasisPoints,
+      input.rules,
+      input.now
+    ),
     scoreSignal(
       'fii_tenant_concentration',
       facts.tenantConcentrationInBasisPoints,
-      input.rules
+      input.rules,
+      input.now
     ),
-    scoreSignal('fii_wale_months', facts.waleMonthsScaledBy100, input.rules),
+    scoreSignal(
+      'fii_wale_months',
+      facts.waleMonthsScaledBy100,
+      input.rules,
+      input.now
+    ),
     scorePvpSignal(
       navPerShare,
       input.latestMarketPriceInMinorUnits ?? null,
-      input.rules
+      input.rules,
+      input.now
     ),
   ]
 

@@ -13,6 +13,7 @@ import type { StrategyCategory } from '../../features/strategy/types'
 import {
   TECHNICAL_DOSSIER_V1_SCHEMA_VERSION,
   type BuildTechnicalDossierV1Input,
+  type TechnicalDossierAssetSignal,
   type TechnicalDossierAssetSignals,
   type TechnicalDossierLimitation,
   type TechnicalDossierPortfolio,
@@ -408,23 +409,39 @@ function buildAssetSignals(
         assetId: score.assetId,
         ticker: asset.ticker,
         totalPoints: score.totalPoints,
-        signals: score.signals.map((signal) =>
-          signal.status === 'applied'
-            ? {
-                signalKey: signal.signalKey,
-                status: 'applied' as const,
-                observedValue: signal.observedValue,
-                points: signal.points,
-                unavailableReason: null,
-              }
-            : {
-                signalKey: signal.signalKey,
-                status: 'unavailable' as const,
-                observedValue: null,
-                points: null,
-                unavailableReason: signal.reason,
-              }
-        ),
+        signals: score.signals.map((signal): TechnicalDossierAssetSignal => {
+          if (signal.status === 'applied') {
+            return {
+              signalKey: signal.signalKey,
+              status: 'applied',
+              observedValue: signal.observedValue,
+              points: signal.points,
+              unavailableReason: null,
+              referenceDate: null,
+              staleAfterDays: null,
+            }
+          }
+          if (signal.status === 'stale') {
+            return {
+              signalKey: signal.signalKey,
+              status: 'stale',
+              observedValue: signal.observedValue,
+              points: null,
+              unavailableReason: null,
+              referenceDate: signal.referenceDate,
+              staleAfterDays: signal.staleAfterDays,
+            }
+          }
+          return {
+            signalKey: signal.signalKey,
+            status: 'unavailable',
+            observedValue: null,
+            points: null,
+            unavailableReason: signal.reason,
+            referenceDate: null,
+            staleAfterDays: null,
+          }
+        }),
       },
     ]
   })

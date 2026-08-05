@@ -122,16 +122,21 @@ export type TechnicalDossierDataCoverage = {
   hasLatestUsdBrlRate: boolean
 }
 
-// Quebra por sinal do motor de score (Sprint 16, Fase 5/7, DEC-085/DEC-087)
-// - mesma forma de AssetScoreSignal (domain/fundamentals/score/types.ts),
-// achatada em campos opcionais porque o dossie e' JSON simples consumido
-// pela explicacao de IA, sem union discriminado.
+// Quebra por sinal do motor de score (Sprint 16, Fase 5/7/9,
+// DEC-085/DEC-087/DEC-089) - mesma forma de AssetScoreSignal
+// (domain/fundamentals/score/types.ts), achatada em campos opcionais
+// porque o dossie e' JSON simples consumido pela explicacao de IA, sem
+// union discriminado. 'stale' (dado com referenceDate mais velha que o
+// limiar de frescor da fonte) tem observedValue mas points null - dado
+// velho nao pontua, mas a IA pode mencionar que existe e esta desatualizado.
 export type TechnicalDossierAssetSignal = {
   signalKey: string
-  status: 'applied' | 'unavailable'
+  status: 'applied' | 'stale' | 'unavailable'
   observedValue: number | null
   points: number | null
   unavailableReason: string | null
+  referenceDate: string | null
+  staleAfterDays: number | null
 }
 
 export type TechnicalDossierAssetSignals = {

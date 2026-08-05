@@ -15,12 +15,25 @@ export type SignalRuleV1 = {
 
 export type AssetScoreSignalUnavailableReason = 'missing-input' | 'wrong-regime'
 
+// 'stale' (Sprint 16, Fase 9, DEC-089): dado existe mas a referenceDate do
+// snapshot de origem passou do limiar de frescor por fonte (DEC-068 - nao e'
+// um numero global, cada fonte tem seu proprio ritmo de publicacao).
+// Contribui 0 pontos, igual 'unavailable' - dado velho nao pontua, mas o
+// valor observado continua exposto pra transparencia (dossie pode mostrar
+// "sinal desatualizado", nao so omitir).
 export type AssetScoreSignal =
   | {
       signalKey: string
       status: 'applied'
       observedValue: number
       points: number
+    }
+  | {
+      signalKey: string
+      status: 'stale'
+      observedValue: number
+      referenceDate: string
+      staleAfterDays: number
     }
   | {
       signalKey: string

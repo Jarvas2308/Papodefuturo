@@ -3331,3 +3331,60 @@ no-improving-purchase, even with a high score on the losing asset'`).
   vai reabrir a mesma dívida documental nos mesmos arquivos — registrar
   isso explicitamente para a próxima sessão não esquecer de repetir esta
   revisão.
+
+## DEC-089 — Sprint 16, Fase 9: frescor por fonte (estado `stale`) no motor de score
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: o item 9 do roadmap listava "sinal `unavailable`/`stale` não
+  quebra cálculo" como item de teste — mas `stale` nunca tinha sido
+  implementado como comportamento, só previsto em texto na `DEC-068`
+  ("o estado `stale` de cada sinal precisa de limiar por fonte, não um
+  número global"). `AssetScoreSignal` só tinha `applied`/`unavailable` até
+  esta entrada — dado desatualizado (CVM Trimestral de 8 meses atrás, por
+  exemplo) seria tratado como `applied` normal, pontuando com um número
+  velho sem qualquer sinalização.
+- Decisão: escolha explícita de limiar, pausada para confirmação com o
+  usuário antes de implementar (`AskUserQuestion` — frescor de fonte é
+  julgamento de negócio, não mecânica determinística) — resposta: seguir
+  com limiar padrão.
+  1. **`CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS = 180`**
+     (`src/domain/fundamentals/score/staleness.ts`) — ponto de partida
+     documentado como tal, não medição formal: cobre 1 ciclo trimestral
+     de publicação normal mais 1 trimestre de folga para atraso. Mesmo
+     espírito de "limiar editável, não verdade definitiva" já usado para
+     os limiares de WALE (`DEC-085`) e as faixas de P/VP (`DEC-086`).
+     `isReferenceDateStale(referenceDate, now, staleAfterDays)`: idade em
+     dias inteiros (sem ponto flutuante), `now` é parâmetro injetado —
+     nunca `Date.now()` interno, mesma disciplina de relógio explícito do
+     resto do projeto (`now: () => new Date().toISOString()` em toda
+     composição real).
+  2. **`AssetScoreSignal` ganha o status `stale`** — `signalKey`,
+     `observedValue`, `referenceDate`, `staleAfterDays`. Contribui 0
+     pontos pro `totalPoints` (igual `unavailable`), mas expõe o valor
+     observado — dado velho não pontua, mas não é escondido: o dossiê
+     técnico (`DEC-087`) pode mostrar "sinal existe, está desatualizado
+     desde X", diferente de "sinal nunca existiu".
+  3. **`buildFiiTijoloScoreV1` ganha o parâmetro `now: string`,
+     obrigatório.** Aplica-se aos 3 sinais trimestrais (vacância,
+     concentração, WALE) e ao P/VP (que depende do VP por cota derivado
+     do Informe Mensal, com sua própria `referenceDate` — a cotação de
+     mercado em si não tem dimensão de frescor nesta camada). Quebra a
+     assinatura da função (todo `now` passou a ser exigido) — atualizado
+     em cascata: `buildContributionAssetScoresV1` (recebe `now` e repassa),
+     `useContributionData.ts` (usa o mesmo `now` já lido para
+     `buildFundamentalFactsV1`, sem ler o relógio duas vezes), e o dossiê
+     técnico (`TechnicalDossierAssetSignal` ganha `status: 'stale'`,
+     `referenceDate`, `staleAfterDays`).
+- Verificação: `staleness.test.ts` (6 testes, incluindo fronteira exata de
+  180 dias), 4 testes novos em `buildFiiTijoloScoreV1.test.ts` (sinal
+  trimestral stale, P/VP stale, stale não conta pontos, fronteira exata
+  fica `applied`), 1 teste novo em `buildTechnicalDossierV1.test.ts`
+  (achatamento do `stale` com `points: null`). Suíte completa: 162/162
+  arquivos, 2430/2430 testes passando. Typecheck, lint e format limpos.
+- Consequências: fecha o item 9 do roadmap para a fatia FII tijolo — os 4
+  sinais implementados agora cobrem `applied`/`stale`/`unavailable`
+  explicitamente, nunca um número velho silencioso. Sprint 16 Fases 5-9
+  completas para FII tijolo (4 de 5 sinais; spread de DY segue bloqueado
+  em dado). Próxima fatia natural: ação, ETF, ou desbloquear o valor do
+  provento de FII — decisão do usuário.

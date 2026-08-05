@@ -47,6 +47,7 @@ export function buildContributionAssetScoresV1(input: {
   derived: FundamentalDerivedFactsV1
   latestPricesByAsset: ReadonlyMap<string, AssetPrice>
   rules: readonly SignalRuleV1[]
+  now: string
 }): AssetScoreV1[] {
   const scores: AssetScoreV1[] = []
 
@@ -78,6 +79,7 @@ export function buildContributionAssetScoresV1(input: {
         latestMarketPriceInMinorUnits,
         assetType: asset.assetType,
         rules: input.rules,
+        now: input.now,
       })
     )
   }
