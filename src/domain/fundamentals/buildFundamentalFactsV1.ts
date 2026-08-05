@@ -196,6 +196,18 @@ function copyNullableBasisPoints(
   return value
 }
 
+function copyNullableWaleMonths(value: number | null): number | null {
+  if (value === null) {
+    return null
+  }
+  if (!Number.isSafeInteger(value) || value < 0 || value > 120_000) {
+    throw new RangeError(
+      'WALE months (x100) must be between 0 and 120000 or null'
+    )
+  }
+  return value
+}
+
 function copyNullableNonNegativeInteger(
   value: number | null,
   description: string
@@ -236,6 +248,11 @@ function copyRealEstateFundFacts(
       facts.vacancyInBasisPoints,
       'Vacancy'
     ),
+    tenantConcentrationInBasisPoints: copyNullableBasisPoints(
+      facts.tenantConcentrationInBasisPoints,
+      'Tenant concentration'
+    ),
+    waleMonthsScaledBy100: copyNullableWaleMonths(facts.waleMonthsScaledBy100),
   }
 }
 
@@ -272,11 +289,15 @@ function assertRuntimeSourceAndPeriod(snapshot: FundamentalSnapshotInput) {
     return
   }
 
-  if (
-    snapshot.kind === 'real-estate-fund' &&
-    (snapshot.source !== 'cvm-fii-inf-mensal' || snapshot.period !== 'monthly')
-  ) {
-    throw new Error('Real estate fund source and period are inconsistent')
+  if (snapshot.kind === 'real-estate-fund') {
+    const isValid =
+      (snapshot.source === 'cvm-fii-inf-mensal' &&
+        snapshot.period === 'monthly') ||
+      (snapshot.source === 'cvm-fii-inf-trimestral' &&
+        snapshot.period === 'quarterly')
+    if (!isValid) {
+      throw new Error('Real estate fund source and period are inconsistent')
+    }
   }
 
   if (

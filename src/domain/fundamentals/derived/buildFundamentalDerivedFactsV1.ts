@@ -596,10 +596,12 @@ function buildDerivedSnapshot(
     return buildStockDerivedSnapshot(snapshot)
   }
   if (snapshot.kind === 'real-estate-fund') {
-    if (
-      snapshot.source !== 'cvm-fii-inf-mensal' ||
-      snapshot.period !== 'monthly'
-    ) {
+    const isValid =
+      (snapshot.source === 'cvm-fii-inf-mensal' &&
+        snapshot.period === 'monthly') ||
+      (snapshot.source === 'cvm-fii-inf-trimestral' &&
+        snapshot.period === 'quarterly')
+    if (!isValid) {
       throw new Error('Real estate fund source and period are inconsistent')
     }
     return buildFiiDerivedSnapshot(snapshot)

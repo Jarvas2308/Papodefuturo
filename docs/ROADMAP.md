@@ -1054,14 +1054,23 @@ integração com o motor, editável).
      de dado para NAV/cotas, ou fornecer a chave do FRED) — nenhum é
      codificável sem essa decisão externa. Por aprovação explícita do
      usuário, a sessão seguiu para a Fase 5 sem esperar por eles.
-5. **Motor de score** — sinais das tabelas do rascunho, com estado
-   explícito `unavailable` (sem provider) e `stale` (dado velho, limiar
-   por fonte — não um número global, ver frescor por fonte abaixo).
-6. **Integração no motor** — `desvioAjustado = desvioCandidato − (score ×
-peso)`, aplicado somente entre candidatos que já passam
-   `compareDeviation(bestDeviation, currentDeviation) < 0`. Score nunca
-   aprova compra que não melhora o desvio — `stopReason:
-'no-improving-purchase'` continua sendo o piso de segurança.
+5. **Motor de score — fatia 1 (FII tijolo) implementada (`DEC-085`).**
+   `src/domain/fundamentals/score/` calcula os 3 sinais de FII tijolo com
+   dado já ingerido (vacância, WALE, concentração do maior inquilino),
+   regime-aware (`wrong-regime` para FII papel/FOF, que não existem no
+   universo fechado hoje). P/VP (precisa preço de mercado) e spread de DY
+   sobre NTN-B (precisa valor de provento) seguem `unavailable` — próxima
+   sub-fatia de FII. Ação e ETF ainda não têm sinal nenhum — próximas
+   fatias por classe de ativo (`DEC-085`).
+6. **Integração no motor — implementada (`DEC-085`).**
+   `desvioAjustado = desvioCandidato − (score × peso)`
+   (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
+   `scoreWeightInBasisPoints`, ambos opcionais — comportamento antigo
+   inalterado quando ausentes), aplicado somente entre candidatos que já
+   passam `compareDeviation(candidateDeviation, currentDeviation) < 0` (ou
+   na primeira compra de carteira vazia). Score nunca aprova compra que
+   não melhora o desvio — `stopReason: 'no-improving-purchase'` continua
+   sendo o piso de segurança, verificado por teste dedicado.
 7. **Dossiê e IA** — `TechnicalDossierV1` ganha bloco `signals` com valor,
    fonte, status e pontos. IA continua só explicando, nunca decidindo.
 8. **Documentação** — atualizar `PRODUCT.md`, `ARCHITECTURE.md`; revisar

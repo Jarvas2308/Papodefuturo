@@ -3053,3 +3053,98 @@ year) * 100)`.
   usuário. Por aprovação explícita do usuário, a sessão segue direto para
   Sprint 16 Fase 5 (motor de score) em vez de insistir nos 2 bloqueios
   restantes.
+
+## DEC-085 — Sprint 16, Fase 5, fatia 1: motor de score para FII tijolo
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada — primeira fatia da Fase 5, fatiada por
+  classe de ativo por escolha explícita do usuário (`AskUserQuestion`: a
+  Fase 5 completa cobre ~10 sinais em 3 classes de ativo, integração no
+  laço guloso, dossiê, documentação e testes — grande demais para uma
+  entrada só, mesma disciplina de fatiamento já usada em Fases 2-4).
+- Contexto: `DEC-068` desenhou o mecanismo (score ajusta prioridade via
+  `desvioAjustado = desvioCandidato − (score × peso)`, com trava de
+  segurança) mas nunca foi implementado — `buildFundamentalFactsV1.ts` só
+  expunha `vacancyInBasisPoints` para FII, e `listRealEstateFundSnapshots`
+  filtrava deliberadamente `source='cvm-fii-inf-mensal'`, ignorando as
+  linhas trimestrais (vacância, concentração, WALE) ingeridas nas Fases 2-3
+  — comentário explícito no código apontava para esta fase: "leitura de
+  vacância fica para quando o motor de score (Fase 5) precisar dela".
+- Decisão, em três partes:
+  1. **Leitura combinada mensal + trimestral.** `RealEstateFundFundamentalFacts`
+     ganha `tenantConcentrationInBasisPoints` e `waleMonthsScaledBy100` (o
+     terceiro, `vacancyInBasisPoints`, já existia desde a `DEC-076`).
+     `listRealEstateFundSnapshots` passa a consultar as duas fontes
+     (`.in('source', [...])` em vez de `.eq`) e escolhe o mapper por
+     `source` — `mapRealEstateFundSnapshotRow` (mensal) ou o novo
+     `mapRealEstateFundTrimestralSnapshotRow`. `buildFundamentalFactsV1.ts`
+     e `buildFundamentalDerivedFactsV1.ts` tinham validação hard-coded que
+     só aceitava `source='cvm-fii-inf-mensal'`/`period='monthly'` para FII
+     — corrigida para aceitar também `cvm-fii-inf-trimestral`/`quarterly`.
+  2. **Motor de score, fatia FII tijolo.** `src/domain/fundamentals/score/`
+     (`buildFiiTijoloScoreV1`, puro, sem I/O) calcula os 3 sinais de FII
+     tijolo com dado já ingerido e sem depender de cotação de mercado:
+     vacância financeira, concentração do maior inquilino, WALE. Regime
+     errado (FII papel/FOF, `assetType !== 'tijolo'`) sempre produz
+     `status: 'wrong-regime'` para os 3 sinais, nunca um número — mesmo
+     erro de fundo que a `DEC-068` corrigiu (tratar papel como tijolo)
+     não pode voltar a acontecer silenciosamente. Dado ausente produz
+     `status: 'missing-input'`, nunca 0 silencioso. Regras vêm de
+     `SignalRuleV1[]` (mesma forma do `SignalRule` de repositório,
+     repetida como tipo de domínio puro para não acoplar o motor ao
+     contrato de repositório) — `DEFAULT_FII_TIJOLO_SIGNAL_RULES` documenta
+     as faixas de partida do rascunho, convertidas para
+     `minValue`/`maxValue` com min inclusivo e max exclusivo (convenção
+     documentada para não haver ambiguidade de fronteira).
+  3. **WALE como substituto documentado da "receita vencendo em 24 meses".**
+     O rascunho original pede um bucket de receita por vencimento que não
+     foi ingerido (Fase 2 ingeriu WALE em meses, métrica correlata mas
+     não idêntica). Direção do sinal invertida (WALE mais longo = menos
+     risco de vacância por vencimento = pontos positivos) e limiares
+     (24/48 meses) marcados como ponto de partida tão arbitrário quanto os
+     do rascunho original — o próprio documento já diz "limiares numéricos
+     são ponto de partida proposto... edite livremente", então este é o
+     tipo de substituição que o documento antecipa, não uma invenção
+     silenciosa de dado.
+  4. **P/VP e spread de DY ficam fora desta fatia, por decisão de escopo,
+     não por bloqueio de dado.** P/VP precisa combinar o NAV/cota já
+     derivado (`FiiNetAssetValuePerIssuedShareInputs`) com cotação de
+     mercado — integração ainda não escrita. Spread de DY precisa do valor
+     do provento, que a `DEC-082` só ingeriu como evento (data/título/link
+     do Fato Relevante), não o valor numérico. Ambos ficam `unavailable`
+     por enquanto — marcados explicitamente no rascunho, não escondidos.
+  5. **Mecanismo de integração no laço guloso.** `ContributionInput` ganha
+     `assetScores?: ContributionAssetScore[]` e
+     `scoreWeightInBasisPoints?: number`, ambos opcionais — ausentes,
+     `targetAllocationStrategy.ts` se comporta byte-a-byte como antes da
+     Fase 5 (suíte de 34 testes existente passou sem nenhuma mudança).
+     Quando presentes: dentro do laço, cada candidato afordável tem seu
+     `candidateDeviation` calculado como sempre (BigInt exato); em
+     paralelo, se `scoreWeightInBasisPoints > 0`, candidatos que já melhoram
+     o desvio (`compareDeviation(candidateDeviation, currentDeviation) < 0`,
+     ou qualquer um na primeira compra de carteira vazia) entram num
+     segundo ranking por `deviationInBasisPoints(candidateDeviation) −
+(score × peso)` — o candidato de menor rank ajustado é escolhido no
+     lugar do candidato de menor desvio bruto. A conversão para
+     pontos-base (via `deviationInBasisPoints`, já testado) evita misturar
+     a fração exata `numerator/total` usada na trava com a escala de score
+     — só a _escolha de qual candidato_ muda; o desvio real usado nas
+     iterações seguintes continua sendo o valor exato do candidato
+     escolhido, nunca o valor ajustado. Trava de segurança inalterada: o
+     `stopReason: 'no-improving-purchase'` é decidido depois da escolha,
+     comparando o desvio real (não ajustado) do candidato escolhido contra
+     o desvio atual — testado explicitamente (`'never overrides
+no-improving-purchase, even with a high score on the losing asset'`).
+- Verificação: 12 testes novos (`buildFiiTijoloScoreV1.test.ts`: 9; 4 novos
+  em `targetAllocationStrategy.test.ts` cobrindo comportamento inalterado
+  sem score, reordenação de empate exato por score, score neutralizado com
+  peso zero, e a trava de segurança) mais os testes de leitura combinada
+  mensal/trimestral em `supabaseRealEstateFundSnapshots.test.ts`. Suíte
+  completa: 159/159 arquivos, 2392/2392 testes passando. Typecheck limpo.
+  Lint e format limpos.
+- Consequências: `docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md` e
+  `docs/ROADMAP.md` atualizados com o status real (3 sinais de FII tijolo
+  implementados; P/VP, DY, ação e ETF pendentes). Próxima fatia natural:
+  P/VP de FII (precisa combinar NAV/cota derivado com cotação de mercado,
+  dado já existe nas duas pontas) ou a próxima classe de ativo (ação ou
+  ETF) — decisão do usuário quando a Fase 5 continuar.

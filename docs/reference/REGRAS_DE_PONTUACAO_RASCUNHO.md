@@ -36,21 +36,22 @@ sei" com "neutro", que são coisas diferentes.
 
 ## 1. FII — tijolo
 
-| Sinal                                        | Regra proposta             | Pontos | Status                                                 | Referência   |
-| -------------------------------------------- | -------------------------- | ------ | ------------------------------------------------------ | ------------ |
-| P/VP                                         | < 0,90                     | +2     | Pronto hoje                                            | FII 3.1      |
-| P/VP                                         | 0,90 – 1,00                | +1     | Pronto hoje                                            | FII 3.1      |
-| P/VP                                         | 1,00 – 1,10                | 0      | Pronto hoje                                            | FII 3.1      |
-| P/VP                                         | > 1,10                     | -2     | Pronto hoje                                            | FII 3.1      |
-| Spread DY sobre NTN-B longa                  | > 1,5 p.p.                 | +2     | Precisa provider CVM Trimestral + Tesouro Transparente | FII 3.2, 7.2 |
-| Spread DY sobre NTN-B longa                  | 0 – 1,5 p.p.               | 0      | idem                                                   | FII 3.2      |
-| Spread DY sobre NTN-B longa                  | < 0                        | -2     | idem                                                   | FII 3.2      |
-| Vacância financeira                          | < 5%                       | +1     | Precisa provider CVM Trimestral                        | FII 3.3, 7.1 |
-| Vacância financeira                          | 5% – 15%                   | 0      | idem                                                   | FII 3.3      |
-| Vacância financeira                          | > 15%                      | -1     | idem                                                   | FII 3.3      |
-| Receita vencendo em 24 meses (proxy de WALE) | < 20%                      | +1     | Precisa provider CVM Trimestral                        | FII 3.4, 7.1 |
-| Receita vencendo em 24 meses                 | > 50%                      | -1     | idem                                                   | FII 3.4      |
-| Concentração do maior inquilino              | > 40% da receita do imóvel | -1     | Precisa provider CVM Trimestral                        | FII 3.5, 7.1 |
+| Sinal                                                   | Regra proposta             | Pontos | Status                                                  | Referência   |
+| ------------------------------------------------------- | -------------------------- | ------ | ------------------------------------------------------- | ------------ |
+| P/VP                                                    | < 0,90                     | +2     | Dado pronto, motor ainda nao consome (proxima fatia)    | FII 3.1      |
+| P/VP                                                    | 0,90 – 1,00                | +1     | idem                                                    | FII 3.1      |
+| P/VP                                                    | 1,00 – 1,10                | 0      | idem                                                    | FII 3.1      |
+| P/VP                                                    | > 1,10                     | -2     | idem                                                    | FII 3.1      |
+| Spread DY sobre NTN-B longa                             | > 1,5 p.p.                 | +2     | Precisa valor de provento (so evento ingerido, DEC-082) | FII 3.2, 7.2 |
+| Spread DY sobre NTN-B longa                             | 0 – 1,5 p.p.               | 0      | idem                                                    | FII 3.2      |
+| Spread DY sobre NTN-B longa                             | < 0                        | -2     | idem                                                    | FII 3.2      |
+| Vacância financeira                                     | < 5%                       | +1     | **Implementado (DEC-085)**                              | FII 3.3, 7.1 |
+| Vacância financeira                                     | 5% – 15%                   | 0      | idem                                                    | FII 3.3      |
+| Vacância financeira                                     | > 15%                      | -1     | idem                                                    | FII 3.3      |
+| WALE (substitui "receita vencendo em 24m", ver DEC-085) | > 48 meses                 | +1     | **Implementado (DEC-085)**                              | FII 3.4, 7.1 |
+| WALE                                                    | 24 – 48 meses              | 0      | idem                                                    | FII 3.4      |
+| WALE                                                    | < 24 meses                 | -1     | idem                                                    | FII 3.4      |
+| Concentração do maior inquilino                         | > 40% da receita do imóvel | -1     | **Implementado (DEC-085)**                              | FII 3.5, 7.1 |
 
 ## 2. FII — papel
 
@@ -164,3 +165,8 @@ compra que reduz desvio.
   expense ratio (ETF), ficam fora da tabela até pesquisa adicional — não
   finja disponibilidade que os documentos de referência já marcaram como gap.
 - A decisão da seção 5 bloqueia início de implementação do motor em si.
+- **Atualização (DEC-085):** o mecanismo da seção 5 está implementado desde
+  a Fase 5, fatia 1 — `desvioAjustado`, trava de segurança e os 3 sinais
+  de FII tijolo com dado pronto (vacância, WALE, concentração). Ação e
+  ETF ainda não têm nenhum sinal calculado; P/VP de FII e spread de DY
+  seguem pendentes dentro da própria fatia FII (ver seção 1).
