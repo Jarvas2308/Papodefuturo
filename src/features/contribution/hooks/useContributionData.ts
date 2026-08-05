@@ -31,6 +31,7 @@ import { buildTechnicalDossierV1 } from '../../../domain/technicalDossier'
 import { createSupabaseRealEstateFundSnapshotRepository } from '../../../data/fundamentals'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
+import type { AssetScoreV1 } from '../../../domain/fundamentals/score'
 import type { SupabaseBrowserClient } from '../../../lib/supabaseClient'
 import type { StrategyCategory } from '../../strategy/types'
 import {
@@ -51,6 +52,7 @@ import { getContributionAssetCurrency } from '../utils/confirmedPurchases'
 import {
   buildContributionAssetScoresV1,
   getMissingDefaultFiiSignalRules,
+  toContributionAssetScores,
 } from '../utils/buildContributionAssetScores'
 
 type ContributionDataStatus = 'loading' | 'ready' | 'error'
@@ -102,10 +104,10 @@ export async function loadContributionAssetScoresBestEffort(
   prices: readonly AssetPrice[],
   userId: EntityId
 ): Promise<{
-  assetScores: ContributionAssetScore[]
+  assetFundamentalScores: AssetScoreV1[]
   scoreWeightInBasisPoints: number
 }> {
-  const empty = { assetScores: [], scoreWeightInBasisPoints: 0 }
+  const empty = { assetFundamentalScores: [], scoreWeightInBasisPoints: 0 }
 
   try {
     // Le fundamentos direto do repositorio de leitura (data/fundamentals) e
@@ -138,7 +140,7 @@ export async function loadContributionAssetScoresBestEffort(
     const latestPricesByAsset = getLatestAssetPricesByAsset(prices)
 
     return {
-      assetScores: buildContributionAssetScoresV1({
+      assetFundamentalScores: buildContributionAssetScoresV1({
         assets,
         facts,
         derived,
@@ -305,8 +307,13 @@ export function useContributionData() {
   >([])
   const [portfolioSnapshot, setPortfolioSnapshot] =
     useState<PortfolioSnapshot | null>(null)
-  const [assetScores, setAssetScores] = useState<ContributionAssetScore[]>([])
+  const [assetFundamentalScores, setAssetFundamentalScores] = useState<
+    AssetScoreV1[]
+  >([])
   const [scoreWeightInBasisPoints, setScoreWeightInBasisPoints] = useState(0)
+  const assetScores: ContributionAssetScore[] = toContributionAssetScores(
+    assetFundamentalScores
+  )
 
   const loadReal = useCallback(async () => {
     if (authStatus !== 'authenticated' || !client || !user) {
@@ -378,7 +385,7 @@ export function useContributionData() {
       prices,
       user.id
     )
-    setAssetScores(scoreResult.assetScores)
+    setAssetFundamentalScores(scoreResult.assetFundamentalScores)
     setScoreWeightInBasisPoints(scoreResult.scoreWeightInBasisPoints)
   }, [authStatus, client, user])
 
@@ -489,6 +496,7 @@ export function useContributionData() {
         assetPrices,
         exchangeRates,
         technicalPlan,
+        assetFundamentalScores,
       })
     } catch {
       return null

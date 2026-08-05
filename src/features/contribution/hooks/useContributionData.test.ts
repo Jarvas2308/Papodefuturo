@@ -588,7 +588,10 @@ describe('loadContributionAssetScoresBestEffort', () => {
       'user-1'
     )
 
-    expect(result).toEqual({ assetScores: [], scoreWeightInBasisPoints: 0 })
+    expect(result).toEqual({
+      assetFundamentalScores: [],
+      scoreWeightInBasisPoints: 0,
+    })
   })
 
   it('seeds every missing default FII signal rule on first use', async () => {
@@ -657,6 +660,6 @@ describe('loadContributionAssetScoresBestEffort', () => {
     )
 
     expect(result.scoreWeightInBasisPoints).toBe(75)
-    expect(result.assetScores).toEqual([])
+    expect(result.assetFundamentalScores).toEqual([])
   })
 })

@@ -17,6 +17,7 @@ import type {
   ContributionStopReason,
   TargetAllocationContributionResult,
 } from '../../features/contribution/types'
+import type { AssetScoreV1 } from '../fundamentals/score'
 
 export const TECHNICAL_DOSSIER_V1_SCHEMA_VERSION =
   'technical-dossier.v1' as const
@@ -121,6 +122,25 @@ export type TechnicalDossierDataCoverage = {
   hasLatestUsdBrlRate: boolean
 }
 
+// Quebra por sinal do motor de score (Sprint 16, Fase 5/7, DEC-085/DEC-087)
+// - mesma forma de AssetScoreSignal (domain/fundamentals/score/types.ts),
+// achatada em campos opcionais porque o dossie e' JSON simples consumido
+// pela explicacao de IA, sem union discriminado.
+export type TechnicalDossierAssetSignal = {
+  signalKey: string
+  status: 'applied' | 'unavailable'
+  observedValue: number | null
+  points: number | null
+  unavailableReason: string | null
+}
+
+export type TechnicalDossierAssetSignals = {
+  assetId: string
+  ticker: string
+  totalPoints: number
+  signals: TechnicalDossierAssetSignal[]
+}
+
 export type TechnicalDossierV1 = {
   schemaVersion: typeof TECHNICAL_DOSSIER_V1_SCHEMA_VERSION
   generatedAt: string
@@ -129,6 +149,11 @@ export type TechnicalDossierV1 = {
   marketFacts: TechnicalDossierMarketFacts
   technicalPlan: TechnicalDossierTechnicalPlan
   deviations: TechnicalDossierDeviations
+  // So cobre os ativos com sinal calculado (hoje: FII tijolo, Fase 5 fatia
+  // 1) - ativos fora do escopo simplesmente nao aparecem aqui, mesmo
+  // criterio de "ausencia, nao zero forcado" do resto do dominio de
+  // fundamentos.
+  signals: TechnicalDossierAssetSignals[]
   dataCoverage: TechnicalDossierDataCoverage
   limitations: TechnicalDossierLimitation[]
 }
@@ -143,4 +168,7 @@ export type BuildTechnicalDossierV1Input = {
   assetPrices: readonly AssetPrice[]
   exchangeRates: readonly ExchangeRate[]
   technicalPlan: TargetAllocationContributionResult
+  // Opcional: ausente, o dossie sai com signals: [] (mesmo comportamento de
+  // antes da Fase 7) - best-effort, nao trava a explicacao de IA.
+  assetFundamentalScores?: readonly AssetScoreV1[]
 }

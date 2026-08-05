@@ -1077,8 +1077,14 @@ peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    `DEC-086` sobre o boundary revisado), semeia as faixas default na
    primeira vez que o usuário simula, e falha de forma best-effort (score
    vazio, nunca quebra o aporte) se qualquer etapa falhar.
-7. **Dossiê e IA** — `TechnicalDossierV1` ganha bloco `signals` com valor,
-   fonte, status e pontos. IA continua só explicando, nunca decidindo.
+7. **Dossiê e IA — implementado (`DEC-087`).** `TechnicalDossierV1` ganha
+   `signals: TechnicalDossierAssetSignals[]` — por ativo com score
+   calculado, cada sinal com `status` (`applied`/`unavailable`),
+   `observedValue`, `points` ou `unavailableReason`. Campo
+   `assetFundamentalScores` do input é opcional (ausente, `signals: []` —
+   mesmo comportamento de antes desta fase). IA continua só explicando,
+   nunca decidindo — o dossiê só expõe o que o motor já calculou, sem
+   adicionar julgamento novo.
 8. **Documentação** — atualizar `PRODUCT.md`, `ARCHITECTURE.md`; revisar
    `no-fundamental-score`, `no-technical-plan-modification`,
    `technical-ranking-not-exposed-v1`.
