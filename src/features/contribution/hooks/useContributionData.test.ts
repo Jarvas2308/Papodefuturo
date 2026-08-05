@@ -16,7 +16,10 @@ import {
   loadRealContributionInputs,
   matchRegisteredPurchasesToPlanItems,
 } from './useContributionData'
-import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from '../../../domain/fundamentals/score'
+import {
+  DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+  DEFAULT_STOCK_SIGNAL_RULES,
+} from '../../../domain/fundamentals/score'
 import type { SupabaseBrowserClient } from '../../../lib/supabaseClient'
 
 const asset: Asset = {
@@ -607,7 +610,7 @@ describe('loadContributionAssetScoresBestEffort', () => {
     )
 
     expect(repositories.signalRules.create).toHaveBeenCalledTimes(
-      DEFAULT_FII_TIJOLO_SIGNAL_RULES.length
+      DEFAULT_FII_TIJOLO_SIGNAL_RULES.length + DEFAULT_STOCK_SIGNAL_RULES.length
     )
   })
 

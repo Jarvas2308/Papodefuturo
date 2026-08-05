@@ -10,7 +10,10 @@ import {
   getMissingDefaultFiiSignalRules,
   toContributionAssetScores,
 } from './buildContributionAssetScores'
-import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from '../../../domain/fundamentals/score'
+import {
+  DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+  DEFAULT_STOCK_SIGNAL_RULES,
+} from '../../../domain/fundamentals/score'
 
 const NOW = '2026-08-05T00:00:00.000Z'
 
@@ -65,9 +68,12 @@ function emptyDerived(): FundamentalDerivedFactsV1 {
 }
 
 describe('getMissingDefaultFiiSignalRules', () => {
-  it('returns every default rule when the user has none', () => {
+  it('returns every default rule (FII and stock) when the user has none', () => {
     const missing = getMissingDefaultFiiSignalRules([])
-    expect(missing).toEqual(DEFAULT_FII_TIJOLO_SIGNAL_RULES)
+    expect(missing).toEqual([
+      ...DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      ...DEFAULT_STOCK_SIGNAL_RULES,
+    ])
   })
 
   it('skips signal keys the user already has a rule for', () => {
@@ -86,19 +92,24 @@ describe('getMissingDefaultFiiSignalRules', () => {
 
     expect(missing.every((rule) => rule.signalKey !== 'fii_vacancy')).toBe(true)
     expect(missing.some((rule) => rule.signalKey === 'fii_pvp')).toBe(true)
+    expect(missing.some((rule) => rule.signalKey === 'stock_roe')).toBe(true)
   })
 
   it('returns nothing once every default signal key is covered', () => {
-    const existing: SignalRule[] = [
-      ...new Set(DEFAULT_FII_TIJOLO_SIGNAL_RULES.map((rule) => rule.signalKey)),
-    ].map((signalKey, index) => ({
-      id: `rule-${index}`,
-      signalKey,
-      minValue: null,
-      maxValue: null,
-      points: 0,
-      enabled: true,
-    }))
+    const allDefaultKeys = [
+      ...DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      ...DEFAULT_STOCK_SIGNAL_RULES,
+    ].map((rule) => rule.signalKey)
+    const existing: SignalRule[] = [...new Set(allDefaultKeys)].map(
+      (signalKey, index) => ({
+        id: `rule-${index}`,
+        signalKey,
+        minValue: null,
+        maxValue: null,
+        points: 0,
+        enabled: true,
+      })
+    )
 
     expect(getMissingDefaultFiiSignalRules(existing)).toEqual([])
   })
@@ -256,6 +267,123 @@ describe('buildContributionAssetScoresV1', () => {
 
     expect(scores).toHaveLength(1)
     expect(scores[0]).toMatchObject({ assetId: asset.id, totalPoints: 0 })
+  })
+
+  it('computes ROE for a brazilian-stock asset', () => {
+    const asset: Asset = {
+      id: 'asset-bbas3',
+      ticker: 'BBAS3',
+      name: 'Banco do Brasil',
+      category: 'brazilian-stock',
+      market: 'BR',
+      status: 'active',
+      assetType: null,
+      assetSegment: 'banco',
+    }
+    const facts: FundamentalFactsV1 = {
+      ...emptyFacts(),
+      assets: [
+        {
+          assetId: asset.id,
+          ticker: 'BBAS3',
+          name: asset.name,
+          category: 'brazilian-stock',
+          snapshots: [
+            {
+              assetId: asset.id,
+              kind: 'brazilian-stock',
+              referenceDate: '2026-06-30',
+              period: 'annual',
+              source: 'cvm-dfp',
+              sourceDocumentId: 'doc-1',
+              facts: {
+                totalRevenue: null,
+                netIncome: { amountInMinorUnits: 2_000_000, currency: 'BRL' },
+                totalAssets: null,
+                totalEquity: {
+                  amountInMinorUnits: 10_000_000,
+                  currency: 'BRL',
+                },
+                operatingCashFlow: null,
+                issuedShares: null,
+              },
+            },
+          ],
+        },
+      ],
+    }
+
+    const scores = buildContributionAssetScoresV1({
+      assets: [asset],
+      facts,
+      derived: emptyDerived(),
+      latestPricesByAsset: new Map(),
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(scores).toHaveLength(1)
+    expect(scores[0]).toMatchObject({ assetId: asset.id, totalPoints: 2 })
+  })
+
+  it('skips a brazilian-stock asset with no fundamentals facts loaded yet', () => {
+    const asset: Asset = {
+      id: 'asset-bbas3',
+      ticker: 'BBAS3',
+      name: 'Banco do Brasil',
+      category: 'brazilian-stock',
+      market: 'BR',
+      status: 'active',
+      assetType: null,
+      assetSegment: 'banco',
+    }
+
+    const scores = buildContributionAssetScoresV1({
+      assets: [asset],
+      facts: emptyFacts(),
+      derived: emptyDerived(),
+      latestPricesByAsset: new Map(),
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(scores).toEqual([])
+  })
+
+  it('skips an international-etf asset (no signal implemented yet)', () => {
+    const asset: Asset = {
+      id: 'asset-voo',
+      ticker: 'VOO',
+      name: 'Vanguard S&P 500 ETF',
+      category: 'international-etf',
+      market: 'US',
+      status: 'active',
+      assetType: null,
+      assetSegment: 'indice-amplo-us',
+    }
+    const facts: FundamentalFactsV1 = {
+      ...emptyFacts(),
+      assets: [
+        {
+          assetId: asset.id,
+          ticker: 'VOO',
+          name: asset.name,
+          category: 'international-etf',
+          snapshots: [],
+        },
+      ],
+    }
+
+    const scores = buildContributionAssetScoresV1({
+      assets: [asset],
+      facts,
+      derived: emptyDerived(),
+      latestPricesByAsset: new Map(),
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(scores).toEqual([])
   })
 })
 

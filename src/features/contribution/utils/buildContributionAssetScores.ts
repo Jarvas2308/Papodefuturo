@@ -1,7 +1,9 @@
-// Wiring do motor de score (Sprint 16, Fase 5/6/7, DEC-085/DEC-086/DEC-087)
-// no fluxo real de aporte - puro, sem I/O, para ser testavel sem mocks de
-// rede.
-import { buildFiiTijoloScoreV1 } from '../../../domain/fundamentals/score'
+// Wiring do motor de score (Sprint 16, Fase 5/6/7, DEC-085 a DEC-090) no
+// fluxo real de aporte - puro, sem I/O, para ser testavel sem mocks de rede.
+import {
+  buildBrazilianStockScoreV1,
+  buildFiiTijoloScoreV1,
+} from '../../../domain/fundamentals/score'
 import type {
   AssetScoreV1,
   SignalRuleV1,
@@ -15,8 +17,16 @@ import type {
   SignalRule,
   CreateSignalRuleInput,
 } from '../../../data/repositories/contracts'
-import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from '../../../domain/fundamentals/score'
+import {
+  DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+  DEFAULT_STOCK_SIGNAL_RULES,
+} from '../../../domain/fundamentals/score'
 import type { ContributionAssetScore } from '../types'
+
+const DEFAULT_SIGNAL_RULES: readonly SignalRuleV1[] = [
+  ...DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+  ...DEFAULT_STOCK_SIGNAL_RULES,
+]
 
 // Semeia as faixas de partida (docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md)
 // na primeira vez que o usuario usa o motor de score - a tabela signal_rules
@@ -30,17 +40,17 @@ export function getMissingDefaultFiiSignalRules(
   const existingSignalKeys = new Set(
     existingRules.map((rule) => rule.signalKey)
   )
-  return DEFAULT_FII_TIJOLO_SIGNAL_RULES.filter(
+  return DEFAULT_SIGNAL_RULES.filter(
     (rule) => !existingSignalKeys.has(rule.signalKey)
   )
 }
 
-// Calcula o score real por ativo elegivel (hoje: so FII tijolo, fatia 1 da
-// Fase 5) a partir do dossie de fundamentos ja carregado, das regras do
-// usuario e da cotacao mais recente. Ativos fora do escopo (acao, ETF, FII
-// papel/FOF) simplesmente nao entram no array - equivalente a score 0 no
-// laco guloso (buildScoreByIndex trata ausencia como 0), sem forcar um
-// calculo que nao faz sentido pra eles.
+// Calcula o score real por ativo elegivel (FII tijolo - Fase 5 fatia 1 -
+// e acao, ROE - Fase 5 fatia 2, DEC-090) a partir do dossie de fundamentos
+// ja carregado, das regras do usuario e da cotacao mais recente. Ativos
+// fora do escopo (ETF, FII papel/FOF, acao holding) simplesmente nao
+// entram no array - equivalente a score 0 no laco guloso (buildScoreByIndex
+// trata ausencia como 0), sem forcar um calculo que nao faz sentido pra eles.
 export function buildContributionAssetScoresV1(input: {
   assets: readonly Asset[]
   facts: FundamentalFactsV1
@@ -52,10 +62,6 @@ export function buildContributionAssetScoresV1(input: {
   const scores: AssetScoreV1[] = []
 
   for (const asset of input.assets) {
-    if (asset.category !== 'real-estate-fund' || asset.assetType !== 'tijolo') {
-      continue
-    }
-
     const factsAsset = input.facts.assets.find(
       (candidate) => candidate.assetId === asset.id
     )
@@ -63,25 +69,39 @@ export function buildContributionAssetScoresV1(input: {
       continue
     }
 
-    const derivedAsset = input.derived.assets.find(
-      (candidate) => candidate.assetId === asset.id
-    )
-    const latestPrice = input.latestPricesByAsset.get(asset.id)
-    const latestMarketPriceInMinorUnits =
-      latestPrice && latestPrice.price.currency === 'BRL'
-        ? latestPrice.price.amountInMinorUnits
-        : null
+    if (asset.category === 'real-estate-fund' && asset.assetType === 'tijolo') {
+      const derivedAsset = input.derived.assets.find(
+        (candidate) => candidate.assetId === asset.id
+      )
+      const latestPrice = input.latestPricesByAsset.get(asset.id)
+      const latestMarketPriceInMinorUnits =
+        latestPrice && latestPrice.price.currency === 'BRL'
+          ? latestPrice.price.amountInMinorUnits
+          : null
 
-    scores.push(
-      buildFiiTijoloScoreV1({
-        asset: factsAsset,
-        derivedAsset,
-        latestMarketPriceInMinorUnits,
-        assetType: asset.assetType,
-        rules: input.rules,
-        now: input.now,
-      })
-    )
+      scores.push(
+        buildFiiTijoloScoreV1({
+          asset: factsAsset,
+          derivedAsset,
+          latestMarketPriceInMinorUnits,
+          assetType: asset.assetType,
+          rules: input.rules,
+          now: input.now,
+        })
+      )
+      continue
+    }
+
+    if (asset.category === 'brazilian-stock') {
+      scores.push(
+        buildBrazilianStockScoreV1({
+          asset: factsAsset,
+          assetSegment: asset.assetSegment ?? null,
+          rules: input.rules,
+          now: input.now,
+        })
+      )
+    }
   }
 
   return scores
