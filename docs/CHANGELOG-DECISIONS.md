@@ -3124,17 +3124,17 @@ year) * 100)`.
      o desvio (`compareDeviation(candidateDeviation, currentDeviation) < 0`,
      ou qualquer um na primeira compra de carteira vazia) entram num
      segundo ranking por `deviationInBasisPoints(candidateDeviation) −
-     (score × peso)` — o candidato de menor rank ajustado é escolhido no
+(score × peso)` — o candidato de menor rank ajustado é escolhido no
      lugar do candidato de menor desvio bruto. A conversão para
      pontos-base (via `deviationInBasisPoints`, já testado) evita misturar
      a fração exata `numerator/total` usada na trava com a escala de score
-     — só a *escolha de qual candidato* muda; o desvio real usado nas
+     — só a _escolha de qual candidato_ muda; o desvio real usado nas
      iterações seguintes continua sendo o valor exato do candidato
      escolhido, nunca o valor ajustado. Trava de segurança inalterada: o
      `stopReason: 'no-improving-purchase'` é decidido depois da escolha,
      comparando o desvio real (não ajustado) do candidato escolhido contra
      o desvio atual — testado explicitamente (`'never overrides
-     no-improving-purchase, even with a high score on the losing asset'`).
+no-improving-purchase, even with a high score on the losing asset'`).
 - Verificação: 12 testes novos (`buildFiiTijoloScoreV1.test.ts`: 9; 4 novos
   em `targetAllocationStrategy.test.ts` cobrindo comportamento inalterado
   sem score, reordenação de empate exato por score, score neutralizado com
