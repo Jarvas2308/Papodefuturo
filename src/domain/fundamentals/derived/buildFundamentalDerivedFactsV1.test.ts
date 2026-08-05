@@ -46,6 +46,7 @@ function createStockSnapshot(
       totalAssets: brl(100_000),
       totalEquity: brl(25_000),
       operatingCashFlow: brl(15_000),
+      issuedShares: null,
     },
     ...overrides,
   }
@@ -65,6 +66,7 @@ function createFiiSnapshot(
       netAssetValue: brl(10_000),
       issuedShares: { unscaledValue: 4, scale: 0 },
       shareholderCount: 321_000,
+      vacancyInBasisPoints: null,
     },
     ...overrides,
   }

@@ -57,7 +57,7 @@ export function cloneAssetIdentity(
   return { ...identity }
 }
 
-export function cloneTemporalValue(
+function cloneTemporalValue(
   value: OfficialEventTemporalValueV1
 ): OfficialEventTemporalValueV1 {
   return { ...value }

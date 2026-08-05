@@ -1941,3 +1941,1115 @@ cascade` do plano para seus itens — tudo sem resíduo real. `get_advisors`
   voltam a 0 linhas — não porque a cadeia falhou, mas porque a evidência do
   ensaio foi removida de propósito. O próximo aporte real registrado pelo
   usuário será o primeiro dado de produção de verdade nessas tabelas.
+
+## DEC-068 — Motor evolui de veto para recomendação por score (Sprint 16)
+
+- Data: 31 de julho de 2026
+- Status: Aceita, implementação planejada para a Sprint 16
+- Contexto: teste real do primeiro aporte (`DEC-062`) expôs que o motor só
+  responde "qual ativo está mais longe da meta", sem nunca consultar os
+  dados de mercado e fundamento que o sistema já ingere —
+  `official_asset_events` (302 linhas) e `fundamental_snapshots` custaram
+  sprints inteiras e não influenciam decisão nenhuma. Investigação de
+  fonte identificou que um documento de referência anterior sobre FII
+  (`Analise_Completa_Categorias_FII.docx`, gerado fora do sistema)
+  continha erros reais de classificação de ticker — MXRF11 e KNCR11 (fundos
+  de papel, sem imóvel) tratados como fundos de tijolo com vacância. O erro
+  raiz identificado: qualquer regra de sinal aplicada sem primeiro
+  distinguir o regime do ativo (tijolo/papel/FOF em FII; banco/seguradora/
+  regulado/holding/industrial em ação) julga o ativo pela métrica errada.
+- Decisão, em três partes:
+  1. **Escopo do universo fechado não muda.** `MAX_PLAN_ASSETS = 3`
+     permanece. Notícia editorial/sentimento continua fora
+     (`NO-GO`, `DEC-036`, não reaberto). Só dado estruturado de fonte
+     regulatória (CVM, SEC) ou de mercado público (Tesouro Transparente,
+     FRED, Shiller/Yale) alimenta o score.
+  2. **Mecanismo é score, não veto puro.** Dado externo pontua o ativo
+     (-2 a +2 por sinal, tabela editável em
+     `docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md`), não só exclui.
+     Escolha explícita do usuário: motor deve funcionar como recomendador
+     dentro do universo fechado, com o usuário mantendo a decisão final
+     via confirmação obrigatória — não um recomendador irrestrito
+     (`PRODUCT.md`, princípio 6).
+  3. **Score entra no laço guloso como ajuste de prioridade, com trava.**
+     `desvioAjustado = desvioCandidato − (score × pesoConfigurável)`,
+     reaproveitando `compareDeviation` já testado
+     (`targetAllocationStrategy.ts`), sem escala nova. Trava obrigatória:
+     o ajuste só se aplica a candidatos que já passam
+     `compareDeviation(bestDeviation, currentDeviation) < 0` — score nunca
+     aprova uma compra que não melhora o desvio da carteira.
+- Pesquisa de fonte, concluída antes da decisão, registrada em
+  `docs/reference/`: `FII_SEGMENTOS_E_METRICAS.md` (corrige os erros de
+  ticker da v1, mapeia CVM Informe Trimestral Estruturado — 6 tabelas
+  cobrindo vacância, contrato, inquilino, indexador),
+  `ACOES_BR_SETORES_E_METRICAS.md` (DFP/ITR, código de lucro líquido `3.11`
+  confirmado universal entre setores testados; achado de payout de BBAS3
+  caindo de ~45% para 30% no ano), `ETF_INTERNACIONAL_SEGMENTOS_E_METRICAS.md`
+  (CAPE de VOO via Shiller/Yale confirmado, spread de VNQ sobre TIPS via
+  FRED confirmado, CAPE de VEA sem fonte aberta identificada).
+- Frescor de dado verificado por fonte, não uniforme: preço de mercado já
+  atualiza a cada hora (`refresh-market-data`, `pg_cron`, migration
+  `20260729120000`). NTN-B e FRED são diários. CVM Informe Mensal e
+  Shiller são mensais. CVM Informe Trimestral e DFP/ITR são trimestrais.
+  SEC N-PORT é o pior caso confirmado: só o mês de fechamento de trimestre
+  é público, com até 60 dias de atraso de publicação — dado pode refletir
+  posição de até ~5 meses antes da consulta, por regra da SEC, não por
+  falha de ingestão. Consequência para a Sprint 16: o estado `stale` de
+  cada sinal precisa de limiar por fonte, não um número global.
+- Consequências: `docs/ROADMAP.md` ganha a Sprint 16, sequenciada depois
+  das Sprints 10 (recuperação de senha, bloqueante) e 12 (observabilidade
+  — necessária para depurar os providers novos), à frente das Sprints 13
+  a 15 (pós-uso, menor urgência para usuário único). Implementação ainda
+  não iniciada — esta entrada registra a decisão de arquitetura e a
+  pesquisa de fonte, não código novo. `PRODUCT.md` precisará reconciliar a
+  frase "recomendador irrestrito de ativos" (linha 15, o que o produto não
+  é) com o novo mecanismo: o motor passa a recomendar, mas dentro de
+  universo fechado, com pesos definidos pelo usuário e confirmação manual
+  obrigatória antes de qualquer `purchases` — não irrestrito.
+
+## DEC-069 — Recuperação de senha (Sprint 10)
+
+- Data: 31 de julho de 2026
+- Status: Aceita, implementada
+- Contexto: com um único `auth.users` e sem fluxo de recuperação, senha
+  perdida significava perda permanente de todos os dados. Sprint 10,
+  registrada bloqueante em `DEC-068`, cobre exatamente isso — executada
+  antes de qualquer trabalho de Sprint 16.
+- Decisão: `AuthContextValue` ganha `resetPasswordForEmail`,
+  `updatePassword` e a flag `isPasswordRecovery` (`src/auth/authContext.ts`,
+  `src/auth/AuthProvider.tsx`). `isPasswordRecovery` é setada ao detectar o
+  evento `PASSWORD_RECOVERY` do `onAuthStateChange` do Supabase, e usada
+  por `ResetPasswordPage` para recusar a troca de senha se a página for
+  acessada sem uma sessão de recuperação válida (link inválido ou
+  expirado). Duas rotas públicas novas: `/recuperar-senha`
+  (`ForgotPasswordPage.tsx`, mensagem de sucesso genérica independente de o
+  e-mail existir na base, evita enumeração de conta) e `/redefinir-senha`
+  (`ResetPasswordPage.tsx`, exige senha e confirmação iguais, desloga a
+  sessão de recuperação após trocar a senha com sucesso). Link "Esqueceu
+  sua senha?" adicionado a `LoginPage`, visível apenas no modo de entrada
+  (não no cadastro) e fora do modo demonstrativo.
+- Verificação: `tsc --noEmit` limpo; suíte completa — 2210/2210 testes
+  passando, nenhuma quebra nos 140 arquivos de teste existentes. Preview
+  visual no navegador não foi possível nesta sessão — porta 5173 ocupada
+  por outra sessão do mesmo usuário, sem relação com o código alterado.
+- Consequências: `docs/ROADMAP.md`, Sprint 10 marcada concluída.
+  `auth_leaked_password_protection` permanece pendente — é toggle no
+  painel do Supabase (Auth → Providers → Password), ação manual de
+  configuração de segurança em serviço de terceiro, deliberadamente não
+  automatizada por este agente sem o usuário revisar o projeto ao vivo.
+
+## DEC-070 — Configurações deixam de ser mock (Sprint 11)
+
+- Data: 31 de julho de 2026
+- Status: Aceita, implementada — migration pendente de aplicação
+- Contexto: `SettingsPage` inteira ainda afirmava "sem conta autenticada",
+  "e-mail demonstrativo" e "não existe backend conectado" para um usuário
+  já autenticado com dado real — mesma classe de bug do `DEC-063`/`DEC-065`
+  (texto de demonstração sobre sessão real), não pega até esta sprint.
+- Decisão:
+  1. **Tabela nova `user_preferences`** (migration
+     `20260731120000_create_user_preferences.sql`, RLS idêntica ao padrão
+     de `profiles`: select/insert/update/delete restrito a
+     `user_id = auth.uid()`), guardando o subconjunto útil: moeda, casas
+     decimais, view compacta, estratégia padrão de aporte, lembrete de
+     aporte (ativado/dia). **Nome de exibição reaproveita `profiles.name`**,
+     já existente e sem uso prévio no código.
+  2. **E-mail vira somente leitura**, sempre lido de `user.email` da sessão
+     real — deixou de ser campo editável de texto solto. Editar e-mail de
+     verdade exige o fluxo próprio de confirmação do Supabase Auth,
+     deliberadamente fora deste escopo.
+  3. **Seção de notificações removida por completo** —
+     `SettingsNotificationsSection.tsx` e teste apagados, campo
+     `notifications` removido de `UserSettings`, `countEnabledNotifications`
+     removida. Nunca teve canal de envio; card de resumo trocado por
+     "Lembrete de aporte", que agora é dado real.
+  4. **`restoreDefaultSettings` para de sobrescrever o perfil** — só
+     `display` e `planning` voltam ao valor de fábrica; nome e e-mail são
+     identidade real, não "padrão" a restaurar. Assinatura mudou para
+     receber o perfil atual (`restoreDefaultSettings(currentProfile)`).
+  5. **Contratos novos** em `src/data/repositories/contracts.ts`:
+     `ProfileRepository` e `UserPreferencesRepository`, seguindo o padrão
+     de `AllocationTargetRepository` — `userId` passado por chamada, não no
+     construtor da fábrica, igual a `AssetRepository.ensureClosedUniverse`.
+  6. **Headers de segurança em `vercel.json`**:
+     `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+     `Referrer-Policy: strict-origin-when-cross-origin`,
+     `Permissions-Policy` restringindo geolocalização/câmera/microfone,
+     `Strict-Transport-Security`. **Content-Security-Policy deliberadamente
+     fora** — CSP mal calibrado quebra o site inteiro (Supabase, fontes) e
+     não havia ambiente para testar contra produção nesta sessão. Fica
+     pendência sinalizada, não resolvida às pressas.
+- Migration aplicada em produção (projeto `vxjrncwfysglinfktifz`) após
+  confirmação explícita do usuário — não automática. `database.types.ts`
+  regenerado logo em seguida; o repositório usa `Tables<'user_preferences'>`
+  real, sem cast temporário.
+- `get_advisors` (segurança) rodado após a migration: nenhum aviso novo
+  para `user_preferences` — RLS habilitada e com as 4 políticas presentes,
+  confirmando que as policies foram criadas corretamente. Avisos
+  pré-existentes seguem abertos e não fazem parte desta sprint:
+  `official_event_backfill_jobs`/`runs` sem policy (RLS habilitada, mas
+  sem política — tabelas internas de backfill, não acessadas pelo
+  frontend), extensão `pg_net` no schema `public`, e
+  `auth_leaked_password_protection` desabilitado — este último é
+  exatamente a pendência manual já registrada na Sprint 10 (`DEC-069`), o
+  próprio advisor confirma que segue pendente.
+- Verificação: `tsc --noEmit` limpo; suíte completa — 2208/2208 testes
+  passando (140 arquivos), antes e depois de aplicar a migration e
+  regenerar os tipos. Sem teste de componente/página dedicado para
+  Settings ainda — confirmado que não existia nenhum antes desta sprint;
+  cobertura de interação continua planejada para a Sprint 13.
+- Consequências: `docs/ROADMAP.md`, Sprint 11 marcada concluída, sem
+  pendência de migration. Pendência que segue real e não fechada por este
+  agente: `auth_leaked_password_protection` no painel do Supabase (herdada
+  da `DEC-069`, agora confirmada pelo advisor de segurança do próprio
+  projeto).
+
+## DEC-071 — Observabilidade e frescor de dados (Sprint 12)
+
+- Data: 4 de agosto de 2026
+- Status: Aceita, implementada, migration aplicada em produção
+- Contexto: `explain-contribution-plan` tinha `catch` totalmente mudo —
+  mesmo bug que a `DEC-062` já tinha corrigido em `refresh-market-data`
+  ("o 500 era mudo"), nunca replicado pra segunda função. E mesmo com o
+  catch de falha já logado em `refresh-market-data`, o caminho de sucesso
+  não logava nada — cron rodando bem e cron rodando sem atualizar quase
+  nada de fato pareciam idênticos no log.
+- Decisão, em três partes:
+  1. **Log estruturado JSON, mesma disciplina nos dois lados.**
+     `refresh-market-data-succeeded` novo, com contagem de preços/câmbio
+     atualizados, pulados por já frescos, e tipos de warning.
+     `explain-contribution-plan-failed` novo, replicando o padrão já
+     usado do outro lado — nome e mensagem do erro, nunca segredo, token,
+     dossiê (dado de carteira do usuário) ou corpo de resposta de
+     provider.
+  2. **Aviso de preço obsoleto em `/carteira`.** Novo domínio
+     `src/domain/priceFreshness.ts` (`getStaleAssetPrices`), usando
+     `getLatestAssetPricesByAsset` já existente. Limiar de **4 dias**
+     (`UI_STALE_PRICE_THRESHOLD_MS`), deliberadamente diferente da janela
+     de 60 min do cron (`MARKET_DATA_FRESHNESS_MS`) — 60 min soaria falso
+     alarme em todo fim de semana de mercado fechado; 4 dias cobre feriado
+     prolongado sem ruído. Só preço `source: 'market-provider'` é
+     avaliado — preço manual é decisão do usuário, não falha de provider.
+  3. **`npm run check:health`** (`scripts/check-health.mjs`) contra nova
+     RPC `check_market_data_health_v1` — `SECURITY DEFINER`,
+     `search_path` fixo (`public, cron`), `revoke all from public` +
+     `grant execute` só para `service_role`. `cron.job_run_details` não é
+     exposto via PostgREST de propósito (infraestrutura interna do
+     `pg_cron`, não dado de aplicação) — função server-side é o mesmo
+     padrão já usado no projeto para leitura controlada de schema
+     interno, evitando expor `cron` na API ou adicionar dependência nova
+     de conexão Postgres direta.
+- Limite documentado, não escondido: `cron.job_run_details.status =
+'succeeded'` confirma que o `pg_net` entregou a chamada HTTP e recebeu
+  resposta — **não** que a lógica interna da função funcionou (a função
+  pode responder 500 e o cron mesmo assim registrar `succeeded`,
+  confirmado no comentário original da `DEC-062`). `check:health` e os
+  logs estruturados da Edge Function são complementares, não substitutos —
+  registrado em `docs/runbooks/OPERATIONS_V1.md`, seção 4.
+- Verificação: `tsc --noEmit` limpo; suíte completa — 2215/2215 testes
+  passando (141 arquivos, 7 novos testes de `priceFreshness.test.ts`
+  cobrindo limiar, ordenação por dias parado, e exclusão de preço manual).
+  Migration `20260804170000_create_check_market_data_health_v1.sql`
+  aplicada em produção (projeto `vxjrncwfysglinfktifz`) após confirmação
+  explícita do usuário. `get_advisors` rodado depois: nenhum aviso de
+  segurança novo — os três avisos pré-existentes (tabelas de backfill sem
+  policy, `pg_net` no schema `public`, `auth_leaked_password_protection`)
+  continuam os mesmos de antes desta sprint. RPC testada com
+  `execute_sql`: 24/24 execuções recentes `succeeded`, 56 minutos desde a
+  última — dentro do esperado.
+- Consequências: `docs/ROADMAP.md`, Sprint 12 marcada concluída.
+  `docs/runbooks/OPERATIONS_V1.md` criado, cobrindo as três peças, cenários
+  de diagnóstico e o limite conhecido da checagem de cron. Nenhuma
+  pendência manual nova — diferente de `DEC-069`/`DEC-070`, esta sprint
+  não introduziu ação de painel pendente.
+
+## DEC-072 — Testes de interação: entrega inicial (Sprint 13, reordenada)
+
+- Data: 4 de agosto de 2026
+- Status: Aceita, implementada parcialmente — item aberto registrado, não
+  fechado por engano
+- Contexto: usuário pediu para reordenar as sprints restantes (13 a 16)
+  pela lógica mais correta, não pela ordem numérica original. Decisão:
+  **13 antes de 14 antes de 16** — não faz sentido documentar/limpar
+  código sem teste de interação cobrindo comportamento real primeiro
+  (risco de "limpar" algo com bug escondido sem teste pra pegar), e não
+  faz sentido documentar/limpar **depois** da Sprint 16 (motor com score),
+  que traz volume grande de código novo — melhor a base já limpa antes. 15
+  segue fora: trava sozinha, sem segundo usuário não tem o que testar.
+  `src/auth` estava no pior estado possível para começar por aqui: Sprint
+  10 (`DEC-069`) tinha acabado de adicionar fluxo de recuperação de senha
+  inteiro sem nenhum teste de interação, só `tsc --noEmit`.
+- Decisão:
+  1. **Dependências novas**: `jsdom`, `@testing-library/react`,
+     `@testing-library/user-event`, `@testing-library/jest-dom` —
+     versões compatíveis com React 19 confirmadas antes de instalar
+     (`@testing-library/react@16.3.2`). `npm audit` rodado antes e depois:
+     resolvido sem quebra `brace-expansion` e `postcss` (dev-tooling).
+     **Achado à parte, fora de escopo desta sprint**: `react-router-dom`
+     (dependência de produção) com vulnerabilidade alta de CSRF em modo
+     RSC — não corrigido aqui, `npm audit fix --force` sugeriria
+     downgrade, precisa de atenção própria e teste dedicado antes de
+     mexer numa lib de rotas usada em todo o app.
+  2. **Ambiente por arquivo, não global.** `vite.config.ts` ganha
+     `test.setupFiles`, mas o ambiente continua `node` por padrão — cada
+     arquivo de teste de interação opta em `jsdom` via pragma
+     `// @vitest-environment jsdom` no topo. Motivo: a suíte tem mais de
+     140 arquivos de teste de domínio/lógica pura sem DOM; forçar `jsdom`
+     globalmente pagaria o custo de setup em todos eles à toa.
+  3. **`src/testSetup.ts`** registra `@testing-library/jest-dom/vitest`
+     (matchers como `toBeInTheDocument`) e `afterEach(cleanup)` — sem
+     `globals: true` no vitest config, a limpeza automática do Testing
+     Library não dispara sozinha; sem isso, o segundo teste de um arquivo
+     via a DOM do primeiro ainda montada (confirmado na prática: sem o
+     `afterEach`, inputs apareciam com valor concatenado de dois testes).
+     Verificado que `cleanup()` não quebra os arquivos `node` — a função
+     protege internamente contra `document` ausente.
+  4. **Cobertura entregue**: `LoginPage.test.tsx` (4 testes — link
+     "esqueceu senha" condicional a modo e contexto, submit chama
+     `signIn`, mensagem amigável em credencial inválida),
+     `ForgotPasswordPage.test.tsx` (3 — mensagem de sucesso genérica
+     idêntica em sucesso e falha, evitando enumeração de conta; desabilita
+     em modo demo), `ResetPasswordPage.test.tsx` (5 — recusa mostrar o
+     formulário sem `isPasswordRecovery`, rejeita senha divergente sem
+     chamar `updatePassword`, atualiza e desloga a sessão de recuperação
+     em sucesso, mensagem amigável em falha), `PurchaseForm.test.tsx` (5 —
+     criação, edição pré-preenchida, cancelamento de edição, mensagem de
+     erro). Total: 17 testes novos de interação real (clique, digitação,
+     submit), não só render estático.
+  5. **Não coberto, registrado como item aberto**: fluxo de cancelamento
+     de compra em `HistoryPage` (diálogo de confirmação orquestrado no
+     nível da página, exige mock do hook `useHistoryData` inteiro — maior
+     que o escopo de um componente isolado como `PurchaseForm`) e
+     interação em qualquer outra página do app. Sprint 13 permanece aberta
+     no roadmap com o que falta explícito, não marcada como concluída por
+     engano.
+- Verificação: `tsc --noEmit` limpo; suíte completa —
+  **2232/2232 testes passando, 145 arquivos** (17 testes novos sobre os
+  2215 de antes desta sprint). Duração da suíte subiu de ~8,6s para
+  ~15,4s — custo de `jsdom` isolado nos 4 arquivos novos, suíte de domínio
+  continua rápida.
+- Consequências: `docs/ROADMAP.md` reordena as Sprints 13-16 e marca a 13
+  como entrega inicial concluída, com o restante listado explicitamente.
+  Padrão de teste de interação (pragma por arquivo, mock de `useAuth` via
+  `vi.spyOn`, `afterEach(cleanup)` global) fica estabelecido para reuso —
+  próxima peça (cancelamento de compra) tem exemplo direto a seguir, não
+  precisa reinventar a abordagem.
+
+## DEC-073 — Reconciliação documental e limpeza de código morto (Sprint 14)
+
+- Data: 4 de agosto de 2026
+- Status: Aceita, implementada parcialmente — item aberto registrado, não
+  fechado por engano
+- Contexto: `docs/PROJECT_HANDOFF.md` (seção 2) já admitia dívida
+  documental conhecida em `README.md`, `docs/ARCHITECTURE.md` e
+  `docs/SUPABASE_SCHEMA_PLAN.md`. Na prática, o próprio
+  `docs/PROJECT_HANDOFF.md` estava mais desatualizado que os outros — sua
+  última atualização (29-30 de julho) não refletia o fechamento do
+  Sprint 9 nem nenhuma das Sprints 10 a 13 executadas nesta sessão.
+- Decisão:
+  1. **`README.md`** — "O que ainda falta" corrigido: afirmava que
+     `official_asset_events` e `fundamental_snapshots` seguiam vazias,
+     quando já estavam em 902 e 21 linhas respectivamente (`DEC-058`,
+     `DEC-059`, ambas anteriores a esta sessão mas nunca refletidas aqui).
+     Rotas `/recuperar-senha` e `/redefinir-senha` adicionadas à lista de
+     rotas atuais. Bullets novos para recuperação de senha, configurações
+     persistidas e observabilidade.
+  2. **`docs/PROJECT_HANDOFF.md`** — décima quinta atualização adicionada
+     ao log já existente no topo do documento (mesmo padrão das 14
+     anteriores), cobrindo Sprint 9 (fechamento) a Sprint 13. Seção 1
+     (resumo executivo), seção 2 (a nota de dívida documental, corrigida
+     para não apontar mais para um `README.md` que já foi corrigido) e
+     seção 14 (Próxima sequência recomendada, reescrita — a versão
+     anterior ainda descrevia decisão de backfill gradual como pendente,
+     quando o backfill amplo já tinha sido executado por completo).
+  3. **`knip.json`** — dead-code scanner adicionado como devDependency,
+     com pontos de entrada explícitos (`scripts/**`,
+     `supabase/functions/*/index.ts`, `vite.config.ts`) porque a
+     configuração padrão do knip, sem isso, sinalizava como "não usado"
+     um arquivo que tinha acabado de ser editado na própria sessão
+     (`explain-contribution-plan/index.ts`, Sprint 12) — confirmação
+     concreta de que rodar a ferramenta sem configurar os pontos de
+     entrada do projeto produz falso positivo, não sinal confiável.
+     `npm run audit:dead-code` adicionado.
+  4. **Um export removido**: `cloneTemporalValue`
+     (`src/domain/context/official-events/internal.ts`) tinha `export`
+     mas só é usado dentro do próprio arquivo — confirmado com grep antes
+     de tocar, não só pelo knip.
+- Decisão explícita de não fazer, registrada em vez de escondida: mesmo
+  com `knip.json` configurado, ~190 reexportações de barrel
+  (`fundamentals/index.ts`, `repositories/index.ts`, `cvm/fii/index.ts`,
+  `sec/nport/index.ts`, `backfill/index.ts`) continuam sinalizadas como
+  não consumidas via o próprio barrel. Verificado em pelo menos um caso
+  que a causa é import direto do caminho profundo em vez do barrel (os
+  scripts de ingestão importam de `../src/data/fundamentals/cvm/types`,
+  não de `../src/data/fundamentals`) — os símbolos em si não estão mortos,
+  a reexportação do barrel é que não tem consumidor hoje. Não removidas em
+  massa: risco de quebrar um consumidor que a config atual do knip não
+  mapeia, e a Sprint 16 vai expandir exatamente esses módulos de
+  fundamentos em breve — prunar agora para reconstruir depois é
+  desperdício de esforço, não limpeza.
+- Verificação: `tsc --noEmit` limpo; suíte completa — 2232/2232 testes
+  passando, 145 arquivos, sem mudança de contagem (a única remoção de
+  código foi um `export` desnecessário, não lógica).
+- Consequências: `docs/ROADMAP.md`, Sprint 14 marcada como entrega
+  inicial concluída, com o que falta explícito na própria entrada — não
+  fechada por engano. `knip.json` fica como ferramenta permanente do
+  repositório para auditorias futuras, incluindo uma decisão futura
+  sobre prunar barrels depois da Sprint 16.
+
+## DEC-074 — Sprint 16, Fase 1: fundação de schema para o motor por score
+
+- Data: 4 de agosto de 2026
+- Status: Aceita, implementada, migrations aplicadas em produção
+- Contexto: Fase 1 do plano da `DEC-068` — schema precisa existir antes de
+  qualquer provider (Fase 2) ou motor de score (Fase 5) ter onde escrever
+  ou ler.
+- Decisão, em duas migrations:
+  1. **`asset_type`/`asset_segment` em `assets`**
+     (`20260804180000_add_asset_type_and_segment.sql`). `asset_type` só se
+     aplica a FII (tijolo/papel/fof) — aplicar métrica de tijolo (vacância,
+     WALE) num fundo de papel é o erro de categoria documentado em
+     `docs/reference/FII_SEGMENTOS_E_METRICAS.md`. `asset_segment` cobre
+     os três vocabulários (FII, ação por regime, ETF por índice) numa
+     coluna só, sem ambiguidade porque cada ativo pertence a uma categoria.
+     Antes de gravar, **verificado em fonte** (não assumido da memória)
+     que KNRI11 é tijolo híbrido (lajes + logística) e XPLG11 é tijolo
+     logística — os dois não tinham sido confirmados nos documentos de
+     referência anteriores. Backfill dos 12 ativos já semeados no único
+     usuário real, conferido linha por linha depois de aplicar.
+  2. **`signal_rules` + `score_weight_basis_points`**
+     (`20260804190000_create_signal_rules.sql`). Tabela por usuário
+     (mesma RLS de `profiles`/`user_preferences`), faixas min/max → pontos
+     por `signal_key` prefixado por categoria. **Deixada vazia de
+     propósito** — as faixas de
+     `docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md` são proposta para o
+     usuário revisar, não fato pronto para gravar; população real
+     acontece na Fase 5, quando a regra e o código que a consome nascem
+     juntos. Peso do score (`desvioAjustado = desvioCandidato − score ×
+peso`, seção 5 do rascunho) virou coluna em `user_preferences` em vez
+     de tabela própria — é uma preferência única por usuário. Default de
+     50 pontos-base por ponto é valor de partida mecânico, não julgamento
+     financeiro.
+- Decisão de design que evitou retrabalho grande: `assetType`/
+  `assetSegment` em `Asset` (domínio) ficaram **opcionais**, não
+  obrigatórios. Tentativa inicial como campos obrigatórios quebrou
+  typecheck em ~30 arquivos de teste espalhados pela suíte inteira
+  (fixtures ad hoc, sem builder compartilhado) — revertido antes de tentar
+  corrigir todos, mesmo padrão já usado em `Purchase.notes?`.
+- Verificação: `tsc --noEmit` limpo; suíte completa — 2232/2232 testes
+  passando, 145 arquivos, em ambas as migrations (typecheck e suíte
+  rodados após cada uma). Migrations aplicadas em produção (projeto
+  `vxjrncwfysglinfktifz`); `database.types.ts` regenerado duas vezes.
+  `get_advisors` rodado após cada migration: nenhum aviso de segurança
+  novo nas duas — mesmos três avisos pré-existentes de sempre.
+- Consequências: `docs/ROADMAP.md`, Sprint 16 Fase 1 marcada concluída.
+  Fase 2 (providers CVM Trimestral + Tesouro Transparente) é o próximo
+  passo natural, mas não iniciada nesta entrada — checkpoint pedido
+  explicitamente antes de continuar.
+
+## DEC-075 — Sprint 16, Fase 2 (parte 1): provider Tesouro Transparente (NTN-B)
+
+- Data: 4 de agosto de 2026
+- Status: Aceita, implementada, migration aplicada e Edge Function
+  publicada em produção (versão 11)
+- Contexto: Fase 2 cobre dois providers de FII — CVM Informe Trimestral
+  Estruturado (6 tabelas, maior) e Tesouro Transparente (NTN-B, menor,
+  autocontido). Esta entrada fecha só o segundo, deliberadamente, como
+  fatia vertical completa antes de partir para o maior.
+- Decisão:
+  1. **Tabela global `market_reference_rates`**
+     (`20260804200000_create_market_reference_rates.sql`), mesmo padrão
+     de `market_exchange_rates` (`DEC-052`): sem `user_id`, sem RPC de
+     escrita para `authenticated`, upsert transacional
+     `upsert_market_reference_rates_v1` só para `service_role`, com
+     `revoke` explícito de escrita direta na tabela até para
+     `service_role` — só a RPC escreve. `series` deixa espaço para outra
+     taxa de referência futura (ex.: TIPS via FRED, Fase 4) sem tabela
+     nova.
+  2. **`tesouroTransparenteProvider.ts`** — baixa o CSV público (sem
+     chave), decodifica Latin-1 (confirmado que o arquivo real não é
+     UTF-8 — decodificar errado corrompe o nome do título e a filtragem
+     falha silenciosamente, zero linhas), filtra por
+     `"Tesouro IPCA+ com Juros Semestrais"`, seleciona a `Data Base` mais
+     recente e, dentro dela, o `Data Vencimento` mais longo — regra
+     explícita em código, não vencimento fixo, porque o título mais longo
+     muda com o tempo (`docs/reference/FII_SEGMENTOS_E_METRICAS.md`,
+     seção 7.2).
+  3. **Frescor por dia, não por hora.** Nova função
+     `isReferenceRateFreshForToday` (`freshness.ts`) — o Tesouro publica
+     uma linha por dia útil, não por segundo;
+     `MARKET_DATA_FRESHNESS_MS` (60 min) rebaixaria o CSV de ~14 MB a cada
+     disparo horário do cron à toa. "Fresco" aqui significa "já temos a
+     linha de hoje".
+  4. **Integrado em `refresh-market-data`**, não em função nova — reaproveita
+     autenticação, `service_role`, e o mesmo cron horário já existente
+     (a checagem diária evita refetch desnecessário).
+  5. **Contrato do frontend atualizado com a mesma disciplina da
+     `DEC-066`.** `'tesouro-transparente'` adicionado ao allowlist de
+     `provider` em `parseMarketDataRefreshResult`
+     (`src/data/repositories/supabaseRepositories.ts`) — faltar aqui
+     repetiria exatamente o bug que a `DEC-066` corrigiu (`'storage'`
+     ausente derrubava a resposta inteira). Verificado com teste
+     dedicado, não só por inspeção.
+- Verificação: `tsc --noEmit` limpo. Suíte de Edge Functions —
+  **115/115 testes, incluindo 15 novos** (9 do parser/provider Tesouro
+  Transparente com amostra real de CSV baixada e conferida em 31/07/2026,
+  3 de frescor diário, 6 do fluxo completo em `core.test.ts`, cobrindo
+  skip quando já fresco, insert quando novo, warning quando não é mais
+  recente, warning quando o provider falha, warning de configuração
+  quando ausente). Suíte do frontend — 2251/2251, 146 arquivos. Migration
+  aplicada em produção; `get_advisors` sem aviso novo. Edge Function
+  publicada (versão 11, `ACTIVE`); `market_reference_rates` ainda vazia
+  no momento desta entrada — primeira população ocorre no próximo
+  disparo do cron horário, não verificada ainda por não ter esperado o
+  ciclo.
+- Consequências: Fase 2 segue aberta — falta o provider CVM Informe
+  Trimestral Estruturado (6 tabelas: `geral`, `imovel`,
+  `imovel_renda_acabado_contrato`, `imovel_renda_acabado_inquilino`,
+  `complemento`, `resultado_contabil_financeiro`), consideravelmente
+  maior que este. Checkpoint pedido explicitamente antes de começá-lo.
+
+## DEC-076 — Sprint 16, Fase 2 (parte 2): vacância trimestral de FII
+
+- Data: 4 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: primeiro sinal extraído do Informe Trimestral Estruturado
+  (16 CSVs, não 6 — número corrigido nesta entrada após inspeção real do
+  arquivo `inf_trimestral_fii_2026.zip`). Sinal escolhido explicitamente
+  pelo usuário entre as opções levantadas: vacância, via tabela `imovel`
+  (`Percentual_Vacancia`, `Percentual_Receitas_FII`). Escopo desta fatia é
+  só vacância — WALE/indexador, concentração por inquilino, FFO/resultado
+  recorrente e tipo de contrato ficam para entradas futuras.
+- Decisão:
+  1. **Média ponderada por participação na receita, nunca por 1 fixo.**
+     `Percentual_Receitas_FII` de cada imóvel não soma 1 no dado real (a
+     HGRU11, com 100 imóveis, soma ~0,868 — o resto é receita não alocada
+     a imóvel específico). A fórmula é `Σ(vacância_i × peso_i) /
+Σ(peso_i)`, com a soma real dos pesos no denominador — nunca
+     assumida normalizada.
+  2. **Aritmética inteira do início ao fim.** `Percentual_Vacancia` e
+     `Percentual_Receitas_FII` vêm como frações decimais (0-1, separador
+     ponto — diferente do Informe Mensal, que usa vírgula) com até 17
+     casas de precisão observadas no dado real. Toda a agregação em
+     `src/data/fundamentals/cvm/fii-trimestral/numbers.ts` usa `BigInt`
+     em escala comum, nunca `number`/float — arredondamento final
+     half-up, mesmo padrão de `divideToScaledSafeInteger`
+     (`src/domain/fundamentals/derived/scaledArithmetic.ts`). A soma de
+     pesos, guardada só para auditoria em provenance, é truncada para
+     escala fixa de 6 casas antes de virar `Number` — a escala comum de
+     entrada (até 17) presa a `BigInt` estouraria
+     `Number.MAX_SAFE_INTEGER` se convertida direto.
+  3. **Módulo paralelo, não genérico, ao provider do Informe Mensal.**
+     `src/data/fundamentals/cvm/fii-trimestral/` replica a estrutura de
+     `cvm/fii/` (`archive.ts`, `csv.ts`, `provider.ts`, parser de CSV
+     orientado a cabeçalho, não posicional — os CSVs trimestrais têm 38
+     colunas em `geral` e 19 em `imovel`) mas não compartilha tipos de
+     record com ele: a forma de provenance dos dois informes é
+     estruturalmente diferente (mensal tem 2 documentos e PL/cotas/
+     cotistas; trimestral tem agregação ponderada por imóvel, com
+     trilha de auditoria por imóvel). `CVM_REAL_ESTATE_FUNDS` (lista dos
+     4 fundos) é reaproveitada como está — mesma identidade, fonte
+     diferente.
+  4. **Escrita isolada, leitura existente protegida.**
+     `supabaseRealEstateFundSnapshotsTrimestral.ts` é um storage novo e
+     separado (`source: 'cvm-fii-inf-trimestral'`, `period: 'quarterly'`,
+     todas as colunas específicas do mensal explicitamente nulas). A
+     função de leitura já em produção
+     (`listRealEstateFundSnapshots`, usada pela tela `/fundamentos`
+     real) ganhou um filtro `.eq('source', 'cvm-fii-inf-mensal')`
+     explícito — sem ele, uma linha trimestral ingerida quebraria essa
+     tela ao tentar mapear um formato que `mapRealEstateFundSnapshotRow`
+     não entende. Leitura da vacância fica para quando o motor de score
+     (Fase 5) precisar consumi-la.
+  5. **Migration em tabela viva com dado real.**
+     `20260804210000_add_vacancy_to_fundamental_snapshots.sql` adiciona
+     `vacancy_basis_points integer` (CHECK 0-10000) e reescreve os dois
+     CHECKs de identidade/metadados de `fundamental_snapshots` para um
+     terceiro ramo (`kind='real-estate-fund' and
+source='cvm-fii-inf-trimestral'`), exigindo `net_asset_value_minor`/
+     `issued_shares_*`/`shareholder_count` nulos nesse ramo — espelha a
+     mesma exigência inversa já existente para o ramo mensal. Aplicada
+     em produção; confirmado por `execute_sql` que as 8 linhas mensais
+     existentes (HGRU11, KNRI11, VISC11, XPLG11 × 2) continuam com
+     `vacancy_basis_points = null`.
+- Verificação: `tsc --noEmit` limpo. Suíte completa — 151/151 arquivos,
+  2278/2278 testes (27 novos: `numbers.test.ts` cobre soma de pesos
+  desigual a 1, arredondamento half-up na fronteira, vacância 100%,
+  precisão real de 17 casas sem estouro; `csv.test.ts` e
+  `archive.test.ts` usam o cabeçalho real de `geral`/`imovel` e a linha
+  real da HGRU11 baixada e conferida nesta sessão; `provider.test.ts`
+  cobre nome oficial inesperado, versão de filing desatualizada ignorada,
+  e o resultado exato — 2645 pontos-base — para uma mistura de vacância
+  de alta precisão e vacância total). Migration aplicada em produção;
+  `get_advisors` sem aviso novo (mesmos três avisos pré-existentes de
+  sempre).
+- Consequências: `docs/ROADMAP.md` atualizado — vacância marcada
+  concluída dentro da Fase 2, que segue aberta para os demais sinais do
+  Informe Trimestral. Nenhum consumidor ainda lê `vacancy_basis_points`
+  (nem dossiê, nem motor de score) — população acontece só quando a
+  Fase 5 for construída, mesmo padrão já usado para `signal_rules`
+  (`DEC-074`).
+
+## DEC-077 — Sprint 16, Fase 2 (parte 3): indexador da carteira de FII
+
+- Data: 4 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: segundo sinal extraído do Informe Trimestral Estruturado,
+  direto na sequência da vacância (`DEC-076`), mesma sessão, mesmo módulo.
+  Fonte: tabela `complemento`, confirmada por download real do
+  `inf_trimestral_fii_2026.zip` — `Percentual_Indexador_Receita_FII_IPCA`,
+  `_IGPM`, `_INPC`, `_INCC` (fração decimal, separador ponto, mesma
+  convenção da vacância). Confirmado com a HGRU11 real: IPCA=0,867201,
+  IGP-M=0,002972, INPC=0, INCC=0 — soma 0,870173, não 1 (mesma lição da
+  vacância: receita não indexada ou não alocada existe e não deve ser
+  normalizada para 1).
+- Decisão:
+  1. **4 colunas independentes, não 1 indexador dominante.** A tabela
+     `complemento` é 1 linha por fundo por trimestre — ao contrário da
+     vacância, não há nada para agregar por peso; cada fração já é o
+     valor final do fundo. Guardar só o indexador dominante perderia
+     informação que o motor de score pode querer (ex.: fundo com 87% IPCA
+     e 13% CDI é diferente de um puro-IPCA, mesmo que ambos tenham "IPCA"
+     como dominante).
+  2. **Conversão fração→pontos-base isolada, sem agregação.** Nova função
+     `toBasisPoints` (`cvm/fii-trimestral/numbers.ts`), separada de
+     `computeWeightedAverageVacancyInBasisPoints` — mesmo arredondamento
+     half-up em `BigInt`, mas sem peso nem soma. Reaproveita o parser
+     `parseNullableCvmFiiExactDecimalQuantity` já existente do módulo
+     mensal (`../fii/numbers.ts`), sem duplicar a lógica de parsing de
+     fração decimal.
+  3. **Mesmo record, mesmo storage, mesma migration incremental.** Em vez
+     de criar um terceiro módulo paralelo, o indexador entra nos MESMOS
+     `CvmRealEstateFundVacancyRecord`/`CvmRealEstateFundVacancyFacts` e no
+     mesmo `supabaseRealEstateFundSnapshotsTrimestral.ts` da vacância — o
+     nome do tipo ficou histórico (só vacância na origem), documentado
+     com comentário em vez de renomeado, para não gerar diff de renome
+     sem ganho real numa fatia que já está testada e em produção.
+     Migration nova (`20260804220000_add_indexador_to_fundamental_snapshots.sql`)
+     segue o mesmo padrão da `DEC-076`: 4 colunas nullable com CHECK de
+     range 0-10000 cada, e os 4 ramos do CHECK de metadados de
+     `fundamental_snapshots` reescritos para exigir as 4 colunas nulas em
+     todo `kind`/`source` exceto `real-estate-fund`/
+     `cvm-fii-inf-trimestral`.
+  4. **Leitura existente continua protegida.** Nenhuma mudança em
+     `listRealEstateFundSnapshots` foi necessária além do filtro já
+     aplicado na `DEC-076` (`source = 'cvm-fii-inf-mensal'`) — o
+     indexador entra pelas mesmas colunas já fora do alcance dessa
+     consulta.
+- Verificação: `tsc --noEmit` limpo, `eslint` limpo nos arquivos tocados.
+  Suíte completa — 151/151 arquivos, 2280/2280 testes (cobertura nova:
+  fixture da HGRU11 real dando 8672/30/0/0 pontos-base para IPCA/IGP-M/
+  INPC/INCC; indexador nulo quando não há linha `complemento` casando a
+  identidade do filing; erro explícito para linha `complemento`
+  ambígua — mais de uma para a mesma combinação CNPJ/data/versão).
+  Migration aplicada em produção (`vxjrncwfysglinfktifz`);
+  `generate_typescript_types` reexecutado e mesclado manualmente em
+  `src/lib/database.types.ts`; `get_advisors` sem aviso novo (mesmos três
+  avisos pré-existentes de sempre).
+- Consequências: `docs/ROADMAP.md` atualizado — indexador marcado
+  concluído dentro da Fase 2, que segue aberta para WALE, concentração
+  por inquilino, FFO/resultado recorrente e tipo de contrato. Nenhum
+  consumidor ainda lê as 4 colunas novas — mesmo padrão de população
+  adiada até a Fase 5 já estabelecido na `DEC-076`.
+
+## DEC-078 — Sprint 16, Fase 2 (parte 4): concentração por setor de inquilino
+
+- Data: 4 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: terceiro sinal do Informe Trimestral Estruturado, mesma sessão
+  das duas anteriores. Fonte: tabela `imovel_renda_acabado_inquilino`,
+  confirmada por download real — `Setor_Atuacao` (texto livre: "Serviço",
+  "Comércio", ou o placeholder "-" quando o imóvel não reporta quebra por
+  setor) e `Percentual_Receitas_FII` (mesma convenção de fração 0-1,
+  separador ponto, das duas fatias anteriores). Achado importante: a CVM
+  **não divulga inquilino nomeado**, só o setor de atuação — "concentração
+  por inquilino" na prática é concentração por setor.
+- Decisão:
+  1. **Agregação por soma-e-máximo, não por peso.** Diferente da vacância
+     (que pondera vacância por peso) e do indexador (que não agrega nada),
+     este sinal soma `Percentual_Receitas_FII` agrupado por
+     `Setor_Atuacao` — um fundo pode ter o mesmo setor em vários imóveis
+     (ex.: "Varejo" no imóvel A e no imóvel B) e a concentração real é a
+     soma, não o maior valor isolado. Depois de somar por setor, pega o
+     maior grupo. Nova função `computeTenantConcentration`
+     (`cvm/fii-trimestral/numbers.ts`), BigInt do início ao fim, mesmo
+     arredondamento half-up das duas anteriores.
+  2. **Overflow do peso agregado resolvido preventivamente.** A mesma
+     armadilha de escala da vacância (`DEC-076`: converter para escala
+     comum de até 17 casas pode estourar `Number.MAX_SAFE_INTEGER`) foi
+     generalizada em `roundBigIntFractionToStorageScale`, reaproveitada
+     tanto pela soma de pesos da vacância quanto pela soma por setor aqui
+     — evita duplicar a mesma lógica de arredondamento para armazenamento
+     de auditoria em escala fixa (1e-6).
+  3. **Nome do setor só na provenance, não em coluna própria.** O setor é
+     texto livre (não um enum fechado da CVM) — criar uma coluna
+     `tenant_concentration_dominant_sector` fixaria um formato que pode
+     variar entre arquivos/anos. Fica só como string dentro do jsonb de
+     provenance, auditável mas não indexável por enquanto; se o motor de
+     score (Fase 5) precisar filtrar por setor especificamente, decide-se
+     então se vale promover a coluna própria.
+  4. **Mesmo record, mesmo storage, mesma migration incremental** —
+     terceira vez no mesmo padrão das `DEC-076`/`DEC-077`: 1 coluna nova
+     (`tenant_concentration_basis_points`, CHECK 0-10000), exigida nula
+     nos outros 3 ramos do CHECK de metadados de `fundamental_snapshots`.
+  5. **Erro de otimização evitado nesta entrada:** ao adicionar a nova
+     coluna ao `Insert` type manual em `database.types.ts`, a primeira
+     tentativa (edição em lote via `replace_all`) marcou a coluna como
+     obrigatória (sem `?`) no bloco `Insert` porque o texto-âncora era
+     idêntico entre `Row` e `Insert` para essa combinação de campos — só
+     `Row` deveria ficar sem `?`. Pego pelo `tsc` imediatamente (dois
+     providers que nunca setam a coluna, stock e ETF, pararam de
+     compilar) e corrigido antes de seguir. Lição: ao editar
+     `database.types.ts` manualmente, conferir bloco por bloco em vez de
+     `replace_all` quando `Row`/`Insert`/`Update` têm texto-âncora igual.
+- Verificação: `tsc --noEmit` limpo, `eslint` limpo nos arquivos tocados.
+  Suíte completa — 151/151 arquivos, 2293/2293 testes (cobertura nova:
+  soma por setor repetido em imóveis diferentes, setor dominante entre
+  múltiplos, concentração 100% num único setor, fundo sem linha de
+  inquilino casando a identidade do filing). Migration aplicada em
+  produção (`vxjrncwfysglinfktifz`); `generate_typescript_types`
+  reexecutado e mesclado manualmente; `get_advisors` sem aviso novo
+  (mesmos três avisos pré-existentes de sempre).
+- Consequências: `docs/ROADMAP.md` atualizado — concentração por
+  inquilino marcada concluída dentro da Fase 2, que segue aberta para
+  WALE, FFO/resultado recorrente e tipo de contrato. Três sinais do
+  Informe Trimestral concluídos nesta sessão (vacância, indexador,
+  concentração) — nenhum ainda consumido fora da ingestão, população
+  adiada até a Fase 5, mesmo padrão das duas entradas anteriores.
+
+## DEC-079 — Sprint 16, Fase 2 (parte 5): resultado financeiro trimestral (FFO)
+
+- Data: 4 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: quarto sinal do Informe Trimestral Estruturado, quinta entrada
+  consecutiva sobre o mesmo módulo nesta sessão. Fonte: tabela
+  `resultado_contabil_financeiro` (95 colunas, confirmada por download
+  real) — equivalente brasileiro de FFO citado em
+  `docs/reference/FII_SEGMENTOS_E_METRICAS.md`.
+- Decisão:
+  1. **Campo escolhido: `Resultado_Trimestral_Liquido_Financeiro`, não
+     `Resultado_Financeiro_Liquido_Acumulado`.** A tabela expõe os dois —
+     um é o resultado do trimestre isolado, o outro é acumulado desde o
+     início do exercício fiscal (reseta a cada início de ano, exigiria
+     lógica extra para não confundir trimestres de anos fiscais
+     diferentes). O trimestral isolado casa diretamente com
+     `period: 'quarterly'`, sem ambiguidade de janela temporal. No dado
+     real da HGRU11 (Q1, primeiro trimestre do exercício) os dois valores
+     coincidem (56.879.214,47) — não dá para diferenciar as duas leituras
+     só com esse dado; a escolha é por alinhamento conceitual com o
+     schema, não por diferença observada nesta amostra.
+  2. **Primeiro campo monetário absoluto desta fatia — os 3 sinais
+     anteriores (vacância, indexador, concentração) são todos percentuais
+     em pontos-base.** Reaproveita `parseNullableCvmFiiMoney` (já usado
+     pelo provider mensal para PL) em vez de criar um parser novo — sem
+     agregação, é conversão direta string-BRL → minor units. Pode ser
+     negativo (déficit trimestral), sinal preservado pelo parser
+     existente sem ajuste.
+  3. **Coluna `bigint`, não `integer`.** Único ponto onde o tipo de coluna
+     dos sinais desta fatia difere dos anteriores (todos `integer` 0-10000
+     pontos-base) — resultado em centavos de fundos grandes ultrapassa o
+     limite de `integer` do Postgres (~2,1 bilhões): o valor real da
+     HGRU11 sozinho já é 5.687.921.447 centavos.
+  4. **Mesmo record, mesmo storage, quinta migration incremental** no
+     mesmo padrão das quatro anteriores — 1 coluna nova
+     (`quarterly_net_financial_result_minor`), sem CHECK de range (é
+     monetário, não pontos-base; pode ser negativo), exigida nula nos
+     outros 3 ramos do CHECK de metadados.
+  5. **Lição da `DEC-078` aplicada, sem repetir o erro.** Desta vez o
+     merge manual de `database.types.ts` foi feito bloco por bloco
+     (`Row`, depois `Insert`, depois `Update`), não por `replace_all` —
+     `tsc --noEmit` limpo já na primeira tentativa, sem o erro de
+     optionality que a entrada anterior cometeu e teve que corrigir.
+- Verificação: `tsc --noEmit` limpo, `eslint` limpo nos arquivos tocados.
+  Suíte completa — 151/151 arquivos, 2298/2298 testes (cobertura nova:
+  valor real da HGRU11 convertido exatamente para minor units, resultado
+  negativo preservado com sinal, fundo sem linha de resultado casando a
+  identidade do filing). Migration aplicada em produção
+  (`vxjrncwfysglinfktifz`); `generate_typescript_types` reexecutado;
+  `get_advisors` sem aviso novo (mesmos três avisos pré-existentes de
+  sempre).
+- Consequências: `docs/ROADMAP.md` atualizado — resultado financeiro
+  trimestral marcado concluído dentro da Fase 2, que segue aberta só para
+  WALE e tipo de contrato. Quatro sinais do Informe Trimestral concluídos
+  nesta sessão (vacância, indexador, concentração, resultado financeiro)
+  — nenhum ainda consumido fora da ingestão, população adiada até a
+  Fase 5, mesmo padrão das entradas anteriores.
+
+## DEC-080 — Sprint 16, Fase 2 (parte 6): WALE + correção de notação científica
+
+- Data: 4 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: quinto e último sinal desta fatia do Informe Trimestral
+  Estruturado — WALE (prazo médio ponderado de vencimento dos contratos),
+  citado em `docs/reference/FII_SEGMENTOS_E_METRICAS.md` como "requer
+  novo provider CVM trimestral". Fonte: mesma tabela `complemento` do
+  indexador (`DEC-077`) — 13 faixas de vencimento
+  (`Percentual_Vencimento_Receita_FII_Faixa_*`), já dentro do documento
+  já ingerido, sem novo tipo de documento.
+- Decisão:
+  1. **Metodologia documentada, não dado exato da CVM.** A CVM não
+     publica WALE pronto — só as 13 faixas. Média ponderada por receita
+     usando o ponto médio de cada faixa (`Ate_3Meses`→1,5 mês,
+     `3a6Meses`→4,5 meses, ..., `33a36Meses`→34,5 meses).
+     `Acima_36Meses` (faixa aberta, sem limite superior) usa piso
+     conservador de 36 meses — subestima o WALE real, nunca superestima.
+     `Indeterminado` fica fora do cálculo (numerador e denominador) por
+     não ter informação de prazo nenhuma — incluí-lo assumindo qualquer
+     prazo seria inventar dado que a CVM não fornece.
+  2. **Escala nova: meses x100, não pontos-base.** Diferente dos 4 sinais
+     anteriores desta fatia (todos 0-10000 pontos-base), WALE é uma
+     duração, não uma fração. Coluna `wale_months_x100` (2 casas
+     decimais) — único ponto de escala distinta entre os 5 sinais.
+  3. **Bug crítico descoberto e corrigido: notação científica no dado
+     real da CVM.** Ao montar o fixture de teste com valores reais da
+     HGRU11 para conferir o cálculo manualmente, a linha real trazia
+     `Percentual_Vencimento_Receita_FII_Faixa_27a30Meses = "6.8E-05"` —
+     confirmado por download direto do
+     `inf_trimestral_fii_2026.zip` (13 ocorrências em `imovel`, 2+ em
+     `complemento`, certamente mais ao todo). O parser compartilhado
+     `parseNullableCvmFiiExactDecimalQuantity`
+     (`src/data/fundamentals/cvm/fii/numbers.ts`) usava um regex sem
+     suporte a expoente — rejeitaria essa linha real com
+     `Invalid CVM FII ...: 6.8E-05`. **Isso não é bug só do WALE**: a
+     mesma função é usada por vacância (`DEC-076`), indexador
+     (`DEC-077`) e concentração por inquilino (`DEC-078`) — qualquer uma
+     dessas, ao processar um fundo real cujo dado caísse em notação
+     científica, quebraria em produção. Corrigido na função
+     compartilhada (regex estendido para `[eE][+-]?\d+` opcional,
+     convertendo mantissa+expoente para a mesma representação
+     `{unscaledValue, scale}` já usada, incluindo o caso de expoente
+     positivo que exige completar zeros à direita). `parseNullableCvmFiiMoney`
+     e `parseNullableCvmFiiNonNegativeInteger` não foram alterados —
+     valores monetários grandes e contagens de cotistas não têm exposição
+     real a essa notação nos dados observados.
+  4. **Nenhum novo tipo de documento, nenhuma nova migration de
+     leitura.** WALE reaproveita o `complement` row já parseado para o
+     indexador — só estendi `CvmFiiTrimestralComplementRow` com um mapa
+     `maturityRevenueShare` (13 chaves) e os headers obrigatórios do CSV.
+  5. **Mesmo record, mesmo storage, sexta migration incremental** no
+     mesmo padrão das cinco anteriores — 1 coluna nova
+     (`wale_months_x100`, CHECK 0-120000 = até 100 anos, generoso),
+     exigida nula nos outros 3 ramos do CHECK de metadados. Merge de
+     `database.types.ts` feito bloco por bloco novamente (padrão da
+     `DEC-079`, sem repetir o erro da `DEC-078`).
+- Verificação: `tsc --noEmit` limpo, `eslint` limpo nos arquivos tocados.
+  Suíte completa — 152/152 arquivos, 2324/2324 testes. Cobertura nova
+  inclui um arquivo de teste dedicado antes inexistente
+  (`cvm/fii/numbers.test.ts`, 16 testes) especificamente para a correção
+  de notação científica — mantissa com e sem ponto decimal, expoente
+  positivo e negativo, `e`/`E` maiúsculo e minúsculo. WALE real da
+  HGRU11 verificado batendo exatamente 3587 (35,87 meses), conferido por
+  script Node independente antes de escrever a asserção. Migration
+  aplicada em produção (`vxjrncwfysglinfktifz`); `generate_typescript_types`
+  reexecutado; `get_advisors` sem aviso novo (mesmos três avisos
+  pré-existentes de sempre).
+- Consequências: `docs/ROADMAP.md` atualizado — WALE marcado concluído,
+  Fase 2 do Informe Trimestral Estruturado praticamente fechada (só falta
+  tipo de contrato, texto livre sem flag estruturada, fora do escopo
+  desta fatia). Cinco sinais do Informe Trimestral concluídos nesta
+  sessão (vacância, indexador, concentração, resultado financeiro, WALE)
+  — nenhum ainda consumido fora da ingestão, população adiada até a
+  Fase 5. A correção de notação científica é a mudança mais importante
+  desta entrada: sem ela, a ingestão real de qualquer um dos 5 sinais
+  poderia falhar silenciosamente em produção para fundos cujo dado
+  caísse nessa notação.
+
+## DEC-081 — Sprint 16, Fase 3: cotas emitidas de ação (composicao_capital)
+
+- Data: 4 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: primeira entrada da Fase 3 (providers ação). Fecha o Sprint 16
+  Fase 2 (Informe Trimestral de FII) e abre a Fase 3 com o insumo mais
+  citado pelo rascunho de pontuação para ações: cotas emitidas, base de
+  LPA e P/L. Fonte: tabela `composicao_capital` do DFP/ITR, confirmada com
+  download real (`dfp_cia_aberta_composicao_capital_2025.csv`,
+  `itr_cia_aberta_composicao_capital_2026.csv` — ambas existem, mesmo
+  formato).
+- Decisão:
+  1. **Tabela estruturalmente diferente das demonstrações contábeis.**
+     `composicao_capital` não tem `CD_CVM` (só `CNPJ_CIA` — casamento por
+     CNPJ, não por código CVM como as demais), não tem
+     `CD_CONTA`/`DS_CONTA`/`VL_CONTA` (colunas fixas de quantidade:
+     `QT_ACAO_ORDIN_CAP_INTEGR`, `QT_ACAO_PREF_CAP_INTEGR`,
+     `QT_ACAO_TOTAL_CAP_INTEGR`, mais as 3 variantes de tesouraria), e o
+     nome do arquivo não segue o padrão `_con_YYYY.csv` das demonstrações
+     — fica fora de `readCvmConsolidatedDocuments`/`parseCvmStatementCsv`
+     de propósito, em módulo novo (`capitalComposition.ts`) com parser e
+     seletor de filing próprios (`readCvmCapitalCompositionDocument` em
+     `archive.ts`).
+  2. **Qual quantidade representa o ticker negociado, verificado com dado
+     real, não assumido.** Novo campo `CvmBrazilianStockCompany.shareClass`
+     (`'ON' | 'PN' | 'unit-total'`). Confirmado nesta sessão com a linha
+     real de cada uma das 5 empresas do universo: BBAS3 (ON=5.730.834.040,
+     PN=0), WEGE3 (ON=4.197.317.998, PN=0) e PSSA3 (ON=646.586, PN=0) só
+     têm classe ON — usam ON. ITSA4 tem as duas classes
+     (ON=3.853.634, PN=7.360.053) mas o ticker do universo negocia a PN —
+     usa PN. TAEE11 é unit (ON=590.714, PN=442.783, total=1.033.497) —
+     bundle de ON+PN, usa o total. Errar essa classificação corromperia
+     LPA/P-L silenciosamente (nenhum erro de parsing, só número errado) —
+     por isso verificado contra dado real antes de codificar, mesmo
+     padrão já usado para `asset_type`/`asset_segment` de FII (`DEC-074`)
+     e `shareClass` errado seria exatamente o tipo de erro de categoria
+     que `docs/reference/ACOES_BR_SETORES_E_METRICAS.md` alertou (seção
+     3.2, armadilha de múltiplas classes).
+  3. **Nenhuma coluna nova — reaproveita `issued_shares_unscaled`/
+     `issued_shares_scale`.** Essas colunas já existiam (usadas por
+     `cvm-fii-inf-mensal`) com a mesma representação `ExactDecimalQuantity`
+     — quantidade de ações também não tem componente fracionário nos
+     dados reais observados (scale sempre 0, mas o tipo aceita fração por
+     consistência de domínio, não porque haja uma aqui). A migration desta
+     entrada só remove a exigência de NULL dessas 2 colunas do ramo
+     `brazilian-stock` do CHECK de metadados — os outros 3 ramos
+     continuam exigindo NULL como antes.
+  4. **Campo de domínio (`BrazilianStockFundamentalFacts.issuedShares`)
+     tornado obrigatório, não opcional — ao contrário de
+     `asset_type`/`asset_segment` (`DEC-074`).** A diferença de julgamento
+     documentada naquela entrada (opcional quando o ripple custaria mais
+     que o ganho) não se aplica aqui: o ripple ficou contido em ~8 sites
+     de fixture de teste, valor pequeno e previsível — optou-se por
+     tornar obrigatório para forçar todo call-site futuro a decidir
+     explicitamente o valor, em vez de esquecer silenciosamente.
+  5. **`composicao_capital` casado de forma independente das
+     demonstrações contábeis, não pelo mesmo filing.** A data/versão da
+     composição de capital pode divergir da data/versão do DRE/BPA/BPP do
+     mesmo trimestre (arquivos publicados em datas diferentes) — a seleção
+     usa a data mais recente disponível de `composicao_capital`
+     isoladamente, casada só por CNPJ e nome oficial, sem exigir
+     coincidência com `exerciseOrder` do filing financeiro (que nem existe
+     nesta tabela).
+- Verificação: `tsc --noEmit` limpo, `eslint` limpo. Suíte completa —
+  153/153 arquivos, 2348/2348 testes. Cobertura nova em 3 camadas:
+  `capitalComposition.test.ts` (parser dedicado, novo), `provider.test.ts`
+  (describe block dedicado — ON puro, PN, unit-total, provenance real,
+  fundo sem composição casando o filing, versão mais recente antes de
+  comparar, filing ambíguo, nome divergente), `archive.test.ts` (extração
+  do documento, arquivo ausente, arquivo duplicado),
+  `supabaseFundamentalSnapshots.test.ts` (round-trip escrita/leitura,
+  rejeição de par null/não-null divergente em ambas as direções). Dois
+  testes pré-existentes precisaram de atualização mecânica por causa do
+  campo `issuedShares` ter virado obrigatório (`supabaseRealEstateFundSnapshots.test.ts`
+  e `ingestCvmBrazilianStocks.test.ts`) — corrigidos, sem mudança de
+  comportamento. Migration aplicada em produção
+  (`vxjrncwfysglinfktifz`); `get_advisors` sem aviso novo (mesmos três
+  avisos pré-existentes de sempre); nenhuma regeneração de tipos
+  necessária (colunas já existiam).
+- Consequências: `docs/ROADMAP.md` atualizado — Fase 3 iniciada, cotas
+  emitidas concluída. Resta na Fase 3: decidir a fonte de dividendo/JCP
+  (checar CVM IPE antes de construir fonte nova) — não iniciado. Nenhum
+  consumidor ainda lê `issuedShares` para calcular LPA/P-L de fato —
+  cálculo derivado fica para a Fase 5 (motor de score), mesmo padrão de
+  ingestão-antes-de-consumo já estabelecido nas entradas anteriores desta
+  sessão.
+
+## DEC-082 — Sprint 16, Fase 3: dividendo/JCP via CVM IPE (Relatório Proventos)
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: segunda entrada da Fase 3, resolve a pergunta explicitamente
+  deixada em aberto em `docs/reference/ACOES_BR_SETORES_E_METRICAS.md`,
+  seção 6.2: "não verifiquei nesta sessão se o parser atual já mapeia
+  [dividendo/JCP] — fica como item a checar antes de assumir que
+  dividendo de ação já flui pelo pipeline existente."
+- Decisão:
+  1. **Resposta: sim, a categoria existe, e não, não estava mapeada.**
+     Download real de `ipe_cia_aberta_2026.csv` (feed oficial CVM IPE)
+     confirmou 55 valores distintos de `Categoria` — entre eles
+     `Relatório Proventos`, com linhas reais para BBAS3
+     (`00.000.000/0001-91`) e PSSA3 (`02.149.205/0001-69`) neste ano.
+     `categoryMapping.ts` (`src/data/context/official-events/cvm/ipe/`)
+     já tinha um mapeamento fechado de 14 categorias para os 8 tipos de
+     evento do domínio, mas `Relatório Proventos` não estava entre elas —
+     caía no `default: return null` e era descartada silenciosamente.
+     `dividend-or-distribution` já existia como tipo de evento no domínio
+     (`taxonomy.ts`) e já tinha label na camada de apresentação
+     (`presentation.ts`: "Provento ou distribuição") — só nunca era
+     emitido porque nenhuma categoria real apontava pra lá. Um teste
+     existente (`provider.test.ts`, "never emits event types outside the
+     closed approved mapping") até _proibia_ explicitamente esse tipo de
+     evento, documentando o estado "ainda não implementado" com um teste
+     que passava por ausência, não por design.
+  2. **Mudança de uma linha no mapeamento fechado, não um provider
+     novo.** `case 'Relatório Proventos': return 'dividend-or-distribution'`
+     — o provider CVM IPE já cobre Fato Relevante/Comunicado ao Mercado
+     para as mesmas 5 empresas do universo; dividendo/JCP passa a fluir
+     pelo mesmo pipeline sem nova fonte de dados, sem nova migration
+     (evento de ocorrência, não valor monetário — não toca
+     `fundamental_snapshots`).
+  3. **Escopo explícito: ocorrência do evento, não o valor do provento.**
+     `Relatório Proventos` no CVM IPE aponta pra um documento/link, não
+     traz o valor do dividendo/JCP como campo estruturado (`Tipo`/
+     `Especie`/`Assunto` vêm vazios nessa categoria no dado real). Extrair
+     o valor exigiria abrir o PDF referenciado — fora do escopo desta
+     entrada, que só resolve "sabemos que o evento aconteceu e quando",
+     não "quanto foi pago". Consistente com o que `official_asset_events`
+     já faz para os outros tipos de evento (metadados, não dado
+     financeiro estruturado).
+- Verificação: `tsc --noEmit` limpo, `eslint` limpo. Suíte completa —
+  153/153 arquivos, 2349/2349 testes. `Relatório Proventos` adicionado ao
+  `CATEGORY_CASES` do teste de mapeamento fechado (cobertura idêntica às
+  outras 14 categorias); removido da lista de tipos proibidos no teste
+  "never emits event types outside the closed approved mapping" — as
+  outras 5 proibições (`other-official-event`, `earnings-release`,
+  `capital-structure-change`, `management-change`,
+  `merger-acquisition-or-reorganization`) continuam vetadas, ainda sem
+  categoria real mapeada. Nenhuma migration necessária (mudança é só
+  código de mapeamento, não schema).
+- Consequências: `docs/ROADMAP.md` atualizado — item de dividendo/JCP da
+  Fase 3 resolvido. Fase 3 (providers ação) agora só tem cotas emitidas
+  (`DEC-081`) e dividendo/JCP (`DEC-082`) concluídos nesta sessão — não há
+  mais itens abertos conhecidos nela pelos documentos de referência
+  atuais. Fases 4-9 do Sprint 16 seguem não iniciadas.
+
+## DEC-083 — Sprint 16, Fase 4: providers ETF bloqueados, premissa corrigida
+
+- Data: 5 de agosto de 2026
+- Status: Aceita — decisão é **não implementar** nada nesta entrada, e
+  documentar por quê, em vez de forçar código sobre premissa não
+  verificada ou tomar decisão de dependência/credencial sem o usuário.
+- Contexto: ao começar a Fase 4 (providers ETF), a primeira linha do
+  `docs/ROADMAP.md` dizia "expandir parser SEC N-PORT para NAV por cota e
+  cotas em circulação (campo já existe no formulário)". Antes de escrever
+  qualquer parser novo, segui a mesma disciplina de "verificar contra
+  fonte real antes de codificar" já aplicada a todas as entradas
+  anteriores desta sessão — e a premissa se mostrou falsa.
+- Decisão:
+  1. **NAV por cota/cotas em circulação: não existe no N-PORT, ponto
+     final.** Baixado um filing NPORT-P real da VOO direto da SEC
+     (CIK `0000036405`, accession `0000036405-26-000325`,
+     `primary_doc.xml` completo, não uma amostra) e listadas todas as
+     tags XML distintas presentes no documento — cerca de 90 tags
+     cobrindo `fundInfo` (`totAssets`/`totLiabs`/`netAssets`,já cobertos
+     desde `DEC-051`), holdings (`invstOrSec`, derivativos, etc.) e
+     `monthlyTotReturns`/`monthlyReturnCats` (retorno percentual mensal
+     por classe, não cotas nem NAV). Nenhuma tag de NAV-por-cota ou
+     cotas-em-circulação existe no formulário. A premissa do roadmap
+     estava simplesmente errada — meses atrás alguém assumiu que o campo
+     existia sem verificar contra o XML real, e essa suposição nunca foi
+     testada até agora.
+  2. **Não implementado — corrigido o roadmap em vez de inventar dado.**
+     Sem o campo na fonte, não há o que expandir no parser N-PORT para
+     essa métrica. `docs/ROADMAP.md` reescrito para registrar o achado
+     (economiza a próxima sessão de repetir a mesma investigação) em vez
+     de manter a instrução original, que levaria a outra tentativa de
+     implementação sobre premissa falsa.
+  3. **Shiller/Yale CAPE — fonte real, mas decisão de dependência não
+     tomada.** Confirmado que `ie_data.xls` (Yale, ~1,6 MB) está
+     publicamente acessível sem chave (`HTTP 200`, `Content-Type:
+application/vnd.ms-excel`) — mas é `.xls` binário legado (formato
+     OLE2/BIFF, não XML como `.xlsx`), não parseável com o padrão já
+     usado no projeto (parser de texto/CSV/XML próprio, sem dependência
+     externa). Adicionar uma biblioteca de parsing binário — ou escrever
+     um parser BIFF próprio — é decisão de escopo/dependência maior que
+     as fatias anteriores desta sessão, que não tomei sozinho.
+  4. **FRED `DFII10` — bloqueio real de credencial, não código.** A API
+     do FRED exige chave gratuita cadastrada pelo usuário — não é algo
+     que um agente pode obter ou contornar. Sem a chave, não há
+     implementação possível, só o esqueleto do provider esperando por
+     ela (baixo valor sem poder testar contra dado real, quebrando a
+     disciplina desta sessão inteira de verificar contra fonte real antes
+     de declarar algo pronto).
+  5. **Loop pausado aqui, não forçado adiante.** As três decisões
+     restantes da Fase 4 exigem informação ou escolha que só o usuário
+     tem (nova fonte de dado para NAV/cotas, aprovação de dependência
+     nova para `.xls`, chave de API do FRED) — continuar codificando
+     qualquer uma delas sem essa decisão seria trabalho descartável ou
+     uma escolha de arquitetura unilateral que as sessões anteriores
+     deste projeto sempre levaram para confirmação explícita (ver
+     `DEC-051`, `DEC-066`, entre outras).
+- Verificação: nenhuma mudança de código nesta entrada — achado
+  verificado por download real e inspeção completa das tags XML, não por
+  suposição. Suíte, typecheck e lint permanecem no estado da `DEC-082`
+  (153/153 arquivos, 2349/2349 testes), intactos.
+- Consequências: `docs/ROADMAP.md` atualizado com o achado e os 3
+  bloqueios explícitos. Fase 4 fica pausada até o usuário decidir: (a)
+  pesquisar outra fonte para NAV/cotas de ETF, (b) aprovar uma dependência
+  para parsing de `.xls`, e/ou (c) fornecer uma chave de API do FRED.
+  Sprint 16 Fases 5-9 (motor de score, integração, dossiê, docs, testes)
+  seguem não iniciadas e não dependem destes 3 itens — são o próximo
+  candidato natural de continuação caso o usuário prefira não resolver os
+  bloqueios da Fase 4 agora.
+
+## DEC-084 — Sprint 16, Fase 4: CAPE (Shiller P/E) do S&P 500
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada — um dos 3 bloqueios da `DEC-083`, resolvido
+  após o usuário aprovar explicitamente (via `AskUserQuestion`) adicionar
+  uma dependência de parsing `.xls` para este item específico. Os outros
+  dois bloqueios (NAV/cotas de ETF via SEC N-PORT, FRED `DFII10`)
+  permanecem não resolvidos e não fazem parte desta entrada.
+- Contexto: `ie_data.xls` (Robert Shiller, Yale) é a fonte pública padrão
+  do CAPE (cyclically adjusted P/E) do S&P 500 — usado como sinal de
+  valuation de mercado agregado, não um fato por-ativo. É `.xls` binário
+  legado (OLE2/BIFF), não `.xlsx`/XML, e portanto não parseável com os
+  parsers de texto próprios já usados no projeto (CSV/XML da CVM e SEC).
+- Decisão:
+  1. **Dependência nova: `xlsx` (SheetJS).** Primeira dependência externa
+     de parsing do projeto além de `fflate` (zip) — todo o resto usa
+     parser próprio. Justificada porque reimplementar um parser BIFF a
+     mão está fora do orçamento desta fatia; aprovação explícita do
+     usuário registrada antes de instalar (`npm install xlsx --save`).
+  2. **Tabela nova `market_valuation_ratios`, não reuso de
+     `market_reference_rates` (`DEC-075`).** CAPE é um múltiplo
+     adimensional sem conceito de vencimento; `market_reference_rates` tem
+     `maturity_date not null`, que não tem sentido semântico para CAPE.
+     Forçar o dado nessa tabela violaria a mesma disciplina de "não force
+     um dado numa forma de schema que não bate semanticamente" já aplicada
+     ao mapeamento de categoria/tipo de FII nesta sessão. Mesmo padrão de
+     segurança de `market_reference_rates`: sem `user_id`, RLS
+     autenticado-somente-leitura, escrita só via RPC
+     `upsert_market_valuation_ratios_v1` (`SECURITY DEFINER`, lote ≤20,
+     validação de forma exata das chaves, `pg_advisory_xact_lock`,
+     `service_role` com INSERT/UPDATE/DELETE/TRUNCATE revogados no fim da
+     migration).
+  3. **Fetch fora do `safeFetch` de `official-events`.** O host da Yale
+     (`econ.yale.edu`) só serve HTTP — confirmado por falha de conexão TLS
+     — e não está no allowlist HTTPS-only de
+     `OFFICIAL_EVENTS_ALLOWED_HOSTS_V1`, que é específico do bounded
+     context de eventos oficiais. O padrão já estabelecido pelos demais
+     providers de fundamentos (CVM, SEC, Tesouro Transparente) — `fetch`
+     injetável com URL oficial hardcoded, sem passar por `safeFetch` — é o
+     que se aplica aqui; usar HTTP puro para este host não é uma violação
+     de política de segurança do projeto, é a única forma de acessar essa
+     fonte pública específica.
+  4. **Data do Shiller decodificada como float `AAAA.MM`, com quirk de
+     zero à esquerda.** O mês não é sempre 2 dígitos: outubro colapsa de
+     `2020.10` para `2020.1` como float (mesmo valor numérico, zero à
+     direita insignificante) — confirmado contra uma série real completa
+     de 12 meses. `year = Math.floor(date)`, `month = Math.round((date -
+year) * 100)`.
+  5. **`valueScaled` via `Math.round`, não parsing exato de texto — exceção
+     documentada à disciplina de BigInt/decimal exato do resto do
+     projeto.** Células numéricas do `xlsx` são `float` IEEE754 puro, sem
+     texto-fonte exato para parsear (diferente de CSV/XML, onde sempre há
+     uma string original). Aceitável porque CAPE não tem exigência legal
+     ou financeira de exatidão (diferente de dinheiro ou contagem de
+     cotas).
+  6. **Um valor por ingestão: sempre o mais recente.** O provider extrai
+     apenas a linha cronologicamente mais recente do arquivo (não o
+     histórico completo) — mesmo padrão de "snapshot atual" já usado para
+     outras séries de mercado agregadas.
+  7. **CLI wiring**: `scripts/lib/buildFundamentalsIngestionPlan.ts` ganhou
+     o provider `shiller-cape` (sem flags extras); `scripts/run-fundamentals-ingestion.ts`
+     ganhou o branch de despacho correspondente e o preview agora reporta
+     `targetTable: 'market_valuation_ratios'` para este provider
+     especificamente (os demais continuam com `fundamental_snapshots`).
+- Verificação: migration `20260805100000_create_market_valuation_ratios.sql`
+  aplicada em produção (projeto `vxjrncwfysglinfktifz`) via `apply_migration`;
+  `generate_typescript_types` confirmou a tabela e a função novas;
+  `get_advisors` (tipo `security`) não apontou nenhum problema novo (mesmos
+  4 avisos pré-existentes). Tipos manualmente mesclados em
+  `src/lib/database.types.ts`. 5 arquivos de teste novos (`shiller/xls.test.ts`,
+  `shiller/archive.test.ts`, `shiller/provider.test.ts`,
+  `supabaseShillerCapeSnapshots.test.ts`, `ingestShillerCape.test.ts`, mais
+  1 teste adicionado a `buildFundamentalsIngestionPlan.test.ts`). Suíte
+  completa: 158/158 arquivos, 2374/2374 testes passando. Typecheck limpo
+  em `tsconfig.app.json` e `tsconfig.node.json` (o único erro do segundo é
+  pré-existente em `vite.config.ts`, não relacionado a esta entrada). Lint
+  com 1 erro pré-existente em `src/pages/SettingsPage.tsx` (não tocado
+  nesta sessão, não relacionado a esta entrada).
+- Consequências: Fase 4 fica com 1 de 3 bloqueios resolvidos (CAPE). NAV/cotas
+  de ETF via SEC N-PORT (sem fonte alternativa conhecida) e FRED `DFII10`
+  (sem chave de API) seguem bloqueados, sem nova tentativa sem direção do
+  usuário. Por aprovação explícita do usuário, a sessão segue direto para
+  Sprint 16 Fase 5 (motor de score) em vez de insistir nos 2 bloqueios
+  restantes.

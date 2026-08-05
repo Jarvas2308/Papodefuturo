@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { settingsMock } from '../mocks/settingsMock'
 import type { UserSettings } from '../types'
 import {
-  areSettingsEqual,
   cloneSettings,
-  countEnabledNotifications,
   normalizeSettings,
   restoreDefaultSettings,
   validateSettings,
@@ -41,25 +39,14 @@ describe('settings utilities', () => {
     )
   })
 
-  it('rejects an invalid email', () => {
-    const settings = settingsWith((current) => {
-      current.profile.email = 'email-invalido'
-    })
-
-    expect(validateSettings(settings).errors.email).toBe(
-      'Informe um e-mail válido.'
-    )
-  })
-
-  it('normalizes surrounding spaces and email casing', () => {
+  it('normalizes surrounding spaces in the display name', () => {
     const settings = settingsWith((current) => {
       current.profile.displayName = '  Luis Fernando  '
-      current.profile.email = '  LUIS@EXEMPLO.COM  '
     })
 
     expect(normalizeSettings(settings).profile).toEqual({
       displayName: 'Luis Fernando',
-      email: 'luis@exemplo.com',
+      email: settingsMock.profile.email,
     })
   })
 
@@ -111,24 +98,24 @@ describe('settings utilities', () => {
     ).toContain('estratégia de aporte válida')
   })
 
-  it('counts enabled notification preferences', () => {
-    expect(countEnabledNotifications(settingsMock)).toBe(2)
-  })
+  it('restores display and planning defaults while preserving the given profile', () => {
+    const currentProfile = {
+      displayName: 'Outro Nome',
+      email: 'outro@exemplo.com',
+    }
+    const restored = restoreDefaultSettings(currentProfile)
 
-  it('restores a fresh copy of the default settings', () => {
-    const restored = restoreDefaultSettings()
-    restored.profile.displayName = 'Alterado'
-
-    expect(areSettingsEqual(restoreDefaultSettings(), settingsMock)).toBe(true)
-    expect(settingsMock.profile.displayName).toBe('Luis Fernando')
+    expect(restored.profile).toEqual(currentProfile)
+    expect(restored.display).toEqual(settingsMock.display)
+    expect(restored.planning).toEqual(settingsMock.planning)
   })
 
   it('clones settings without mutating the original mock', () => {
     const clone = cloneSettings(settingsMock)
-    clone.notifications.strategyAlerts = true
+    clone.profile.displayName = 'Alterado'
     clone.planning.contributionReminderDay = 28
 
-    expect(settingsMock.notifications.strategyAlerts).toBe(false)
+    expect(settingsMock.profile.displayName).toBe('Luis Fernando')
     expect(settingsMock.planning.contributionReminderDay).toBe(10)
   })
 })

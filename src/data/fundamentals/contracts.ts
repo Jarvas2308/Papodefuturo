@@ -6,6 +6,7 @@ import type {
 } from '../../domain/fundamentals'
 import type { CvmBrazilianStockFundamentalRecord } from './cvm/types'
 import type { CvmRealEstateFundFundamentalRecord } from './cvm/fii/types'
+import type { CvmRealEstateFundVacancyRecord } from './cvm/fii-trimestral/types'
 import type { SecInternationalEtfFundamentalRecord } from './sec/nport/types'
 
 export type FundamentalSnapshotStorage = {
@@ -18,6 +19,14 @@ export type RealEstateFundFundamentalSnapshotStorage = {
   upsertMany(
     records: readonly CvmRealEstateFundFundamentalRecord[]
   ): Promise<void>
+}
+
+// Escrita paralela e separada de RealEstateFundFundamentalSnapshotStorage:
+// o Informe Trimestral tem forma de provenance genuinamente diferente do
+// Informe Mensal (agregacao por imovel, sem PL/cotas/cotistas), entao nao
+// compartilha o record type mensal (ver DEC-076).
+export type RealEstateFundVacancySnapshotStorage = {
+  upsertMany(records: readonly CvmRealEstateFundVacancyRecord[]): Promise<void>
 }
 
 export type InternationalEtfFundamentalSnapshotStorage = {

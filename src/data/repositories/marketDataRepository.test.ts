@@ -10,6 +10,8 @@ describe('Supabase market data repository', () => {
       skippedFreshPrices: 11,
       updatedExchangeRates: 1,
       skippedFreshExchangeRates: 0,
+      updatedReferenceRates: 1,
+      skippedFreshReferenceRates: 0,
       warnings: [],
     }
     const invoke = vi.fn().mockResolvedValue({ data: result, error: null })
@@ -40,6 +42,8 @@ describe('Supabase market data repository', () => {
       skippedFreshPrices: 0,
       updatedExchangeRates: 1,
       skippedFreshExchangeRates: 0,
+      updatedReferenceRates: 1,
+      skippedFreshReferenceRates: 0,
       warnings: [
         {
           provider: 'b3-cotahist',
@@ -70,12 +74,43 @@ describe('Supabase market data repository', () => {
       skippedFreshPrices: 0,
       updatedExchangeRates: 0,
       skippedFreshExchangeRates: 0,
+      updatedReferenceRates: 0,
+      skippedFreshReferenceRates: 0,
       warnings: [
         {
           provider: 'storage',
           kind: 'storage-failed',
           message:
             'Não foi possível gravar as cotações de mercado nesta execução.',
+        },
+      ],
+    }
+    const client = {
+      functions: {
+        invoke: vi.fn().mockResolvedValue({ data: result, error: null }),
+      },
+    } as unknown as SupabaseBrowserClient
+
+    await expect(
+      createSupabaseMarketDataRepository(client).refresh()
+    ).resolves.toEqual(result)
+  })
+
+  it('accepts Tesouro Transparente warnings from the server contract (Sprint 16 Fase 2)', async () => {
+    const result = {
+      refreshedAt: '2026-08-04T16:00:00.000Z',
+      updatedPrices: 0,
+      skippedFreshPrices: 12,
+      updatedExchangeRates: 0,
+      skippedFreshExchangeRates: 1,
+      updatedReferenceRates: 0,
+      skippedFreshReferenceRates: 0,
+      warnings: [
+        {
+          provider: 'tesouro-transparente',
+          kind: 'provider-failed',
+          ticker: 'NTNB',
+          message: 'Não foi possível atualizar a cotação automática de NTNB.',
         },
       ],
     }
@@ -100,6 +135,8 @@ describe('Supabase market data repository', () => {
             skippedFreshPrices: 0,
             updatedExchangeRates: 0,
             skippedFreshExchangeRates: 0,
+            updatedReferenceRates: 0,
+            skippedFreshReferenceRates: 0,
             warnings: [
               {
                 provider: 'b3-cotahist',

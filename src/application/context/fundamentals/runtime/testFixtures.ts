@@ -53,6 +53,7 @@ export function createRuntimeStockSnapshot(): BrazilianStockFundamentalSnapshotI
       totalAssets: { amountInMinorUnits: 21_000_000, currency: 'BRL' },
       totalEquity: { amountInMinorUnits: 5_000_000, currency: 'BRL' },
       operatingCashFlow: { amountInMinorUnits: 150_000, currency: 'BRL' },
+      issuedShares: { unscaledValue: 5_730_834_040, scale: 0 },
     },
   }
 }
@@ -69,6 +70,7 @@ export function createRuntimeFiiSnapshot(): RealEstateFundFundamentalSnapshotInp
       netAssetValue: { amountInMinorUnits: 1_500_000_000, currency: 'BRL' },
       issuedShares: { unscaledValue: 10_000_000, scale: 0 },
       shareholderCount: 250_000,
+      vacancyInBasisPoints: null,
     },
   }
 }

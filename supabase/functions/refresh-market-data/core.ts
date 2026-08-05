@@ -2,6 +2,7 @@ import { SERVER_CLOSED_ASSET_UNIVERSE } from '../_shared/closedAssetUniverse.ts'
 import {
   getLatestAutomaticFact,
   isAutomaticFactFresh,
+  isReferenceRateFreshForToday,
   isStrictlyNewerTimestamp,
 } from './freshness.ts'
 import type {
@@ -11,9 +12,12 @@ import type {
   MarketDataWarning,
   MarketPriceInsert,
   MarketQuote,
+  ReferenceRateInsert,
   StoredExchangeRate,
   StoredMarketPrice,
+  StoredReferenceRate,
 } from './types.ts'
+import type { NtnbLongaRate } from './tesouroTransparenteProvider.ts'
 
 type B3CotahistProvider = {
   getAssetQuotes(tickers: readonly string[]): Promise<MarketQuote[]>
@@ -24,22 +28,29 @@ type TwelveDataProvider = {
   getUsdBrlQuote(): Promise<ExchangeRateQuote>
 }
 
+type TesouroTransparenteProvider = {
+  getNtnbLongaRate(): Promise<NtnbLongaRate>
+}
+
 export type MarketDataStorage = {
   listMarketPrices(): Promise<StoredMarketPrice[]>
   listMarketExchangeRates(): Promise<StoredExchangeRate[]>
+  listMarketReferenceRates(): Promise<StoredReferenceRate[]>
   insertMarketPrices(rows: readonly MarketPriceInsert[]): Promise<void>
   insertMarketExchangeRate(row: ExchangeRateInsert): Promise<void>
+  insertMarketReferenceRate(row: ReferenceRateInsert): Promise<void>
 }
 
 export type RefreshMarketDataInput = {
   storage: MarketDataStorage
   b3Cotahist: B3CotahistProvider
   twelveData: TwelveDataProvider | null
+  tesouroTransparente: TesouroTransparenteProvider | null
   now?: Date
 }
 
 function providerFailureWarning(
-  provider: 'b3-cotahist' | 'twelve-data',
+  provider: 'b3-cotahist' | 'twelve-data' | 'tesouro-transparente',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -93,7 +104,7 @@ export function sanitizeMarketPriceRows(rows: readonly MarketPriceInsert[]): {
 }
 
 function staleQuoteWarning(
-  provider: 'b3-cotahist' | 'twelve-data',
+  provider: 'b3-cotahist' | 'twelve-data' | 'tesouro-transparente',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -125,13 +136,16 @@ export async function refreshMarketData({
   storage,
   b3Cotahist,
   twelveData,
+  tesouroTransparente,
   now = new Date(),
 }: RefreshMarketDataInput): Promise<MarketDataRefreshResult> {
   const warnings: MarketDataWarning[] = []
-  const [persistedPrices, persistedRates] = await Promise.all([
-    storage.listMarketPrices(),
-    storage.listMarketExchangeRates(),
-  ])
+  const [persistedPrices, persistedRates, persistedReferenceRates] =
+    await Promise.all([
+      storage.listMarketPrices(),
+      storage.listMarketExchangeRates(),
+      storage.listMarketReferenceRates(),
+    ])
   const latestPriceByTicker = getLatestPriceByTicker(persistedPrices)
   const latestAutomaticRate = getLatestAutomaticFact(persistedRates)
 
@@ -285,12 +299,50 @@ export async function refreshMarketData({
     }
   }
 
+  let updatedReferenceRates = 0
+  let skippedFreshReferenceRates = 0
+  const latestNtnbLonga =
+    persistedReferenceRates.find((rate) => rate.series === 'ntnb-longa') ?? null
+
+  if (isReferenceRateFreshForToday(latestNtnbLonga?.pricedAt ?? null, now)) {
+    skippedFreshReferenceRates = 1
+  } else if (tesouroTransparente) {
+    try {
+      const rate = await tesouroTransparente.getNtnbLongaRate()
+
+      if (!latestNtnbLonga || rate.pricedAt > latestNtnbLonga.pricedAt) {
+        await storage.insertMarketReferenceRate({
+          series: 'ntnb-longa',
+          maturity_date: rate.maturityDate,
+          rate_scaled: rate.rateScaled,
+          rate_scale: 1_000_000,
+          priced_at: rate.pricedAt,
+          source: 'tesouro-transparente',
+        })
+        updatedReferenceRates = 1
+      } else {
+        warnings.push(staleQuoteWarning('tesouro-transparente', 'NTNB'))
+      }
+    } catch {
+      warnings.push(providerFailureWarning('tesouro-transparente', 'NTNB'))
+    }
+  } else {
+    warnings.push({
+      provider: 'configuration',
+      kind: 'configuration',
+      message:
+        'Tesouro Transparente não está configurado para atualização automática.',
+    })
+  }
+
   return {
     refreshedAt: now.toISOString(),
     updatedPrices: persistedPriceCount,
     skippedFreshPrices,
     updatedExchangeRates,
     skippedFreshExchangeRates,
+    updatedReferenceRates,
+    skippedFreshReferenceRates,
     warnings,
   }
 }

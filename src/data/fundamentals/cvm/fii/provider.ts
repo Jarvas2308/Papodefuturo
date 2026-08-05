@@ -263,6 +263,9 @@ function buildRecord(
       complement.row.shareholderCount,
       'shareholder count'
     ),
+    // Informe Mensal nao reporta vacancia por imovel - so o Informe
+    // Trimestral (cvm-fii-inf-trimestral) popula este campo.
+    vacancyInBasisPoints: null,
   }
 
   return {

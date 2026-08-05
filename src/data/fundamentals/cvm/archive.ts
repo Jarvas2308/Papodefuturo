@@ -1,4 +1,5 @@
 import { unzipSync } from 'fflate'
+import type { CvmCapitalCompositionDocument } from './capitalComposition'
 import type {
   CvmArchiveFetcher,
   CvmArchiveSource,
@@ -7,6 +8,7 @@ import type {
 } from './types'
 
 const STATEMENT_FILE_PATTERN = /_(BPA|BPP|DRE|DFC_MD|DFC_MI)_con_\d{4}\.csv$/i
+const CAPITAL_COMPOSITION_FILE_PATTERN = /composicao_capital_\d{4}\.csv$/i
 
 export function buildOfficialCvmArchiveUrl(
   source: CvmArchiveSource,
@@ -78,4 +80,28 @@ export function readCvmConsolidatedDocuments(
   }
 
   return documents
+}
+
+/**
+ * `composicao_capital` (DEC-081) nao e' uma demonstracao contabil - fica
+ * fora de `readCvmConsolidatedDocuments` de proposito, arquivo e formato
+ * de linha diferentes (ver `capitalComposition.ts`).
+ */
+export function readCvmCapitalCompositionDocument(
+  archiveBytes: Uint8Array
+): CvmCapitalCompositionDocument {
+  const files = unzipSync(archiveBytes)
+  const decoder = new TextDecoder('windows-1252')
+  const matches = Object.entries(files).filter(([fileName]) =>
+    CAPITAL_COMPOSITION_FILE_PATTERN.test(fileName)
+  )
+
+  if (matches.length !== 1) {
+    throw new Error(
+      'Official CVM archive must contain exactly one capital composition document'
+    )
+  }
+
+  const [fileName, content] = matches[0]!
+  return { fileName, content: decoder.decode(content) }
 }

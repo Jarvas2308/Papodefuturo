@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "scripts/**/*.{ts,mjs}",
+    "supabase/functions/*/index.ts",
+    "vite.config.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,mjs}",
+    "supabase/functions/**/*.ts"
+  ],
+  "ignore": ["supabase/functions/_shared/**"]
+}

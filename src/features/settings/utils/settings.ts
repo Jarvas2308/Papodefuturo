@@ -12,7 +12,6 @@ export function cloneSettings(settings: UserSettings): UserSettings {
     profile: { ...settings.profile },
     display: { ...settings.display },
     planning: { ...settings.planning },
-    notifications: { ...settings.notifications },
   }
 }
 
@@ -20,21 +19,28 @@ export function createSettingsDraft(settings: UserSettings): UserSettings {
   return cloneSettings(settings)
 }
 
-export function restoreDefaultSettings(): UserSettings {
-  return cloneSettings(settingsMock)
+// `profile` (nome, e-mail) não é "padrão" a restaurar — é identidade real do
+// usuário. Só `display` e `planning` voltam ao valor de fábrica; o perfil
+// atual é preservado.
+export function restoreDefaultSettings(
+  currentProfile: UserSettings['profile']
+): UserSettings {
+  return {
+    profile: { ...currentProfile },
+    display: { ...settingsMock.display },
+    planning: { ...settingsMock.planning },
+  }
 }
 
 export function normalizeSettings(settings: UserSettings): UserSettings {
   const normalized = cloneSettings(settings)
   normalized.profile.displayName = normalized.profile.displayName.trim()
-  normalized.profile.email = normalized.profile.email.trim().toLowerCase()
   return normalized
 }
 
 export function validateSettings(settings: UserSettings): SettingsValidation {
   const issues: SettingsValidation['issues'] = []
   const displayName = settings.profile.displayName.trim()
-  const email = settings.profile.email.trim()
 
   function addIssue(field: SettingsField, message: string) {
     issues.push({ field, message })
@@ -52,12 +58,6 @@ export function validateSettings(settings: UserSettings): SettingsValidation {
       'displayName',
       'O nome de exibição deve ter no máximo 60 caracteres.'
     )
-  }
-
-  if (!email) {
-    addIssue('email', 'Informe um e-mail demonstrativo.')
-  } else if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    addIssue('email', 'Informe um e-mail válido.')
   }
 
   if (
@@ -90,10 +90,6 @@ export function validateSettings(settings: UserSettings): SettingsValidation {
       issues.map((issue) => [issue.field, issue.message])
     ),
   }
-}
-
-export function countEnabledNotifications(settings: UserSettings): number {
-  return Object.values(settings.notifications).filter(Boolean).length
 }
 
 export function areSettingsEqual(

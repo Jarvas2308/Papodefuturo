@@ -47,6 +47,14 @@ function createRepositories(): AppRepositories {
       linkItemPurchase: vi.fn(),
     },
     aiExplanation: { explain: vi.fn() },
+    profile: { get: vi.fn(), update: vi.fn() },
+    userPreferences: { get: vi.fn(), update: vi.fn() },
+    signalRules: {
+      list: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+    },
   }
 }
 
@@ -59,6 +67,7 @@ describe('createInitialPortfolioLoadState', () => {
       needsExchangeRate: false,
       latestUsdBrlRate: null,
       marketDataWarning: null,
+      stalePrices: [],
     })
   })
 

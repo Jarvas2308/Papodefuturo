@@ -9,15 +9,16 @@ export function SettingsProfileSection({
   settings,
   validation,
   isEditing,
+  isDemo,
   onChange,
 }: {
   settings: UserSettings
   validation: SettingsValidation
   isEditing: boolean
-  onChange: (field: 'displayName' | 'email', value: string) => void
+  isDemo: boolean
+  onChange: (field: 'displayName', value: string) => void
 }) {
   const nameError = validation.errors.displayName
-  const emailError = validation.errors.email
 
   return (
     <section aria-labelledby="settings-profile-title">
@@ -34,13 +35,15 @@ export function SettingsProfileSection({
               Perfil
             </h2>
             <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
-              Identidade apenas demonstrativa, sem conta autenticada.
+              {isDemo
+                ? 'Identidade apenas demonstrativa, sem conta autenticada.'
+                : 'Nome de exibição salvo na sua conta. O e-mail é o mesmo usado para entrar.'}
             </p>
           </div>
         </div>
 
-        {isEditing ? (
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+          {isEditing ? (
             <div>
               <label
                 htmlFor="settings-display-name"
@@ -70,38 +73,7 @@ export function SettingsProfileSection({
                 </p>
               ) : null}
             </div>
-
-            <div>
-              <label
-                htmlFor="settings-email"
-                className="text-sm font-semibold text-[var(--color-text)]"
-              >
-                E-mail demonstrativo
-              </label>
-              <input
-                id="settings-email"
-                type="email"
-                value={settings.profile.email}
-                maxLength={120}
-                onChange={(event) => onChange('email', event.target.value)}
-                className={`${inputClassName} mt-2`}
-                aria-invalid={Boolean(emailError)}
-                aria-describedby={
-                  emailError ? 'settings-email-error' : undefined
-                }
-              />
-              {emailError ? (
-                <p
-                  id="settings-email-error"
-                  className="mt-2 text-sm font-medium text-[var(--color-alert)]"
-                >
-                  {emailError}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          <dl className="mt-6 grid gap-5 sm:grid-cols-2">
+          ) : (
             <div>
               <dt className="text-sm text-[var(--color-text-muted)]">
                 Nome de exibição
@@ -110,16 +82,15 @@ export function SettingsProfileSection({
                 {settings.profile.displayName}
               </dd>
             </div>
-            <div>
-              <dt className="text-sm text-[var(--color-text-muted)]">
-                E-mail demonstrativo
-              </dt>
-              <dd className="mt-1 break-all font-semibold text-[var(--color-text)]">
-                {settings.profile.email}
-              </dd>
-            </div>
-          </dl>
-        )}
+          )}
+
+          <div>
+            <dt className="text-sm text-[var(--color-text-muted)]">E-mail</dt>
+            <dd className="mt-1 break-all font-semibold text-[var(--color-text)]">
+              {settings.profile.email}
+            </dd>
+          </div>
+        </div>
       </Card>
     </section>
   )

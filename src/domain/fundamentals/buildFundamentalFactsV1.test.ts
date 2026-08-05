@@ -93,6 +93,7 @@ function createAnnualStockSnapshot(): BrazilianStockFundamentalSnapshotInput {
       totalAssets: brl(20_000_000),
       totalEquity: brl(-100_000),
       operatingCashFlow: brl(-250_000),
+      issuedShares: null,
     },
   }
 }
@@ -111,6 +112,7 @@ function createQuarterlyStockSnapshot(): BrazilianStockFundamentalSnapshotInput 
       totalAssets: brl(21_000_000),
       totalEquity: brl(5_000_000),
       operatingCashFlow: brl(150_000),
+      issuedShares: null,
     },
   }
 }
@@ -127,6 +129,7 @@ function createFiiSnapshot(): RealEstateFundFundamentalSnapshotInput {
       netAssetValue: brl(1_500_000_000),
       issuedShares: { unscaledValue: 10_000_000, scale: 0 },
       shareholderCount: 250_000,
+      vacancyInBasisPoints: null,
     },
   }
 }

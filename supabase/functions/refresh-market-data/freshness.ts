@@ -49,3 +49,20 @@ export function isStrictlyNewerTimestamp(
 
   return Date.parse(candidate) > Date.parse(persisted.pricedAt)
 }
+
+// O Tesouro Transparente publica uma linha por dia util, nao por segundo -
+// MARKET_DATA_FRESHNESS_MS (60 min) nao serve aqui. "Fresco" significa "ja
+// temos a linha de hoje", nao "faz menos de uma hora". Evita rebaixar o CSV
+// de ~14 MB a cada disparo horario do cron quando o dado do dia ja esta
+// gravado.
+export function isReferenceRateFreshForToday(
+  latestPricedAtDate: string | null,
+  now: Date
+): boolean {
+  if (!latestPricedAtDate) {
+    return false
+  }
+
+  const today = now.toISOString().slice(0, 10)
+  return latestPricedAtDate === today
+}

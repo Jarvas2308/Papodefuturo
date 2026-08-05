@@ -1,4 +1,11 @@
-export type { Asset, AssetCategory, AssetMarket, AssetStatus } from './asset'
+export type {
+  Asset,
+  AssetCategory,
+  AssetMarket,
+  AssetSegment,
+  AssetStatus,
+  FiiAssetType,
+} from './asset'
 export type {
   ContributionPlan,
   ContributionPlanItem,

@@ -1,5 +1,9 @@
 export type MarketDataWarningProvider =
-  'b3-cotahist' | 'twelve-data' | 'configuration' | 'storage'
+  | 'b3-cotahist'
+  | 'twelve-data'
+  | 'tesouro-transparente'
+  | 'configuration'
+  | 'storage'
 
 // `stale-quote` é o caso normal: o provider respondeu, mas a cotação não é
 // mais recente que a já armazenada, então nada foi escrito de propósito. Os
@@ -21,6 +25,8 @@ export type MarketDataRefreshResult = {
   skippedFreshPrices: number
   updatedExchangeRates: number
   skippedFreshExchangeRates: number
+  updatedReferenceRates: number
+  skippedFreshReferenceRates: number
   warnings: MarketDataWarning[]
 }
 
@@ -68,4 +74,20 @@ export type ExchangeRateInsert = {
   rate_scale: 1000000
   priced_at: string
   source: 'market-provider'
+}
+
+// `priced_at` aqui e' data (AAAA-MM-DD), nao timestamp - o Tesouro
+// Transparente publica uma linha por dia util, nao por segundo.
+export type StoredReferenceRate = {
+  series: string
+  pricedAt: string
+}
+
+export type ReferenceRateInsert = {
+  series: 'ntnb-longa'
+  maturity_date: string
+  rate_scaled: number
+  rate_scale: 1000000
+  priced_at: string
+  source: 'tesouro-transparente'
 }

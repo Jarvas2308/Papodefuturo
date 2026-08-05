@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getLatestAutomaticFact,
   isAutomaticFactFresh,
+  isReferenceRateFreshForToday,
   isStrictlyNewerTimestamp,
 } from './freshness.ts'
 
@@ -72,5 +73,17 @@ describe('market data freshness', () => {
         source: 'market-provider',
       })
     ).toBe(false)
+  })
+
+  it('treats a reference rate priced today as fresh regardless of hour', () => {
+    expect(isReferenceRateFreshForToday('2026-07-14', now)).toBe(true)
+  })
+
+  it('treats a reference rate priced yesterday as stale even if recent', () => {
+    expect(isReferenceRateFreshForToday('2026-07-13', now)).toBe(false)
+  })
+
+  it('treats a missing reference rate as stale', () => {
+    expect(isReferenceRateFreshForToday(null, now)).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 import { DatabaseZap, ShieldCheck } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 
-const privacyFacts = [
+const DEMO_PRIVACY_FACTS = [
   'A aplicação ainda utiliza somente mocks determinísticos.',
   'Nenhum dado é salvo e não existe backend conectado.',
   'Não existe conta autenticada nesta versão.',
@@ -10,7 +10,17 @@ const privacyFacts = [
   'Não há ação de exclusão de conta disponível nesta versão.',
 ]
 
-export function SettingsPrivacySection() {
+const REAL_PRIVACY_FACTS = [
+  'Nome de exibição e preferências desta tela são salvos na sua conta.',
+  'E-mail e senha são gerenciados pelo Supabase Auth, fora desta tela.',
+  'Carteira, compras e metas de estratégia usam dado real, não mock.',
+  'Um refresh não apaga nada — os dados persistem entre sessões.',
+  'Não há ação de exclusão de conta disponível nesta versão.',
+]
+
+export function SettingsPrivacySection({ isDemo }: { isDemo: boolean }) {
+  const privacyFacts = isDemo ? DEMO_PRIVACY_FACTS : REAL_PRIVACY_FACTS
+
   return (
     <section aria-labelledby="settings-privacy-title">
       <Card className="border-[color:color-mix(in_srgb,var(--color-positive)_20%,var(--color-border))] bg-[color:color-mix(in_srgb,var(--color-positive)_4%,white)]">

@@ -62,15 +62,49 @@ function createStatementCsv(statement: CvmStatement): string {
   return [HEADERS, ...rows].join('\n')
 }
 
+function createCapitalCompositionCsv(): string {
+  const header = [
+    'CNPJ_CIA',
+    'DT_REFER',
+    'VERSAO',
+    'DENOM_CIA',
+    'QT_ACAO_ORDIN_CAP_INTEGR',
+    'QT_ACAO_PREF_CAP_INTEGR',
+    'QT_ACAO_TOTAL_CAP_INTEGR',
+    'QT_ACAO_ORDIN_TESOURO',
+    'QT_ACAO_PREF_TESOURO',
+    'QT_ACAO_TOTAL_TESOURO',
+  ].join(';')
+  const rows = CVM_BRAZILIAN_STOCK_COMPANIES.map((company) =>
+    [
+      company.cnpj,
+      '2026-03-31',
+      '1',
+      company.officialName,
+      '1000',
+      '0',
+      '1000',
+      '0',
+      '0',
+      '0',
+    ].join(';')
+  )
+
+  return [header, ...rows].join('\n')
+}
+
 function createOfficialFixtureArchive(): Uint8Array {
-  return zipSync(
-    Object.fromEntries(
+  return zipSync({
+    ...Object.fromEntries(
       (['DRE', 'BPA', 'BPP', 'DFC_MI'] as const).map((statement) => [
         `itr_cia_aberta_${statement}_con_2026.csv`,
         encodeWindows1252(createStatementCsv(statement)),
       ])
-    )
-  )
+    ),
+    'itr_cia_aberta_composicao_capital_2026.csv': encodeWindows1252(
+      createCapitalCompositionCsv()
+    ),
+  })
 }
 
 describe('ingestCvmBrazilianStockFundamentals', () => {

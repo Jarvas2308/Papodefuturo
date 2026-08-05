@@ -1,4 +1,5 @@
 import { Info } from 'lucide-react'
+import { CalibrationGauge } from '../../../components/ui/CalibrationGauge'
 import { Card } from '../../../components/ui/Card'
 import { cn } from '../../../lib/cn'
 import type { PortfolioMock } from '../types'
@@ -31,41 +32,30 @@ export function PortfolioAllocation({ allocation }: PortfolioAllocationProps) {
                   <h3 className="text-sm font-semibold text-[var(--color-text)]">
                     {item.category}
                   </h3>
-                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                    Meta monitorada {item.targetLabel}
+                  <p className="figure mt-1 text-xs text-[var(--color-text-muted)]">
+                    Meta {item.targetLabel}
                   </p>
-                  <p className="mt-2 text-sm font-medium text-[var(--color-text)]">
+                  <p className="figure mt-2 text-sm font-medium text-[var(--color-text)]">
                     {item.currentValue}
                   </p>
                 </div>
-                <p className="shrink-0 text-lg font-semibold text-[var(--color-text)]">
+                <p className="figure shrink-0 text-lg font-semibold text-[var(--color-text)]">
                   {item.currentLabel}
                 </p>
               </div>
 
-              <div
-                className="mt-5 h-3 overflow-hidden rounded-full bg-[var(--color-border)]"
-                role="progressbar"
-                aria-valuenow={item.current}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuetext={`${item.currentLabel}; ${item.differenceLabel}`}
-                aria-label={`Participação atual de ${item.category}; meta monitorada ${item.targetLabel}`}
-              >
-                <div
-                  className={cn(
-                    'h-full rounded-full',
-                    item.tone === 'alert'
-                      ? 'bg-[var(--color-alert)]'
-                      : 'bg-[var(--color-brand)]'
-                  )}
-                  style={{ width: `${item.current}%` }}
+              <div className="mt-5">
+                <CalibrationGauge
+                  label={item.category}
+                  targetPercent={item.target}
+                  currentPercent={item.current}
+                  alert={item.tone === 'alert'}
                 />
               </div>
 
               <p
                 className={cn(
-                  'mt-3 text-xs font-semibold',
+                  'figure mt-3 text-xs font-semibold',
                   item.tone === 'alert'
                     ? 'text-[var(--color-alert)]'
                     : 'text-[var(--color-text-muted)]'

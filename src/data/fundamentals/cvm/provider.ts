@@ -1,4 +1,9 @@
 import type { BrazilianStockFundamentalFacts } from '../../../domain/fundamentals'
+import {
+  parseCvmCapitalCompositionCsv,
+  parseCvmShareQuantity,
+  type CvmCapitalCompositionDocument,
+} from './capitalComposition'
 import { CVM_BRAZILIAN_STOCK_COMPANIES } from './companies'
 import { normalizeCvmCnpj } from './cnpj'
 import { parseCvmStatementCsv } from './csv'
@@ -8,6 +13,8 @@ import type {
   CvmArchiveSource,
   CvmBrazilianStockCompany,
   CvmBrazilianStockFundamentalRecord,
+  CvmCapitalCompositionProvenance,
+  CvmCapitalCompositionRow,
   CvmFactProvenance,
   CvmStatement,
   CvmStatementDocument,
@@ -225,6 +232,112 @@ function selectFact({
   }
 }
 
+function selectCapitalCompositionRow(
+  rows: readonly CvmCapitalCompositionRow[],
+  company: CvmBrazilianStockCompany
+): CvmCapitalCompositionRow | null {
+  const expectedCnpj = normalizeCvmCnpj(company.cnpj)
+  const candidates = rows
+    .map((row) => ({ row, version: parseCvmVersion(row.version) }))
+    .filter(
+      (
+        candidate
+      ): candidate is { row: CvmCapitalCompositionRow; version: number } =>
+        normalizeCvmCnpj(candidate.row.cnpj) === expectedCnpj &&
+        candidate.version !== null &&
+        isValidCivilDate(candidate.row.referenceDate)
+    )
+
+  if (candidates.length === 0) {
+    return null
+  }
+
+  const referenceDate = candidates.reduce(
+    (latest, candidate) =>
+      candidate.row.referenceDate > latest
+        ? candidate.row.referenceDate
+        : latest,
+    candidates[0]!.row.referenceDate
+  )
+  const latestDateCandidates = candidates.filter(
+    (candidate) => candidate.row.referenceDate === referenceDate
+  )
+  const version = Math.max(
+    ...latestDateCandidates.map((candidate) => candidate.version)
+  )
+  const selected = latestDateCandidates.filter(
+    (candidate) => candidate.version === version
+  )
+
+  if (selected.length !== 1) {
+    throw new Error(
+      `Ambiguous CVM capital composition row for ${company.ticker} at ${referenceDate} version ${version}`
+    )
+  }
+
+  const row = selected[0]!.row
+  if (
+    normalizeCvmDescription(row.companyName) !==
+    normalizeCvmDescription(company.officialName)
+  ) {
+    throw new Error(
+      `Unexpected official CVM capital composition name for ${company.ticker}: ${row.companyName}`
+    )
+  }
+
+  return row
+}
+
+function selectIssuedSharesColumn(
+  shareClass: CvmBrazilianStockCompany['shareClass']
+): { column: string; field: keyof CvmCapitalCompositionRow } {
+  if (shareClass === 'ON') {
+    return { column: 'QT_ACAO_ORDIN_CAP_INTEGR', field: 'ordinaryShares' }
+  }
+  if (shareClass === 'PN') {
+    return { column: 'QT_ACAO_PREF_CAP_INTEGR', field: 'preferredShares' }
+  }
+  return { column: 'QT_ACAO_TOTAL_CAP_INTEGR', field: 'totalShares' }
+}
+
+function selectIssuedShares(
+  rows: readonly CvmCapitalCompositionRow[],
+  company: CvmBrazilianStockCompany
+): {
+  issuedShares: ReturnType<typeof parseCvmShareQuantity>
+  provenance: CvmCapitalCompositionProvenance | null
+} {
+  const row = selectCapitalCompositionRow(rows, company)
+  if (row === null) {
+    return { issuedShares: null, provenance: null }
+  }
+
+  const version = parseCvmVersion(row.version)
+  if (version === null) {
+    throw new Error(
+      `Invalid CVM capital composition version for ${company.ticker}: ${row.version}`
+    )
+  }
+
+  const { column, field } = selectIssuedSharesColumn(company.shareClass)
+  const rawValue = row[field]
+  const issuedShares = parseCvmShareQuantity(
+    rawValue,
+    `issued shares (${company.shareClass}) for ${company.ticker}`
+  )
+
+  return {
+    issuedShares,
+    provenance: {
+      fileName: row.fileName,
+      column,
+      rawValue,
+      referenceDate: row.referenceDate,
+      version,
+    },
+  }
+}
+
 function buildSourceDocumentId(
   source: CvmArchiveSource,
   archiveId: string,
@@ -245,7 +358,8 @@ function buildRecord(
   company: CvmBrazilianStockCompany,
   source: CvmArchiveSource,
   archiveId: string,
-  rows: readonly CvmStatementRow[]
+  rows: readonly CvmStatementRow[],
+  capitalCompositionRows: readonly CvmCapitalCompositionRow[]
 ): CvmBrazilianStockFundamentalRecord {
   const filing = selectLatestFilingRows(rows, company)
   const currentRows = selectCurrentExerciseRows(filing.rows)
@@ -276,12 +390,14 @@ function buildRecord(
     accountCode: '6.01',
     descriptions: OPERATING_CASH_FLOW_DESCRIPTIONS,
   })
+  const issuedShares = selectIssuedShares(capitalCompositionRows, company)
   const facts: BrazilianStockFundamentalFacts = {
     totalRevenue: null,
     netIncome: netIncome.fact,
     totalAssets: totalAssets.fact,
     totalEquity: totalEquity.fact,
     operatingCashFlow: operatingCashFlow.fact,
+    issuedShares: issuedShares.issuedShares,
   }
 
   return {
@@ -314,6 +430,7 @@ function buildRecord(
       totalAssets: totalAssets.provenance,
       totalEquity: totalEquity.provenance,
       operatingCashFlow: operatingCashFlow.provenance,
+      issuedShares: issuedShares.provenance,
     },
   }
 }
@@ -322,14 +439,24 @@ export function extractCvmBrazilianStockFundamentals(input: {
   source: CvmArchiveSource
   archiveId: string
   documents: readonly CvmStatementDocument[]
+  capitalCompositionDocument: CvmCapitalCompositionDocument
 }): CvmBrazilianStockFundamentalRecord[] {
   if (!input.archiveId.trim()) {
     throw new Error('CVM archiveId must be a non-empty string')
   }
 
   const rows = input.documents.flatMap(parseCvmStatementCsv)
+  const capitalCompositionRows = parseCvmCapitalCompositionCsv(
+    input.capitalCompositionDocument
+  )
   return CVM_BRAZILIAN_STOCK_COMPANIES.map((company) =>
-    buildRecord(company, input.source, input.archiveId, rows)
+    buildRecord(
+      company,
+      input.source,
+      input.archiveId,
+      rows,
+      capitalCompositionRows
+    )
   )
 }
 

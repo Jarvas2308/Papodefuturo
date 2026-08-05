@@ -82,7 +82,7 @@ export function Header({ menuButtonRef, onOpenMobileMenu }: HeaderProps) {
   }, [isNotificationsOpen])
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-surface)_92%,white)]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 border-b-2 border-[var(--color-brand)] bg-[var(--color-surface)]">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <Button
           ref={menuButtonRef}

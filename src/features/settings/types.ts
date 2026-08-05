@@ -20,18 +20,10 @@ export type UserSettings = {
     contributionReminderEnabled: boolean
     contributionReminderDay: number
   }
-  notifications: {
-    contributionReminder: boolean
-    portfolioSummary: boolean
-    strategyAlerts: boolean
-  }
 }
 
 export type SettingsField =
-  | 'displayName'
-  | 'email'
-  | 'defaultContributionStrategy'
-  | 'contributionReminderDay'
+  'displayName' | 'defaultContributionStrategy' | 'contributionReminderDay'
 
 export type SettingsValidationIssue = {
   field: SettingsField

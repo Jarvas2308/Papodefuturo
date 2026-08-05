@@ -5,6 +5,7 @@ import {
 import type { AllocationTarget, EntityId, Purchase } from '../../domain/models'
 import { AI_EXPLANATION_V1_SCHEMA_VERSION } from '../../domain/aiExplanation'
 import type { AiExplanationV1 } from '../../domain/aiExplanation'
+import type { Tables } from '../../lib/database.types'
 import type { SupabaseBrowserClient } from '../../lib/supabaseClient'
 import type {
   AiExplanationRepository,
@@ -19,7 +20,12 @@ import type {
   ExchangeRateRepository,
   MarketDataRefreshResult,
   MarketDataRepository,
+  ProfileRepository,
   PurchaseRepository,
+  SignalRule,
+  SignalRuleRepository,
+  UserPreferences,
+  UserPreferencesRepository,
 } from './contracts'
 import {
   mapContributionPlanItemRow,
@@ -61,6 +67,8 @@ function parseMarketDataRefreshResult(value: unknown): MarketDataRefreshResult {
     result.skippedFreshPrices,
     result.updatedExchangeRates,
     result.skippedFreshExchangeRates,
+    result.updatedReferenceRates,
+    result.skippedFreshReferenceRates,
   ]
 
   if (
@@ -74,10 +82,16 @@ function parseMarketDataRefreshResult(value: unknown): MarketDataRefreshResult {
         // 'storage' faltava aqui: qualquer aviso de falha de escrita
         // (DEC-062) derrubava a resposta inteira nesta validação, e
         // refreshMarketDataBestEffort convertia isso no mesmo aviso
-        // genérico, escondendo o motivo real.
-        ['b3-cotahist', 'twelve-data', 'configuration', 'storage'].includes(
-          warning.provider
-        ) &&
+        // genérico, escondendo o motivo real. 'tesouro-transparente'
+        // (Sprint 16 Fase 2) segue a mesma disciplina - faltar aqui
+        // repetiria o mesmo bug pra fonte nova.
+        [
+          'b3-cotahist',
+          'twelve-data',
+          'tesouro-transparente',
+          'configuration',
+          'storage',
+        ].includes(warning.provider) &&
         [
           'provider-failed',
           'stale-quote',
@@ -544,6 +558,203 @@ export function createSupabaseContributionPlanRepository(
   }
 }
 
+const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  currency: 'BRL',
+  percentageDecimals: 2,
+  compactView: false,
+  defaultContributionStrategy: 'proportional',
+  contributionReminderEnabled: true,
+  contributionReminderDay: 10,
+  scoreWeightInBasisPoints: 50,
+}
+
+export function createSupabaseProfileRepository(
+  client: SupabaseBrowserClient
+): ProfileRepository {
+  return {
+    async get(userId) {
+      const { data, error } = await client
+        .from('profiles')
+        .select('name')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (error) {
+        throw createRepositoryQueryError('profile', error)
+      }
+
+      return { displayName: data?.name ?? '' }
+    },
+    async update(userId, profile) {
+      const { data, error } = await client
+        .from('profiles')
+        .upsert({ id: userId, name: profile.displayName })
+        .select('name')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('profile', error)
+      }
+
+      return { displayName: data.name ?? '' }
+    },
+  }
+}
+
+type UserPreferencesRow = Tables<'user_preferences'>
+
+function mapUserPreferencesRow(row: UserPreferencesRow): UserPreferences {
+  return {
+    currency: row.currency === 'USD' ? 'USD' : 'BRL',
+    percentageDecimals: (row.percentage_decimals === 0 ||
+    row.percentage_decimals === 1
+      ? row.percentage_decimals
+      : 2) as 0 | 1 | 2,
+    compactView: row.compact_view,
+    defaultContributionStrategy:
+      row.default_contribution_strategy === 'target-allocation'
+        ? 'target-allocation'
+        : 'proportional',
+    contributionReminderEnabled: row.contribution_reminder_enabled,
+    contributionReminderDay: row.contribution_reminder_day,
+    scoreWeightInBasisPoints: row.score_weight_basis_points,
+  }
+}
+
+export function createSupabaseUserPreferencesRepository(
+  client: SupabaseBrowserClient
+): UserPreferencesRepository {
+  return {
+    async get(userId) {
+      const { data, error } = await client
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (error) {
+        throw createRepositoryQueryError('user preferences', error)
+      }
+
+      return data ? mapUserPreferencesRow(data) : DEFAULT_USER_PREFERENCES
+    },
+    async update(userId, preferences) {
+      const { data, error } = await client
+        .from('user_preferences')
+        .upsert({
+          user_id: userId,
+          currency: preferences.currency,
+          percentage_decimals: preferences.percentageDecimals,
+          compact_view: preferences.compactView,
+          default_contribution_strategy:
+            preferences.defaultContributionStrategy,
+          contribution_reminder_enabled:
+            preferences.contributionReminderEnabled,
+          contribution_reminder_day: preferences.contributionReminderDay,
+          score_weight_basis_points: preferences.scoreWeightInBasisPoints,
+        })
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('user preferences', error)
+      }
+
+      return mapUserPreferencesRow(data)
+    },
+  }
+}
+
+function mapSignalRuleRow(row: Tables<'signal_rules'>): SignalRule {
+  return {
+    id: row.id,
+    signalKey: row.signal_key,
+    minValue: row.min_value,
+    maxValue: row.max_value,
+    points: row.points,
+    enabled: row.enabled,
+  }
+}
+
+export function createSupabaseSignalRuleRepository(
+  client: SupabaseBrowserClient,
+  createId: AssetIdFactory = createBrowserEntityId
+): SignalRuleRepository {
+  return {
+    async list() {
+      const { data, error } = await client
+        .from('signal_rules')
+        .select('*')
+        .order('signal_key', { ascending: true })
+
+      if (error) {
+        throw createRepositoryQueryError('signal rules', error)
+      }
+
+      return (data ?? []).map(mapSignalRuleRow)
+    },
+    async create(input) {
+      const { data: userData, error: userError } = await client.auth.getUser()
+
+      if (userError || !userData.user) {
+        throw createRepositoryQueryError('signal rules', {
+          message: 'Sessão autenticada inválida.',
+        })
+      }
+
+      const { data, error } = await client
+        .from('signal_rules')
+        .insert({
+          id: createId(),
+          user_id: userData.user.id,
+          signal_key: input.signalKey,
+          min_value: input.minValue,
+          max_value: input.maxValue,
+          points: input.points,
+          enabled: input.enabled,
+        })
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('signal rules', error)
+      }
+
+      return mapSignalRuleRow(data)
+    },
+    async update(input) {
+      const { data, error } = await client
+        .from('signal_rules')
+        .update({
+          signal_key: input.signalKey,
+          min_value: input.minValue,
+          max_value: input.maxValue,
+          points: input.points,
+          enabled: input.enabled,
+        })
+        .eq('id', input.id)
+        .select('*')
+        .single()
+
+      if (error) {
+        throw createRepositoryQueryError('signal rules', error)
+      }
+
+      return mapSignalRuleRow(data)
+    },
+    async remove(ruleId) {
+      const { error } = await client
+        .from('signal_rules')
+        .delete()
+        .eq('id', ruleId)
+
+      if (error) {
+        throw createRepositoryQueryError('signal rules', error)
+      }
+    },
+  }
+}
+
 export function createSupabaseRepositories(
   client: SupabaseBrowserClient
 ): AppRepositories {
@@ -556,5 +767,8 @@ export function createSupabaseRepositories(
     marketData: createSupabaseMarketDataRepository(client),
     contributionPlans: createSupabaseContributionPlanRepository(client),
     aiExplanation: createSupabaseAiExplanationRepository(client),
+    profile: createSupabaseProfileRepository(client),
+    userPreferences: createSupabaseUserPreferencesRepository(client),
+    signalRules: createSupabaseSignalRuleRepository(client),
   }
 }

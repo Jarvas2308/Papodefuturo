@@ -16,9 +16,4 @@ export const settingsMock: UserSettings = {
     contributionReminderEnabled: true,
     contributionReminderDay: 10,
   },
-  notifications: {
-    contributionReminder: true,
-    portfolioSummary: true,
-    strategyAlerts: false,
-  },
 }

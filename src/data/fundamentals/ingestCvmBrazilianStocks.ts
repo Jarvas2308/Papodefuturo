@@ -1,6 +1,7 @@
 import {
   buildOfficialCvmArchiveUrl,
   downloadOfficialCvmArchive,
+  readCvmCapitalCompositionDocument,
   readCvmConsolidatedDocuments,
 } from './cvm/archive'
 import { extractCvmBrazilianStockFundamentals } from './cvm/provider'
@@ -20,10 +21,13 @@ export async function ingestCvmBrazilianStockFundamentals(input: {
     input.fetcher
   )
   const documents = readCvmConsolidatedDocuments(archiveBytes)
+  const capitalCompositionDocument =
+    readCvmCapitalCompositionDocument(archiveBytes)
   const records = extractCvmBrazilianStockFundamentals({
     source: input.source,
     archiveId: archiveUrl.split('/').at(-1)!,
     documents,
+    capitalCompositionDocument,
   })
 
   await input.storage.upsertMany(records)

@@ -174,7 +174,26 @@ function copyBrazilianStockFacts(
       'BRL',
       'Operating cash flow'
     ),
+    issuedShares:
+      facts.issuedShares === null
+        ? null
+        : normalizeExactDecimalQuantity(facts.issuedShares, 'Issued shares'),
   }
+}
+
+function copyNullableBasisPoints(
+  value: number | null,
+  description: string
+): number | null {
+  if (value === null) {
+    return null
+  }
+  if (!Number.isSafeInteger(value) || value < 0 || value > 10_000) {
+    throw new RangeError(
+      `${description} must be between 0 and 10000 basis points or null`
+    )
+  }
+  return value
 }
 
 function copyNullableNonNegativeInteger(
@@ -212,6 +231,10 @@ function copyRealEstateFundFacts(
     shareholderCount: copyNullableNonNegativeInteger(
       facts.shareholderCount,
       'Shareholder count'
+    ),
+    vacancyInBasisPoints: copyNullableBasisPoints(
+      facts.vacancyInBasisPoints,
+      'Vacancy'
     ),
   }
 }

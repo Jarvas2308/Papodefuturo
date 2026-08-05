@@ -13,6 +13,7 @@ export function PortfolioPage() {
     needsExchangeRate,
     latestUsdBrlRate,
     marketDataWarning,
+    stalePrices,
   } = usePortfolioData()
 
   if (status === 'error') {
@@ -64,6 +65,21 @@ export function PortfolioPage() {
           className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]"
         >
           {marketDataWarning}
+        </p>
+      ) : null}
+
+      {stalePrices.length > 0 ? (
+        <p
+          role="status"
+          className="rounded-[var(--radius-md)] border border-[color:color-mix(in_srgb,var(--color-alert)_35%,var(--color-border))] bg-[color:color-mix(in_srgb,var(--color-alert)_6%,white)] px-4 py-3 text-sm text-[var(--color-text)]"
+        >
+          Cotação desatualizada para{' '}
+          {stalePrices.map((item) => item.ticker).join(', ')}
+          {' — '}
+          {stalePrices.length === 1
+            ? `${stalePrices[0]!.daysStale} dias sem atualização automática.`
+            : 'sem atualização automática há vários dias.'}{' '}
+          Valores exibidos usam o último preço disponível.
         </p>
       ) : null}
 
