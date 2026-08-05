@@ -12,9 +12,12 @@ import {
   buildContributionPlanCreateInput,
   buildContributionPositions,
   buildContributionTargets,
+  loadContributionAssetScoresBestEffort,
   loadRealContributionInputs,
   matchRegisteredPurchasesToPlanItems,
 } from './useContributionData'
+import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from '../../../domain/fundamentals/score'
+import type { SupabaseBrowserClient } from '../../../lib/supabaseClient'
 
 const asset: Asset = {
   id: 'asset-bbas3',
@@ -497,5 +500,163 @@ describe('matchRegisteredPurchasesToPlanItems', () => {
     expect(matchRegisteredPurchasesToPlanItems(planItems, [purchase])).toEqual(
       []
     )
+  })
+})
+
+describe('loadContributionAssetScoresBestEffort', () => {
+  function fakeQueryClient(rows: unknown[] = []) {
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      in: vi.fn(),
+      order: vi.fn(async () => ({ data: rows, error: null })),
+    }
+    query.select.mockReturnValue(query)
+    query.eq.mockReturnValue(query)
+    query.in.mockReturnValue(query)
+    return { from: vi.fn(() => query) } as unknown as SupabaseBrowserClient
+  }
+
+  function fakeRepositories(
+    overrides: Partial<AppRepositories> = {}
+  ): AppRepositories {
+    return {
+      assets: { list: vi.fn(), ensureClosedUniverse: vi.fn() },
+      purchases: {
+        list: vi.fn(),
+        create: vi.fn(),
+        createMany: vi.fn(),
+        update: vi.fn(),
+        cancel: vi.fn(),
+      },
+      assetPrices: { list: vi.fn() },
+      exchangeRates: { list: vi.fn() },
+      allocationTargets: { list: vi.fn(), replaceAll: vi.fn() },
+      marketData: { refresh: vi.fn() },
+      contributionPlans: {
+        list: vi.fn(),
+        create: vi.fn(),
+        updateStatus: vi.fn(),
+        linkItemPurchase: vi.fn(),
+      },
+      aiExplanation: { explain: vi.fn() },
+      profile: { get: vi.fn(), update: vi.fn() },
+      userPreferences: {
+        get: vi.fn().mockResolvedValue({
+          currency: 'BRL',
+          percentageDecimals: 2,
+          compactView: false,
+          defaultContributionStrategy: 'target-allocation',
+          contributionReminderEnabled: false,
+          contributionReminderDay: 1,
+          scoreWeightInBasisPoints: 75,
+        }),
+        update: vi.fn(),
+      },
+      signalRules: {
+        list: vi.fn().mockResolvedValue([]),
+        create: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn(),
+        remove: vi.fn(),
+      },
+      ...overrides,
+    }
+  }
+
+  it('returns empty scores and zero weight when anything fails (best effort)', async () => {
+    const throwingClient = {
+      from: () => {
+        throw new Error('network unavailable')
+      },
+    } as unknown as SupabaseBrowserClient
+    const repositories = fakeRepositories()
+    const fiiAsset: Asset = {
+      id: 'asset-knri11',
+      ticker: 'KNRI11',
+      name: 'Kinea Renda Imobiliária',
+      category: 'real-estate-fund',
+      market: 'BR',
+      status: 'active',
+      assetType: 'tijolo',
+    }
+
+    const result = await loadContributionAssetScoresBestEffort(
+      throwingClient,
+      repositories,
+      [fiiAsset],
+      [],
+      'user-1'
+    )
+
+    expect(result).toEqual({ assetScores: [], scoreWeightInBasisPoints: 0 })
+  })
+
+  it('seeds every missing default FII signal rule on first use', async () => {
+    const client = fakeQueryClient([])
+    const repositories = fakeRepositories()
+
+    await loadContributionAssetScoresBestEffort(
+      client,
+      repositories,
+      [],
+      [],
+      'user-1'
+    )
+
+    expect(repositories.signalRules.create).toHaveBeenCalledTimes(
+      DEFAULT_FII_TIJOLO_SIGNAL_RULES.length
+    )
+  })
+
+  it('does not reseed a signal key the user already has a rule for', async () => {
+    const client = fakeQueryClient([])
+    const repositories = fakeRepositories({
+      signalRules: {
+        list: vi.fn().mockResolvedValue([
+          {
+            id: 'rule-1',
+            signalKey: 'fii_pvp',
+            minValue: null,
+            maxValue: null,
+            points: 0,
+            enabled: true,
+          },
+        ]),
+        create: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn(),
+        remove: vi.fn(),
+      },
+    })
+
+    await loadContributionAssetScoresBestEffort(
+      client,
+      repositories,
+      [],
+      [],
+      'user-1'
+    )
+
+    const createdKeys = (
+      repositories.signalRules.create as ReturnType<typeof vi.fn>
+    ).mock.calls.map(
+      (call: unknown[]) => (call[0] as { signalKey: string }).signalKey
+    )
+    expect(createdKeys).not.toContain('fii_pvp')
+  })
+
+  it('returns the user preferences score weight on success', async () => {
+    const client = fakeQueryClient([])
+    const repositories = fakeRepositories()
+
+    const result = await loadContributionAssetScoresBestEffort(
+      client,
+      repositories,
+      [],
+      [],
+      'user-1'
+    )
+
+    expect(result.scoreWeightInBasisPoints).toBe(75)
+    expect(result.assetScores).toEqual([])
   })
 })

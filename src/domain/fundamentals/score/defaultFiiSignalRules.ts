@@ -1,6 +1,6 @@
 import type { SignalRuleV1 } from './types'
 
-// Faixas de partida para os 3 sinais de FII tijolo ja calculaveis (Fase 5,
+// Faixas de partida para os 4 sinais de FII tijolo ja calculaveis (Fase 5,
 // fatia 1) - docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md, secao 1.
 // Rascunho explicito: "limiares numericos sao ponto de partida proposto,
 // nao recomendacao - escolha de corte e sua, edite livremente". Estes
@@ -15,6 +15,36 @@ import type { SignalRuleV1 } from './types'
 // (48/24 meses) sao um ponto de partida tao arbitrario quanto os do
 // rascunho original - editavel do mesmo jeito.
 export const DEFAULT_FII_TIJOLO_SIGNAL_RULES: readonly SignalRuleV1[] = [
+  // P/VP (escala FUNDAMENTAL_RATIO_SCALE = 1e6; 1_000_000 = P/VP de 1.0).
+  {
+    signalKey: 'fii_pvp',
+    minValue: null,
+    maxValue: 900_000,
+    points: 2,
+    enabled: true,
+  },
+  {
+    signalKey: 'fii_pvp',
+    minValue: 900_000,
+    maxValue: 1_000_000,
+    points: 1,
+    enabled: true,
+  },
+  {
+    signalKey: 'fii_pvp',
+    minValue: 1_000_000,
+    maxValue: 1_100_000,
+    points: 0,
+    enabled: true,
+  },
+  {
+    signalKey: 'fii_pvp',
+    minValue: 1_100_000,
+    maxValue: null,
+    points: -2,
+    enabled: true,
+  },
+
   // Vacancia financeira (basis points, 10000 = 100%).
   {
     signalKey: 'fii_vacancy',

@@ -1,21 +1,25 @@
-// Motor de score, fatia 1 (FII tijolo) - Sprint 16, Fase 5 (DEC-085).
+// Motor de score, fatia 1 (FII tijolo) - Sprint 16, Fase 5 (DEC-085/DEC-086).
 //
-// So cobre os 3 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
-// (secao 1) que ja tem dado real ingerido sem depender de cotacao de
-// mercado: vacancia financeira, concentracao do maior inquilino e WALE
+// Cobre 4 dos 6 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
+// (secao 1): vacancia financeira, concentracao do maior inquilino, WALE
 // (usado como substituto documentado de "receita vencendo em 24 meses" -
-// ver defaultFiiSignalRules.ts). P/VP (precisa preco de mercado) e spread
-// de DY sobre NTN-B (precisa valor de provento, ainda nao extraido -
-// DEC-082) ficam para as proximas fatias. FII papel e FOF nao existem no
-// universo fechado hoje - regime errado sempre gera 'wrong-regime', nunca
-// um numero.
+// ver defaultFiiSignalRules.ts) e P/VP (preco de mercado / VP por cota
+// derivado, DEC-086). Spread de DY sobre NTN-B (precisa valor de provento,
+// ainda nao extraido - DEC-082) fica para a proxima fatia. FII papel e FOF
+// nao existem no universo fechado hoje - regime errado sempre gera
+// 'wrong-regime', nunca um numero.
 import type { FiiAssetType } from '../../models/asset'
+import { computeFiiPvpScaledV1 } from './computeFiiPvpScaledV1'
+import type {
+  FundamentalDerivedFactsAsset,
+  ScaledMonetaryPerQuantity,
+} from '../derived/types'
 import type { FundamentalFactsAsset } from '../types'
 import type { AssetScoreSignal, AssetScoreV1, SignalRuleV1 } from './types'
 import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 
 export type FiiTijoloSignalKey =
-  'fii_vacancy' | 'fii_tenant_concentration' | 'fii_wale_months'
+  'fii_vacancy' | 'fii_tenant_concentration' | 'fii_wale_months' | 'fii_pvp'
 
 type LatestTrimestralFacts = {
   vacancyInBasisPoints: number | null
@@ -57,6 +61,34 @@ function extractLatestTrimestralFacts(
   }
 }
 
+function extractLatestNavPerShare(
+  derivedAsset: FundamentalDerivedFactsAsset | undefined
+): ScaledMonetaryPerQuantity | null {
+  if (!derivedAsset) {
+    return null
+  }
+  type RealEstateFundSnapshot = Extract<
+    FundamentalDerivedFactsAsset['snapshots'][number],
+    { kind: 'real-estate-fund' }
+  >
+  const monthlySnapshots = derivedAsset.snapshots.filter(
+    (snapshot): snapshot is RealEstateFundSnapshot =>
+      snapshot.kind === 'real-estate-fund' &&
+      snapshot.source === 'cvm-fii-inf-mensal'
+  )
+  const latest = monthlySnapshots.reduce<RealEstateFundSnapshot | null>(
+    (best, snapshot) => {
+      if (best === null || snapshot.referenceDate > best.referenceDate) {
+        return snapshot
+      }
+      return best
+    },
+    null
+  )
+  const metric = latest?.metrics.netAssetValuePerIssuedShare
+  return metric && metric.status === 'available' ? metric.value : null
+}
+
 function findMatchingRule(
   rules: readonly SignalRuleV1[],
   signalKey: string,
@@ -90,8 +122,39 @@ function scoreSignal(
   }
 }
 
+function scorePvpSignal(
+  navPerShare: ScaledMonetaryPerQuantity | null,
+  marketPriceInMinorUnits: number | null,
+  rules: readonly SignalRuleV1[]
+): AssetScoreSignal {
+  if (
+    navPerShare === null ||
+    marketPriceInMinorUnits === null ||
+    marketPriceInMinorUnits <= 0
+  ) {
+    return {
+      signalKey: 'fii_pvp',
+      status: 'unavailable',
+      reason: 'missing-input',
+    }
+  }
+  const pvpScaled = computeFiiPvpScaledV1({
+    marketPriceInMinorUnits,
+    netAssetValuePerIssuedShare: navPerShare,
+  })
+  const rule = findMatchingRule(rules, 'fii_pvp', pvpScaled)
+  return {
+    signalKey: 'fii_pvp',
+    status: 'applied',
+    observedValue: pvpScaled,
+    points: rule?.points ?? 0,
+  }
+}
+
 export function buildFiiTijoloScoreV1(input: {
   asset: FundamentalFactsAsset
+  derivedAsset?: FundamentalDerivedFactsAsset
+  latestMarketPriceInMinorUnits?: number | null
   assetType: FiiAssetType | null
   rules: readonly SignalRuleV1[]
 }): AssetScoreV1 {
@@ -99,6 +162,7 @@ export function buildFiiTijoloScoreV1(input: {
     'fii_vacancy',
     'fii_tenant_concentration',
     'fii_wale_months',
+    'fii_pvp',
   ]
 
   if (input.assetType !== 'tijolo') {
@@ -116,6 +180,7 @@ export function buildFiiTijoloScoreV1(input: {
   }
 
   const facts = extractLatestTrimestralFacts(input.asset)
+  const navPerShare = extractLatestNavPerShare(input.derivedAsset)
   const signals: AssetScoreSignal[] = [
     scoreSignal('fii_vacancy', facts.vacancyInBasisPoints, input.rules),
     scoreSignal(
@@ -124,6 +189,11 @@ export function buildFiiTijoloScoreV1(input: {
       input.rules
     ),
     scoreSignal('fii_wale_months', facts.waleMonthsScaledBy100, input.rules),
+    scorePvpSignal(
+      navPerShare,
+      input.latestMarketPriceInMinorUnits ?? null,
+      input.rules
+    ),
   ]
 
   const totalPoints = signals.reduce(

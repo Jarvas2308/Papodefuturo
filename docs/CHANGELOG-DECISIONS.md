@@ -3148,3 +3148,86 @@ no-improving-purchase, even with a high score on the losing asset'`).
   P/VP de FII (precisa combinar NAV/cota derivado com cotação de mercado,
   dado já existe nas duas pontas) ou a próxima classe de ativo (ação ou
   ETF) — decisão do usuário quando a Fase 5 continuar.
+
+## DEC-086 — Sprint 16, Fase 5/6: P/VP de FII e conexão do motor de score ao aporte real
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada — fecha o P/VP pendente da `DEC-085` e
+  conecta o motor ao fluxo real de aporte, revisando deliberadamente um
+  isolamento arquitetural do Sprint 4 que não fazia mais sentido depois do
+  Sprint 16.
+- Decisão, em três partes:
+  1. **P/VP de FII, quarto sinal da fatia 1.** `computeFiiPvpScaledV1`
+     (`src/domain/fundamentals/score/computeFiiPvpScaledV1.ts`) combina o
+     VP por cota já derivado (`FiiNetAssetValuePerIssuedShareInputs`,
+     existente desde a Fase 1) com a cotação de mercado mais recente, em
+     `BigInt` exato (mesma disciplina do resto do domínio — nunca ponto
+     flutuante em razão financeira), escalado por
+     `FUNDAMENTAL_RATIO_SCALE` (1e6), mesma convenção dos outros
+     derivados. `buildFiiTijoloScoreV1` ganha o parâmetro opcional
+     `derivedAsset` (fatos derivados, para o VP por cota) e
+     `latestMarketPriceInMinorUnits` — ausentes, o sinal fica
+     `unavailable`/`missing-input`, nunca um número inventado.
+  2. **Motor conectado ao fluxo real de aporte, não só testado em
+     isolamento.** `useContributionData.ts` ganha
+     `loadContributionAssetScoresBestEffort`: lê os snapshots trimestrais
+     de FII via `createSupabaseRealEstateFundSnapshotRepository` (leitura,
+     `data/fundamentals`), monta `FundamentalFactsV1`/
+     `FundamentalDerivedFactsV1` com os builders puros de domínio
+     (`buildFundamentalFactsV1`/`buildFundamentalDerivedFactsV1`), semeia
+     as faixas default de `signal_rules` na primeira vez que o usuário usa
+     o motor (`getMissingDefaultFiiSignalRules` — identidade por
+     `signalKey` inteiro: se o usuário já tem qualquer regra para um
+     sinal, os defaults daquele sinal não são reinseridos, tratado como já
+     customizado), lê `score_weight_basis_points` de `user_preferences`
+     (`DEC-074`, default 50) e calcula o score por ativo
+     (`buildContributionAssetScoresV1`). Tudo isso é **best-effort**, mesmo
+     padrão de `refreshMarketDataBestEffort`/`explainContributionPlanBestEffort`
+     já usados no mesmo arquivo: qualquer falha (dossiê indisponível, RPC
+     de `signal_rules` fora do ar, etc.) retorna score vazio e peso zero —
+     nunca trava a simulação de aporte. `assetScores`/
+     `scoreWeightInBasisPoints` passam por `useContribution.ts` até
+     `NewContributionPage.tsx`, que os encaminha para `calculateContribution`.
+  3. **Boundary de isolamento do Sprint 4 revisado, não contornado.**
+     `src/features/fundamentals/boundary.test.ts` continha, desde o
+     commit `6618cce` (28/07/2026, quando fundamentos era só apresentação,
+     "sem score/ranking/recomendação"), uma checagem que proibia qualquer
+     menção à palavra "fundamentals" nos fluxos financeiros críticos
+     (`contribution`/`portfolio`/`history`) — proteção correta _para aquele
+     momento_, mas que hoje conflita diretamente com o objetivo explícito
+     da Fase 5/6 (`DEC-068`): o motor de score _precisa_ ler dado de
+     fundamentos para pontuar candidatos no laço guloso. Descoberto ao
+     rodar a suíte completa após o wiring — não foi contornado nem
+     enfraquecido sem entender a causa: a checagem foi reescrita para
+     proibir especificamente a feature de apresentação opcional
+     (`features/fundamentals`) e o runtime read-only dela
+     (`application/context/fundamentals/runtime`, que tem seu próprio
+     `boundary.test.ts` garantindo que nunca é importado por fluxo
+     financeiro crítico) — o que continua proibido, sem exceção. O que
+     passa a ser permitido, e é exatamente o caminho usado por esta
+     entrada: os builders puros de domínio (`domain/fundamentals`) e o
+     repositório de leitura (`data/fundamentals`), nunca o runtime nem a UI
+     de apresentação. Pausei o trabalho e confirmei com o usuário antes de
+     tocar num teste de arquitetura que não escrevi nesta sessão
+     (`AskUserQuestion`) — resposta: atualizar o boundary, com decisão
+     documentada.
+- Verificação: 2 arquivos de teste novos
+  (`computeFiiPvpScaledV1.test.ts`: 5 testes;
+  `buildContributionAssetScores.test.ts`: 7 testes), mais testes novos em
+  `buildFiiTijoloScoreV1.test.ts` (7, cobrindo P/VP) e
+  `useContributionData.test.ts` (4, cobrindo semeadura de regras e
+  degradação best-effort). Suíte completa: 161/161 arquivos, 2415/2415
+  testes passando. Typecheck, lint e format limpos. Build de produção
+  verificado (`npm run build`). Fluxo de aporte testado manualmente no
+  navegador em modo demo (estratégia "Plano técnico multiativos", com
+  `assetScores` vazio por padrão em demo) — sem erro de console, resultado
+  técnico idêntico ao comportamento pré-Fase 5, confirmando que o
+  parâmetro opcional não quebra o caminho que não o usa. O caminho real
+  autenticado (leitura de `signal_rules`/fundamentos/preferências) não foi
+  verificado em produção nesta entrada — cai sob o mesmo best-effort que
+  já protege `refreshMarketDataBestEffort`.
+- Consequências: fatia 1 de FII (Fase 5) fica com 4 de 5 sinais prontos e
+  conectados ao motor real — só falta spread de DY sobre NTN-B, bloqueado
+  em dado (valor do provento). Próximas fatias naturais: extrair o valor
+  do provento (desbloqueia o 5º sinal de FII), ou a próxima classe de
+  ativo (ação ou ETF) — decisão do usuário.
