@@ -566,6 +566,11 @@ function toInsertRow(
   readNullableShareholderCount(record.facts.shareholderCount)
   assertNormalizedIssuedShares(record.facts.issuedShares)
   assertStockFactsAbsent(record.facts)
+  if (record.facts.vacancyInBasisPoints !== null) {
+    throw new Error(
+      'cvm-fii-inf-mensal records must not populate vacancyInBasisPoints'
+    )
+  }
   const context = assertRecordIdentity(record)
   assertProvenanceCoherence(record.provenance, context)
 
@@ -594,6 +599,17 @@ function toInsertRow(
     total_liabilities_minor: null,
     net_assets_minor: null,
     operating_cash_flow_minor: null,
+    // Informe Mensal nao reporta vacancia nem indexador da carteira - so
+    // cvm-fii-inf-trimestral popula estas colunas (ver
+    // supabaseRealEstateFundSnapshotsTrimestral.ts).
+    vacancy_basis_points: null,
+    ipca_revenue_share_basis_points: null,
+    igpm_revenue_share_basis_points: null,
+    inpc_revenue_share_basis_points: null,
+    incc_revenue_share_basis_points: null,
+    tenant_concentration_basis_points: null,
+    quarterly_net_financial_result_minor: null,
+    wale_months_x100: null,
     provenance: provenanceToJson(record.provenance),
   }
 }
@@ -618,6 +634,36 @@ export function mapRealEstateFundSnapshotRow(
   }
   assertStockColumnsNull(row)
   assertSecColumnsNull(row)
+  if (row.vacancy_basis_points !== null) {
+    throw new Error(
+      'Vacancy column must remain null for cvm-fii-inf-mensal snapshots'
+    )
+  }
+  if (
+    row.ipca_revenue_share_basis_points !== null ||
+    row.igpm_revenue_share_basis_points !== null ||
+    row.inpc_revenue_share_basis_points !== null ||
+    row.incc_revenue_share_basis_points !== null
+  ) {
+    throw new Error(
+      'Indexador columns must remain null for cvm-fii-inf-mensal snapshots'
+    )
+  }
+  if (row.tenant_concentration_basis_points !== null) {
+    throw new Error(
+      'Tenant concentration column must remain null for cvm-fii-inf-mensal snapshots'
+    )
+  }
+  if (row.quarterly_net_financial_result_minor !== null) {
+    throw new Error(
+      'Quarterly net financial result column must remain null for cvm-fii-inf-mensal snapshots'
+    )
+  }
+  if (row.wale_months_x100 !== null) {
+    throw new Error(
+      'WALE column must remain null for cvm-fii-inf-mensal snapshots'
+    )
+  }
 
   const netAssetValue = readNullableMoney(row.net_asset_value_minor)
   const issuedShares = readIssuedShares(
@@ -648,7 +694,12 @@ export function mapRealEstateFundSnapshotRow(
     period: 'monthly',
     source: 'cvm-fii-inf-mensal',
     sourceDocumentId: row.source_document_id,
-    facts: { netAssetValue, issuedShares, shareholderCount },
+    facts: {
+      netAssetValue,
+      issuedShares,
+      shareholderCount,
+      vacancyInBasisPoints: null,
+    },
   }
 }
 
@@ -687,12 +738,18 @@ export function createSupabaseRealEstateFundSnapshotRepository(
         return []
       }
 
+      // Filtrado por fonte de proposito: cvm-fii-inf-trimestral (Sprint 16
+      // Fase 2) grava vacancia na mesma tabela, mas mapRealEstateFundSnapshotRow
+      // so sabe ler o formato mensal - sem este filtro, uma linha trimestral
+      // ingerida quebraria a tela /fundamentos real ao tentar mapear. Leitura
+      // de vacancia fica para quando o motor de score (Fase 5) precisar dela.
       const { data, error } = await client
         .from('fundamental_snapshots')
         .select('*')
         .eq('kind', 'real-estate-fund')
         .eq('category', 'real-estate-fund')
         .eq('market', 'BR')
+        .eq('source', 'cvm-fii-inf-mensal')
         .in(
           'ticker',
           eligibleAssets.map((asset) => normalizeAssetTicker(asset.ticker))

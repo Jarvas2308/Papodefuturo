@@ -6,6 +6,7 @@ type SettingsToolbarProps = {
   isEditing: boolean
   isValid: boolean
   hasChanges: boolean
+  isDemo: boolean
   onEdit: () => void
   onApply: () => void
   onCancel: () => void
@@ -16,6 +17,7 @@ export function SettingsToolbar({
   isEditing,
   isValid,
   hasChanges,
+  isDemo,
   onEdit,
   onApply,
   onCancel,
@@ -25,11 +27,12 @@ export function SettingsToolbar({
     <Card className="flex flex-col gap-5 border-[color:color-mix(in_srgb,var(--color-brand)_22%,var(--color-border))] bg-[color:color-mix(in_srgb,var(--color-brand-subtle)_45%,white)] sm:flex-row sm:items-center sm:justify-between">
       <div>
         <span className="inline-flex rounded-full bg-[var(--color-brand-subtle)] px-3 py-1 text-xs font-semibold text-[var(--color-brand-strong)]">
-          Preferências demonstrativas
+          {isDemo ? 'Preferências demonstrativas' : 'Preferências da conta'}
         </span>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
-          As alterações ficam somente nesta página. Um refresh restaura as
-          configurações padrão e nenhuma preferência afeta as demais telas.
+          {isDemo
+            ? 'As alterações ficam somente nesta página. Um refresh restaura as configurações padrão e nenhuma preferência afeta as demais telas.'
+            : 'Nome de exibição e preferências abaixo são salvos na sua conta. Nenhuma preferência ainda afeta o cálculo das demais telas.'}
         </p>
         {isEditing ? (
           <p className="mt-2 text-sm font-semibold text-[var(--color-brand-strong)]">

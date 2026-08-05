@@ -2,9 +2,11 @@ import type {
   Asset,
   AssetCategory,
   AssetMarket,
+  AssetSegment,
   AssetStatus,
   CurrencyCode,
   EntityId,
+  FiiAssetType,
 } from '../domain/models'
 import type { TablesInsert } from '../lib/database.types'
 
@@ -15,6 +17,11 @@ export type ClosedAssetDefinition = {
   market: AssetMarket
   currency: CurrencyCode
   status: AssetStatus
+  // null para acao e ETF - so FII tem tijolo/papel/fof. Classificacao
+  // verificada em fonte durante docs/reference/, nao adivinhada. Ver o
+  // documento de referencia da categoria para a fonte de cada uma.
+  assetType: FiiAssetType | null
+  assetSegment: AssetSegment | null
 }
 
 export type AssetIdFactory = () => EntityId
@@ -29,6 +36,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: null,
+    assetSegment: 'banco',
   },
   {
     ticker: 'ITSA4',
@@ -37,6 +46,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: null,
+    assetSegment: 'holding',
   },
   {
     ticker: 'TAEE11',
@@ -45,6 +56,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: null,
+    assetSegment: 'regulado',
   },
   {
     ticker: 'WEGE3',
@@ -53,6 +66,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: null,
+    assetSegment: 'industrial',
   },
   {
     ticker: 'PSSA3',
@@ -61,6 +76,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: null,
+    assetSegment: 'seguradora',
   },
   {
     ticker: 'KNRI11',
@@ -69,6 +86,10 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    // Tijolo hibrido (lajes corporativas + logistica) - verificado em
+    // fonte, nao e o mesmo fundo que KNCR11 (Kinea Rendimentos, papel).
+    assetType: 'tijolo',
+    assetSegment: 'hibrido',
   },
   {
     ticker: 'VISC11',
@@ -77,6 +98,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: 'tijolo',
+    assetSegment: 'shopping',
   },
   {
     ticker: 'XPLG11',
@@ -85,6 +108,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: 'tijolo',
+    assetSegment: 'logistica',
   },
   {
     ticker: 'HGRU11',
@@ -93,6 +118,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'BR',
     currency: 'BRL',
     status: 'active',
+    assetType: 'tijolo',
+    assetSegment: 'renda-urbana',
   },
   {
     ticker: 'VOO',
@@ -101,6 +128,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'US',
     currency: 'USD',
     status: 'active',
+    assetType: null,
+    assetSegment: 'indice-amplo-us',
   },
   {
     ticker: 'VNQ',
@@ -109,6 +138,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'US',
     currency: 'USD',
     status: 'active',
+    assetType: null,
+    assetSegment: 'reit-us',
   },
   {
     ticker: 'VEA',
@@ -117,6 +148,8 @@ export const CLOSED_ASSET_UNIVERSE = [
     market: 'US',
     currency: 'USD',
     status: 'active',
+    assetType: null,
+    assetSegment: 'mercados-desenvolvidos-ex-us',
   },
 ] as const satisfies readonly ClosedAssetDefinition[]
 
@@ -166,5 +199,7 @@ export function buildClosedAssetInsertRows(
     market: asset.market,
     currency: asset.currency,
     status: asset.status,
+    asset_type: asset.assetType,
+    asset_segment: asset.assetSegment,
   }))
 }

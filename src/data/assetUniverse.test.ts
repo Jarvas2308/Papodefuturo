@@ -95,6 +95,8 @@ describe('closed asset universe', () => {
         market: 'BR',
         currency: 'BRL',
         status: 'active',
+        asset_type: null,
+        asset_segment: 'banco',
       },
     ])
     expect(createId).toHaveBeenCalledTimes(1)

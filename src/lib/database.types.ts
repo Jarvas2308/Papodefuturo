@@ -98,6 +98,8 @@ export type Database = {
       }
       assets: {
         Row: {
+          asset_segment: string | null
+          asset_type: string | null
           category: string
           created_at: string
           currency: string
@@ -110,6 +112,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          asset_segment?: string | null
+          asset_type?: string | null
           category: string
           created_at?: string
           currency: string
@@ -122,6 +126,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          asset_segment?: string | null
+          asset_type?: string | null
           category?: string
           created_at?: string
           currency?: string
@@ -264,6 +270,10 @@ export type Database = {
           exercise_order: string | null
           filing_version: number | null
           id: number
+          igpm_revenue_share_basis_points: number | null
+          incc_revenue_share_basis_points: number | null
+          inpc_revenue_share_basis_points: number | null
+          ipca_revenue_share_basis_points: number | null
           issued_shares_scale: number | null
           issued_shares_unscaled: number | null
           kind: string
@@ -274,17 +284,21 @@ export type Database = {
           operating_cash_flow_minor: number | null
           period: string
           provenance: Json
+          quarterly_net_financial_result_minor: number | null
           reference_date: string
           shareholder_count: number | null
           source: string
           source_archive: string
           source_document_id: string
+          tenant_concentration_basis_points: number | null
           ticker: string
           total_assets_minor: number | null
           total_equity_minor: number | null
           total_liabilities_minor: number | null
           total_revenue_minor: number | null
           updated_at: string
+          vacancy_basis_points: number | null
+          wale_months_x100: number | null
         }
         Insert: {
           category: string
@@ -293,6 +307,10 @@ export type Database = {
           exercise_order?: string | null
           filing_version?: number | null
           id?: number
+          igpm_revenue_share_basis_points?: number | null
+          incc_revenue_share_basis_points?: number | null
+          inpc_revenue_share_basis_points?: number | null
+          ipca_revenue_share_basis_points?: number | null
           issued_shares_scale?: number | null
           issued_shares_unscaled?: number | null
           kind: string
@@ -303,17 +321,21 @@ export type Database = {
           operating_cash_flow_minor?: number | null
           period: string
           provenance: Json
+          quarterly_net_financial_result_minor?: number | null
           reference_date: string
           shareholder_count?: number | null
           source: string
           source_archive: string
           source_document_id: string
+          tenant_concentration_basis_points?: number | null
           ticker: string
           total_assets_minor?: number | null
           total_equity_minor?: number | null
           total_liabilities_minor?: number | null
           total_revenue_minor?: number | null
           updated_at?: string
+          vacancy_basis_points?: number | null
+          wale_months_x100?: number | null
         }
         Update: {
           category?: string
@@ -322,6 +344,10 @@ export type Database = {
           exercise_order?: string | null
           filing_version?: number | null
           id?: number
+          igpm_revenue_share_basis_points?: number | null
+          incc_revenue_share_basis_points?: number | null
+          inpc_revenue_share_basis_points?: number | null
+          ipca_revenue_share_basis_points?: number | null
           issued_shares_scale?: number | null
           issued_shares_unscaled?: number | null
           kind?: string
@@ -332,17 +358,84 @@ export type Database = {
           operating_cash_flow_minor?: number | null
           period?: string
           provenance?: Json
+          quarterly_net_financial_result_minor?: number | null
           reference_date?: string
           shareholder_count?: number | null
           source?: string
           source_archive?: string
           source_document_id?: string
+          tenant_concentration_basis_points?: number | null
           ticker?: string
           total_assets_minor?: number | null
           total_equity_minor?: number | null
           total_liabilities_minor?: number | null
           total_revenue_minor?: number | null
           updated_at?: string
+          vacancy_basis_points?: number | null
+          wale_months_x100?: number | null
+        }
+        Relationships: []
+      }
+      market_reference_rates: {
+        Row: {
+          created_at: string
+          id: number
+          maturity_date: string
+          priced_at: string
+          rate_scale: number
+          rate_scaled: number
+          series: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          maturity_date: string
+          priced_at: string
+          rate_scale?: number
+          rate_scaled: number
+          series: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          maturity_date?: string
+          priced_at?: string
+          rate_scale?: number
+          rate_scaled?: number
+          series?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      market_valuation_ratios: {
+        Row: {
+          created_at: string
+          id: number
+          reference_date: string
+          series: string
+          source: string
+          value_scale: number
+          value_scaled: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          reference_date: string
+          series: string
+          source: string
+          value_scale?: number
+          value_scaled: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          reference_date?: string
+          series?: string
+          source?: string
+          value_scale?: number
+          value_scaled?: number
         }
         Relationships: []
       }
@@ -800,11 +893,90 @@ export type Database = {
           },
         ]
       }
+      signal_rules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          max_value: number | null
+          min_value: number | null
+          points: number
+          signal_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id: string
+          max_value?: number | null
+          min_value?: number | null
+          points: number
+          signal_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          max_value?: number | null
+          min_value?: number | null
+          points?: number
+          signal_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          compact_view: boolean
+          contribution_reminder_day: number
+          contribution_reminder_enabled: boolean
+          created_at: string
+          currency: string
+          default_contribution_strategy: string
+          percentage_decimals: number
+          score_weight_basis_points: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          compact_view?: boolean
+          contribution_reminder_day?: number
+          contribution_reminder_enabled?: boolean
+          created_at?: string
+          currency?: string
+          default_contribution_strategy?: string
+          percentage_decimals?: number
+          score_weight_basis_points?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          compact_view?: boolean
+          contribution_reminder_day?: number
+          contribution_reminder_enabled?: boolean
+          created_at?: string
+          currency?: string
+          default_contribution_strategy?: string
+          percentage_decimals?: number
+          score_weight_basis_points?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_market_data_health_v1: {
+        Args: { input_job_name?: string; input_lookback_runs?: number }
+        Returns: Json
+      }
       claim_official_event_backfill_jobs_v1: {
         Args: {
           input_lease_duration_seconds: number
@@ -885,6 +1057,14 @@ export type Database = {
       }
       upsert_market_asset_prices_v1: { Args: { records: Json }; Returns: Json }
       upsert_market_exchange_rates_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
+      upsert_market_reference_rates_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
+      upsert_market_valuation_ratios_v1: {
         Args: { records: Json }
         Returns: Json
       }

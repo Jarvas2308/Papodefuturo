@@ -43,9 +43,11 @@ import type { SecNportFetcher } from '../src/data/fundamentals/sec/nport/types'
 import { ingestCvmBrazilianStockFundamentals } from '../src/data/fundamentals/ingestCvmBrazilianStocks'
 import { ingestCvmRealEstateFundFundamentals } from '../src/data/fundamentals/ingestCvmRealEstateFunds'
 import { ingestSecInternationalEtfFundamentals } from '../src/data/fundamentals/ingestSecInternationalEtfs'
+import { ingestShillerCapeFundamentals } from '../src/data/fundamentals/ingestShillerCape'
 import { createSupabaseFundamentalSnapshotStorage } from '../src/data/fundamentals/supabaseFundamentalSnapshots'
 import { createSupabaseRealEstateFundSnapshotStorage } from '../src/data/fundamentals/supabaseRealEstateFundSnapshots'
 import { createSupabaseInternationalEtfSnapshotStorage } from '../src/data/fundamentals/supabaseInternationalEtfSnapshots'
+import { createSupabaseShillerCapeSnapshotStorage } from '../src/data/fundamentals/supabaseShillerCapeSnapshots'
 import { createOfficialEventsSafeFetchV1 } from '../src/server/context/official-events/safeFetch'
 import { buildFundamentalsIngestionPlanV1 } from './lib/buildFundamentalsIngestionPlan'
 
@@ -91,12 +93,15 @@ async function main(): Promise<void> {
 
   const plan = buildFundamentalsIngestionPlanV1(planArgv)
 
+  const targetTable =
+    plan.provider === 'shiller-cape' ? 'market_valuation_ratios' : 'fundamental_snapshots'
+
   console.log('=== Fundamentals ingestion: preview ===')
   console.log(
     JSON.stringify(
       {
         ...plan,
-        targetTable: 'fundamental_snapshots',
+        targetTable,
       },
       null,
       2
@@ -144,12 +149,19 @@ async function main(): Promise<void> {
         fetcher: safeFetch.cvm as CvmFiiArchiveFetcher,
       })
     }
-    const storage = createSupabaseInternationalEtfSnapshotStorage(client)
-    return ingestSecInternationalEtfFundamentals({
-      userAgent: `PapoDeFuturo/1.0 ${contactEmail}`,
-      fetcher: toSecNportFetcher(safeFetch),
-      storage,
-    })
+    if (plan.provider === 'sec-nport') {
+      const storage = createSupabaseInternationalEtfSnapshotStorage(client)
+      return ingestSecInternationalEtfFundamentals({
+        userAgent: `PapoDeFuturo/1.0 ${contactEmail}`,
+        fetcher: toSecNportFetcher(safeFetch),
+        storage,
+      })
+    }
+    // Shiller CAPE fica fora do safeFetch de official-events: aquele allowlist
+    // (OFFICIAL_EVENTS_ALLOWED_HOSTS_V1) e' HTTPS-only e nao inclui o host da
+    // Yale (econ.yale.edu), que so' serve HTTP. Ver src/data/fundamentals/shiller/archive.ts.
+    const storage = createSupabaseShillerCapeSnapshotStorage(client)
+    return ingestShillerCapeFundamentals({ storage, fetcher: fetch })
   })()
 
   console.log('\n=== Fundamentals ingestion: result ===')

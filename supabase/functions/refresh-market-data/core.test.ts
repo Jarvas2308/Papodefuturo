@@ -7,30 +7,47 @@ import {
 import type {
   ExchangeRateInsert,
   MarketPriceInsert,
+  ReferenceRateInsert,
   StoredExchangeRate,
   StoredMarketPrice,
+  StoredReferenceRate,
 } from './types.ts'
 
 const now = new Date('2026-07-14T22:00:00.000Z')
 
+// Fresco por padrao para o dia de `now` (2026-07-14) - testes existentes nao
+// sabem de taxa de referencia e nao devem ganhar warning/insert novo so por
+// causa dela, a menos que o proprio teste passe `referenceRates` explicito.
+const DEFAULT_REFERENCE_RATES: StoredReferenceRate[] = [
+  { series: 'ntnb-longa', pricedAt: '2026-07-14' },
+]
+
 function createStorage(input?: {
   prices?: StoredMarketPrice[]
   rates?: StoredExchangeRate[]
+  referenceRates?: StoredReferenceRate[]
 }) {
   const insertedPrices: MarketPriceInsert[][] = []
   const insertedRates: ExchangeRateInsert[] = []
+  const insertedReferenceRates: ReferenceRateInsert[] = []
   const storage: MarketDataStorage = {
     listMarketPrices: vi.fn().mockResolvedValue(input?.prices ?? []),
     listMarketExchangeRates: vi.fn().mockResolvedValue(input?.rates ?? []),
+    listMarketReferenceRates: vi
+      .fn()
+      .mockResolvedValue(input?.referenceRates ?? DEFAULT_REFERENCE_RATES),
     insertMarketPrices: vi.fn().mockImplementation(async (rows) => {
       insertedPrices.push([...rows])
     }),
     insertMarketExchangeRate: vi.fn().mockImplementation(async (row) => {
       insertedRates.push(row)
     }),
+    insertMarketReferenceRate: vi.fn().mockImplementation(async (row) => {
+      insertedReferenceRates.push(row)
+    }),
   }
 
-  return { storage, insertedPrices, insertedRates }
+  return { storage, insertedPrices, insertedRates, insertedReferenceRates }
 }
 
 function createProviders() {
@@ -62,6 +79,16 @@ function createProviders() {
         pricedAt: '2026-07-14T21:30:00.000Z',
       }),
     },
+    tesouroTransparente: {
+      getNtnbLongaRate: vi.fn().mockResolvedValue({
+        series: 'ntnb-longa' as const,
+        maturityDate: '2060-08-15',
+        rateScaled: 7_650_000,
+        rateScale: 1_000_000 as const,
+        pricedAt: '2026-07-15',
+        source: 'tesouro-transparente' as const,
+      }),
+    },
   }
 }
 
@@ -69,6 +96,7 @@ async function runRefresh(options?: {
   storage?: ReturnType<typeof createStorage>
   providers?: ReturnType<typeof createProviders>
   twelveConfigured?: boolean
+  tesouroConfigured?: boolean
   now?: Date
 }) {
   const storage = options?.storage ?? createStorage()
@@ -78,6 +106,10 @@ async function runRefresh(options?: {
     b3Cotahist: providers.b3Cotahist,
     twelveData:
       options?.twelveConfigured === false ? null : providers.twelveData,
+    tesouroTransparente:
+      options?.tesouroConfigured === false
+        ? null
+        : providers.tesouroTransparente,
     now: options?.now ?? now,
   })
 
@@ -368,5 +400,90 @@ describe('resilient persistence (DEC-062)', () => {
     const { result, storage } = await runRefresh()
 
     expect(result.updatedPrices).toBe(storage.insertedPrices[0].length)
+  })
+})
+
+describe('reference rate (NTN-B)', () => {
+  it('skips fetching when today already has a stored rate', async () => {
+    const { result, providers } = await runRefresh()
+
+    expect(providers.tesouroTransparente.getNtnbLongaRate).not.toHaveBeenCalled()
+    expect(result.skippedFreshReferenceRates).toBe(1)
+    expect(result.updatedReferenceRates).toBe(0)
+  })
+
+  it('fetches and persists a new rate when the stored one is from a previous day', async () => {
+    const storage = createStorage({
+      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-10' }],
+    })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedReferenceRates).toBe(1)
+    expect(result.skippedFreshReferenceRates).toBe(0)
+    expect(storage.insertedReferenceRates[0]).toMatchObject({
+      series: 'ntnb-longa',
+      maturity_date: '2060-08-15',
+      rate_scaled: 7_650_000,
+      rate_scale: 1_000_000,
+      priced_at: '2026-07-15',
+      source: 'tesouro-transparente',
+    })
+  })
+
+  it('fetches when there is no stored rate at all', async () => {
+    const storage = createStorage({ referenceRates: [] })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedReferenceRates).toBe(1)
+  })
+
+  it('warns instead of persisting when the fetched rate is not newer', async () => {
+    const storage = createStorage({
+      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-20' }],
+    })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedReferenceRates).toBe(0)
+    expect(result.skippedFreshReferenceRates).toBe(0)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'tesouro-transparente',
+        kind: 'stale-quote',
+      })
+    )
+  })
+
+  it('warns without throwing when the provider fails', async () => {
+    const storage = createStorage({
+      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-10' }],
+    })
+    const providers = createProviders()
+    providers.tesouroTransparente.getNtnbLongaRate = vi
+      .fn()
+      .mockRejectedValue(new Error('CSV indisponível'))
+
+    const { result } = await runRefresh({ storage, providers })
+
+    expect(result.updatedReferenceRates).toBe(0)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'tesouro-transparente',
+        kind: 'provider-failed',
+      })
+    )
+  })
+
+  it('warns with a configuration notice when Tesouro Transparente is not configured', async () => {
+    const storage = createStorage({
+      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-10' }],
+    })
+    const { result } = await runRefresh({ storage, tesouroConfigured: false })
+
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'configuration',
+        kind: 'configuration',
+      })
+    )
   })
 })

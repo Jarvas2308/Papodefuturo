@@ -2,8 +2,10 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from '../../auth/RequireAuth'
 import { AppShell } from '../../components/layout/AppShell'
+import { ForgotPasswordPage } from '../../pages/ForgotPasswordPage'
 import { LoginPage } from '../../pages/LoginPage'
 import { NotFoundPage } from '../../pages/NotFoundPage'
+import { ResetPasswordPage } from '../../pages/ResetPasswordPage'
 import { ErrorBoundary } from '../ErrorBoundary'
 
 const DashboardPage = lazy(() =>
@@ -81,6 +83,22 @@ export function AppRouter() {
         element={
           <ErrorBoundary scope="Login">
             <LoginPage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/recuperar-senha"
+        element={
+          <ErrorBoundary scope="Recuperar Senha">
+            <ForgotPasswordPage />
+          </ErrorBoundary>
+        }
+      />
+      <Route
+        path="/redefinir-senha"
+        element={
+          <ErrorBoundary scope="Redefinir Senha">
+            <ResetPasswordPage />
           </ErrorBoundary>
         }
       />

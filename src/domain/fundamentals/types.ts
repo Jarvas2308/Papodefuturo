@@ -24,6 +24,12 @@ export type BrazilianStockFundamentalFacts = {
   totalAssets: SignedMonetaryFact | null
   totalEquity: SignedMonetaryFact | null
   operatingCashFlow: SignedMonetaryFact | null
+  // Cotas emitidas da classe negociada pelo ticker (DEC-081), fonte
+  // `dfp_cia_aberta_composicao_capital`/`itr_cia_aberta_composicao_capital`.
+  // ON puro (BBAS3/WEGE3/PSSA3), PN puro (ITSA4) ou total ON+PN para units
+  // (TAEE11) - ver `CvmBrazilianStockCompany.shareClass`. Insumo de LPA e
+  // P/L, ainda nao calculados (Fase 5).
+  issuedShares: ExactDecimalQuantity | null
 }
 
 export type BrazilianStockFundamentalSnapshotInput = {
@@ -40,14 +46,20 @@ export type RealEstateFundFundamentalFacts = {
   netAssetValue: SignedMonetaryFact | null
   issuedShares: ExactDecimalQuantity | null
   shareholderCount: number | null
+  // So populado por 'cvm-fii-inf-trimestral' - o Informe Mensal nao tem
+  // esse dado. Media ponderada por receita entre os imoveis do fundo no
+  // trimestre mais recente (docs/reference/FII_SEGMENTOS_E_METRICAS.md,
+  // secao 7.1). Escala 0-10000 (pontos-base), mesmo padrao de BasisPoints
+  // usado no resto do dominio.
+  vacancyInBasisPoints: number | null
 }
 
 export type RealEstateFundFundamentalSnapshotInput = {
   assetId: string
   kind: 'real-estate-fund'
   referenceDate: string
-  period: 'monthly'
-  source: 'cvm-fii-inf-mensal'
+  period: 'monthly' | 'quarterly'
+  source: 'cvm-fii-inf-mensal' | 'cvm-fii-inf-trimestral'
   sourceDocumentId: string
   facts: RealEstateFundFundamentalFacts
 }

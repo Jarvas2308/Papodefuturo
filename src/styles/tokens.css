@@ -1,20 +1,42 @@
 :root {
-  --color-bg: #f3f6fb;
+  /* Paper: warm neutral grey, not blue, not cream */
+  --color-bg: #f1f0e9;
   --color-surface: #ffffff;
-  --color-surface-muted: #f7f9fc;
-  --color-border: #dbe4f0;
-  --color-border-strong: #c4d1e1;
-  --color-text: #10233e;
-  --color-text-muted: #5e6f86;
-  --color-brand: #174ea6;
-  --color-brand-strong: #0f2f67;
-  --color-brand-subtle: #e8f0ff;
-  --color-positive: #18834f;
-  --color-alert: #c94444;
-  --color-ring: #4d8df0;
-  --radius-md: 0.875rem;
-  --radius-lg: 1.125rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 2rem;
-  --shadow-soft: 0 18px 40px rgba(16, 35, 62, 0.08);
+  --color-surface-muted: #eae8df;
+  --color-border: #ddd9cc;
+  --color-border-strong: #c6c1ae;
+
+  /* Ink: warm graphite, not cold navy */
+  --color-text: #24261f;
+  --color-text-muted: #6e6f61;
+
+  /* Brass: "aporte" gold — the brand's calibration color */
+  --color-brand: #93672e;
+  --color-brand-strong: #6f4c20;
+  --color-brand-subtle: #f0e2c4;
+
+  /* Signal teal: on-target / positive */
+  --color-positive: #226b57;
+  /* Rust: off-target / alert */
+  --color-alert: #a8432a;
+
+  --color-ring: #93672e;
+
+  /* Instrument rail: the dark ink surface for the nav (sidebar) */
+  --color-ink-surface: #1c1c16;
+  --color-ink-surface-raised: #26261e;
+  --color-ink-border: #38372c;
+  --color-ink-text: #f1efe6;
+  --color-ink-text-muted: #a3a08d;
+
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body:
+    'Inter', 'Segoe UI', BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+  --shadow-soft: 0 1px 2px rgba(36, 38, 31, 0.06);
 }

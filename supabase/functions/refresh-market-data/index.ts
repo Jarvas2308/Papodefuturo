@@ -4,6 +4,7 @@ import { refreshMarketData, type MarketDataStorage } from './core.ts'
 import { createB3CotahistProvider } from './b3CotahistProvider.ts'
 import { extractCotahistText } from './b3CotahistZip.ts'
 import { createTwelveDataProvider } from './twelveDataProvider.ts'
+import { createTesouroTransparenteProvider } from './tesouroTransparenteProvider.ts'
 
 declare const Deno: {
   env: { get(name: string): string | undefined }
@@ -128,6 +129,24 @@ Deno.serve(async (request) => {
         )
         if (error) throw error
       },
+      async listMarketReferenceRates() {
+        const { data, error } = await serviceClient
+          .from('market_reference_rates')
+          .select('series,priced_at')
+
+        if (error) throw error
+        return (data ?? []).map((row) => ({
+          series: row.series,
+          pricedAt: row.priced_at,
+        }))
+      },
+      async insertMarketReferenceRate(row) {
+        const { error } = await serviceClient.rpc(
+          'upsert_market_reference_rates_v1',
+          { records: [row] }
+        )
+        if (error) throw error
+      },
     }
     const twelveDataKey = Deno.env.get('TWELVE_DATA_API_KEY')?.trim()
     const result = await refreshMarketData({
@@ -138,7 +157,27 @@ Deno.serve(async (request) => {
       twelveData: twelveDataKey
         ? createTwelveDataProvider(twelveDataKey)
         : null,
+      tesouroTransparente: createTesouroTransparenteProvider(),
     })
+
+    // Sucesso sem log = cron.job_run_details mostra "succeeded" pra toda
+    // execucao, boa ou ruim silenciosamente (poucos precos atualizados,
+    // muitos warnings). Log estruturado aqui fecha o buraco de observabilidade
+    // do outro lado do catch abaixo - agora da pra distinguir "rodou e nao
+    // achou nada novo" de "rodou e atualizou tudo" so lendo o log da funcao.
+    console.log(
+      JSON.stringify({
+        event: 'refresh-market-data-succeeded',
+        updatedPrices: result.updatedPrices,
+        skippedFreshPrices: result.skippedFreshPrices,
+        updatedExchangeRates: result.updatedExchangeRates,
+        skippedFreshExchangeRates: result.skippedFreshExchangeRates,
+        updatedReferenceRates: result.updatedReferenceRates,
+        skippedFreshReferenceRates: result.skippedFreshReferenceRates,
+        warningCount: result.warnings.length,
+        warningKinds: [...new Set(result.warnings.map((w) => w.kind))],
+      })
+    )
 
     return jsonResponse(result)
   } catch (error) {

@@ -72,7 +72,20 @@ Deno.serve(async (request) => {
     const explanation = await openRouterClient.explain(dossier)
 
     return jsonResponse(explanation)
-  } catch {
+  } catch (error) {
+    // Mesmo bug que DEC-062 corrigiu em refresh-market-data: catch mudo aqui
+    // deixava qualquer falha (chave invalida, provider fora do ar, dossie
+    // malformado) indistinguivel de sucesso nos logs da funcao. So nome e
+    // mensagem do erro - nunca o dossie (dado de carteira do usuario) nem a
+    // chave de API.
+    console.error(
+      JSON.stringify({
+        event: 'explain-contribution-plan-failed',
+        name: error instanceof Error ? error.name : 'UnknownError',
+        detail: error instanceof Error ? error.message : String(error),
+      })
+    )
+
     return jsonResponse(
       { message: 'Não foi possível gerar a explicação do plano.' },
       500

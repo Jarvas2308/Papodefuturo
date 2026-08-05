@@ -6,15 +6,24 @@ export type {
   MarketDataRepository,
   MarketDataRefreshResult,
   MarketDataWarning,
+  ProfileRepository,
   PurchaseRepository,
+  SignalRule,
+  SignalRuleRepository,
+  UserPreferences,
+  UserPreferencesRepository,
+  UserProfile,
 } from './contracts'
 export {
   createSupabaseAllocationTargetRepository,
   createSupabaseAssetPriceRepository,
   createSupabaseAssetRepository,
   createSupabaseMarketDataRepository,
+  createSupabaseProfileRepository,
   createSupabasePurchaseRepository,
   createSupabaseRepositories,
+  createSupabaseSignalRuleRepository,
+  createSupabaseUserPreferencesRepository,
 } from './supabaseRepositories'
 export {
   mapAllocationTargetRow,

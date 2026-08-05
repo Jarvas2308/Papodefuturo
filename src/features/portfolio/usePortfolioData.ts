@@ -4,6 +4,10 @@ import { createSupabaseRepositories } from '../../data/repositories'
 import type { AppRepositories } from '../../data/repositories'
 import { refreshMarketDataBestEffort } from '../../data/marketDataRefresh'
 import type { EntityId, ExchangeRate } from '../../domain/models'
+import {
+  getStaleAssetPrices,
+  type StaleAssetPrice,
+} from '../../domain/priceFreshness'
 import { portfolioMock } from '../../mocks/portfolio'
 import { buildPortfolioView } from './buildPortfolioView'
 import type { PortfolioMock } from './types'
@@ -17,6 +21,7 @@ export type PortfolioLoadState = {
   needsExchangeRate: boolean
   latestUsdBrlRate: ExchangeRate | null
   marketDataWarning: string | null
+  stalePrices: StaleAssetPrice[]
 }
 
 export type PortfolioDataState = PortfolioLoadState & {
@@ -33,6 +38,7 @@ export function createInitialPortfolioLoadState(
     needsExchangeRate: false,
     latestUsdBrlRate: null,
     marketDataWarning: null,
+    stalePrices: [],
   }
 }
 
@@ -65,6 +71,7 @@ export async function loadRealPortfolioState(
     needsExchangeRate: portfolio.needsExchangeRate,
     latestUsdBrlRate: portfolio.latestUsdBrlRate,
     marketDataWarning: marketDataRefresh.warning,
+    stalePrices: getStaleAssetPrices(assets, prices, new Date()),
   }
 }
 
@@ -113,6 +120,7 @@ export function usePortfolioData(): PortfolioDataState {
           needsExchangeRate: false,
           latestUsdBrlRate: null,
           marketDataWarning: null,
+          stalePrices: [],
         })
       })
 

@@ -848,32 +848,242 @@ Escopo decidido: **single-user** — só o próprio usuário no primeiro momento
    `contribution_plan_items` de ensaio removidos em 30 de julho de 2026.
    Carteira em produção pronta para o cadastro real do usuário.
 
-### Sprint 10 — Recuperação de senha (bloqueante)
+### Sprint 10 — Recuperação de senha (bloqueante) — **concluído**
 
-`resetPasswordForEmail`/`updatePassword` em `AuthProvider`, rotas públicas
-`/recuperar-senha` e `/redefinir-senha`, e habilitação de
-`auth_leaked_password_protection` no painel Supabase. Com um único
-`auth.users` e sem fluxo de recuperação, senha perdida hoje significa perda
-permanente dos dados.
+`resetPasswordForEmail`/`updatePassword` em `AuthProvider` (`DEC-069`),
+rotas públicas `/recuperar-senha` e `/redefinir-senha`, link "Esqueceu sua
+senha?" em `LoginPage`. Suíte completa verificada: 2210/2210 testes
+passando após a mudança. Pendente, fora de código: habilitação de
+`auth_leaked_password_protection` no painel Supabase — ação manual de
+configuração de segurança em serviço de terceiro, não script.
 
-### Sprint 11 — Superfície honesta e segura (bloqueante)
+### Sprint 11 — Superfície honesta e segura (bloqueante) — **concluído**
 
-Configurações deixam de ser mock (persistência real com RLS do subconjunto
-útil; remoção da seção de notificações, que nunca teve canal de envio) e
-headers de segurança no `vercel.json`.
+Configurações deixam de ser mock (`DEC-070`): nome de exibição persiste em
+`profiles`, subconjunto útil de preferências (moeda, casas decimais, view
+compacta, estratégia padrão, lembrete de aporte) persiste em
+`user_preferences`, tabela nova. E-mail vira somente leitura, vindo da
+sessão real — editar e-mail exige o fluxo de confirmação do Supabase Auth,
+fora deste escopo. Seção de notificações removida inteira — nunca teve
+canal de envio. Textos que afirmavam "sem conta autenticada" e "e-mail
+demonstrativo" reescritos para refletir o estado real. Headers de segurança
+no `vercel.json` (`X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) —
+Content-Security-Policy deliberadamente fora, sem ambiente de teste contra
+produção para validar antes de aplicar. Migration
+`20260731120000_create_user_preferences.sql` aplicada em produção após
+confirmação do usuário; `database.types.ts` regenerado.
+`get_advisors` confirma RLS correta na tabela nova e reconfirma a
+pendência de `auth_leaked_password_protection` já registrada na Sprint 10.
 
-### Sprint 12 — Observabilidade e frescor de dados (bloqueante para uso continuado)
+### Sprint 12 — Observabilidade e frescor de dados (bloqueante para uso continuado) — **concluído**
 
-Log estruturado nas Edge Functions, aviso de preço obsoleto na interface,
-`npm run check:health` contra `cron.job_run_details`, e
-`docs/runbooks/OPERATIONS_V1.md`.
+`DEC-071`. Log estruturado JSON em `refresh-market-data` (sucesso e falha —
+antes só falha era logada) e `explain-contribution-plan` (antes nenhum log,
+mesmo bug que `DEC-062` já tinha corrigido do outro lado). Aviso de preço
+obsoleto em `/carteira` via `getStaleAssetPrices`
+(`src/domain/priceFreshness.ts`, limiar de 4 dias, deliberadamente distinto
+da janela de 60 min do cron). `npm run check:health` — RPC
+`check_market_data_health_v1` (`SECURITY DEFINER`, só `service_role`, já
+que `cron.job_run_details` não é exposto via PostgREST de propósito) —
+migration aplicada e testada em produção, 24/24 execuções recentes
+`succeeded`. `docs/runbooks/OPERATIONS_V1.md` documenta as três peças e o
+limite conhecido: `status = 'succeeded'` no cron confirma só que o
+`pg_net` entregou a chamada, não que a lógica interna da função funcionou —
+as duas checagens são complementares, não substitutas.
 
 ### Sprints 13 a 15 — pós-uso
 
-13. Testes de interação (`jsdom` + Testing Library), com prioridade para
-    `src/auth` e para as mutações de compras.
-14. Reconciliação documental e limpeza de código morto.
+13. Testes de interação (`jsdom` + Testing Library) — **entrega inicial
+    concluída** (`DEC-072`), reordenada para antes das Sprints 14 e 16 por
+    ser dívida de cobertura mais urgente. `jsdom`, `@testing-library/react`,
+    `@testing-library/user-event` e `@testing-library/jest-dom`
+    adicionados; ambiente por arquivo via pragma
+    `// @vitest-environment jsdom`, não global — suíte de domínio
+    permanece em `node`. Cobertos: `LoginPage`, `ForgotPasswordPage`,
+    `ResetPasswordPage` (as três telas da `DEC-069`, sem teste de
+    interação até então) e `PurchaseForm` (criação e edição de compra).
+    **Não coberto ainda:** fluxo de cancelamento de compra em
+    `HistoryPage` (orquestração de página inteira, exige mock do hook
+    `useHistoryData` completo) e demais páginas — item aberto, não
+    fechado por engano.
+14. Reconciliação documental e limpeza de código morto — **entrega
+    inicial concluída** (`DEC-073`). `README.md` e `docs/PROJECT_HANDOFF.md`
+    reconciliados com o estado real (Sprints 9-13). `knip` configurado
+    (`knip.json`, `npm run audit:dead-code`) com pontos de entrada
+    corretos do projeto (scripts, Edge Functions, `vite.config.ts`) — a
+    config padrão sem isso gerava falso positivo até em arquivo editado
+    na mesma sessão. Um export desnecessário removido
+    (`cloneTemporalValue`, usado só internamente). **Não executado, item
+    aberto e deliberado:** ~190 reexportações de barrel (`index.ts` de
+    `fundamentals`, `repositories`, `cvm/fii`, `sec/nport`,
+    `backfill`) sinalizadas como não consumidas via o próprio barrel —
+    a função de origem geralmente é usada por import direto em outro
+    lugar. Não removidas em massa por dois motivos: risco de quebrar
+    consumidor não mapeado pela config atual do knip, e a Sprint 16 vai
+    voltar a mexer exatamente nesses módulos de fundamentos em breve —
+    prunar agora para reconstruir depois é desperdício.
 15. Multiusuário — somente se houver segundo usuário.
+
+### Sprint 16 — Motor com recomendação por score (`DEC-068`)
+
+Planejada em 31 de julho de 2026, depois das Sprints 10 e 12 (recuperação de
+senha e observabilidade — os providers novos desta sprint precisam do log
+estruturado da 12 para depurar falha de ingestão). Prioridade acima das
+Sprints 13 a 15, que são pós-uso e de menor urgência para o usuário único
+atual.
+
+Pesquisa de fonte concluída em `docs/reference/`:
+`FII_SEGMENTOS_E_METRICAS.md`, `ACOES_BR_SETORES_E_METRICAS.md`,
+`ETF_INTERNACIONAL_SEGMENTOS_E_METRICAS.md` e
+`REGRAS_DE_PONTUACAO_RASCUNHO.md` (tabela de pontos e mecanismo de
+integração com o motor, editável).
+
+1. **Fundação de schema — concluída** (`DEC-074`, 4 de agosto de 2026).
+   `asset_type`/`asset_segment` em `assets`, os 12 ativos do universo
+   classificados e verificados em fonte (KNRI11 e XPLG11 conferidos nesta
+   etapa, não estavam nos documentos de referência). Tabela
+   `signal_rules` criada, vazia de propósito — população acontece na Fase
+   5, junto com o código que a consome. `score_weight_basis_points` em
+   `user_preferences` (default 50, ajustável). Migrations aplicadas em
+   produção, `database.types.ts` regenerado, 2232/2232 testes passando.
+2. **Providers FII** — em andamento (`DEC-075`).
+   - **Tesouro Transparente (NTN-B) — concluído.** Tabela global
+     `market_reference_rates`, provider com regra de vencimento mais
+     longo disponível (não fixo), frescor por dia (não por hora, distinto
+     do resto do cron). Integrado em `refresh-market-data`, migration
+     aplicada e Edge Function publicada em produção (versão 11).
+   - **CVM Informe Trimestral Estruturado — vacância concluída (`DEC-076`).**
+     Primeiro sinal extraído das 16 tabelas do Informe Trimestral: vacância
+     média ponderada por participação na receita do imóvel (tabela
+     `imovel`), não por 1 fixo — soma real dos pesos observada em dado real
+     da HGRU11 fica em ~0,868, não 1. Aritmética inteira (`BigInt`) do
+     início ao fim. Módulo paralelo e não genérico em relação ao provider
+     do Informe Mensal (`src/data/fundamentals/cvm/fii-trimestral/`),
+     porque as formas de provenance dos dois informes são estruturalmente
+     diferentes. Escrita isolada em
+     `supabaseRealEstateFundSnapshotsTrimestral.ts` (`source:
+     'cvm-fii-inf-trimestral'`); a leitura usada pela tela `/fundamentos`
+     real (`listRealEstateFundSnapshots`) foi filtrada para continuar
+     enxergando só `cvm-fii-inf-mensal` — leitura da vacância fica para a
+     Fase 5, quando o motor de score for consumi-la. Coluna
+     `vacancy_basis_points` e terceiro ramo dos CHECKs de
+     `fundamental_snapshots` aplicados em produção.
+   - **Indexador da carteira — concluído (`DEC-077`).** Segundo sinal do
+     Informe Trimestral: participação da receita contratual por índice de
+     reajuste (IPCA, IGP-M, INPC, INCC), direto da tabela `complemento`
+     (1 linha/fundo/trimestre, sem agregação ponderada — diferente da
+     vacância). 4 colunas independentes (`ipca_revenue_share_basis_points`
+     e as 3 análogas), porque as frações não somam necessariamente 1.
+   - **Concentração por setor de inquilino — concluída (`DEC-078`).**
+     Terceiro sinal do Informe Trimestral: maior soma de participação de
+     receita de um único setor de atuação (`Setor_Atuacao`), tabela
+     `imovel_renda_acabado_inquilino`. CVM não divulga inquilino nomeado,
+     só setor — a soma agrega o mesmo setor entre imóveis diferentes do
+     fundo antes de escolher o dominante. Coluna
+     `tenant_concentration_basis_points`; nome do setor dominante fica só
+     na provenance (texto livre).
+   - **Resultado financeiro trimestral (FFO) — concluído (`DEC-079`).**
+     Quarto sinal do Informe Trimestral: `Resultado_Trimestral_Liquido_Financeiro`
+     da tabela `resultado_contabil_financeiro` — equivalente brasileiro de
+     FFO (resultado caixa do trimestre, não o acumulado do exercício).
+     Único valor monetário absoluto desta fatia (os outros três são
+     percentuais) — coluna `quarterly_net_financial_result_minor`
+     (`bigint`, pode ser negativo).
+   - **WALE (prazo médio de vencimento) — concluído (`DEC-080`).** Quinto e
+     último sinal desta fatia: média ponderada por receita do ponto médio
+     de cada uma das 13 faixas de vencimento da tabela `complemento`
+     (mesma tabela do indexador). Metodologia documentada, não dado
+     exato da CVM — "Acima_36Meses" usa piso conservador (36 meses) e
+     "Indeterminado" fica fora do cálculo. Coluna `wale_months_x100`
+     (meses, escala x100 — única escala de duração desta fatia).
+     **Bug crítico corrigido nesta entrada**: `Percentual_Vencimento_*`
+     usa notação científica ("6.8E-05") para valores pequenos em dado
+     real da CVM — confirmado nas tabelas `imovel` e `complemento`. O
+     parser compartilhado `parseNullableCvmFiiExactDecimalQuantity`
+     (`cvm/fii/numbers.ts`) não suportava expoente e rejeitaria essas
+     linhas reais em produção — corrigido retroativamente, afeta também
+     vacância/indexador/concentração (`DEC-076`-`078`).
+     Informe Trimestral Estruturado: só falta tipo de contrato
+     (texto livre, exige leitura de texto — fora do escopo desta fatia).
+3. **Providers ação** — em andamento (`DEC-081`).
+   - **Cotas emitidas (`composicao_capital`) — concluído.** Insumo de
+     LPA/P-L. Tabela estruturalmente diferente das demonstrações
+     (`BPA`/`BPP`/`DRE`/`DFC`): sem `CD_CVM` (casa por CNPJ), colunas
+     fixas de quantidade de ações, nome de arquivo próprio (não segue
+     `_con_YYYY.csv`). Classe correta por ticker verificada com dado real
+     (`CvmBrazilianStockCompany.shareClass`): BBAS3/WEGE3/PSSA3 usam ON
+     (única classe, PN=0 no dado real), ITSA4 usa PN (ticker negociado),
+     TAEE11 usa o total ON+PN (é unit). Reaproveita as colunas
+     `issued_shares_unscaled`/`issued_shares_scale` já existentes (mesma
+     representação `ExactDecimalQuantity` do FII mensal) — só relaxou o
+     CHECK que exigia null no ramo `brazilian-stock`, nenhuma coluna nova.
+   - **DRE `3.11`** já estava coberto desde a Fase 1 original (confirmado
+     universal entre setores testados).
+   - **Dividendo/JCP — resolvido, fonte é CVM IPE (`DEC-082`).** Pergunta
+     em aberto da seção 6.2 do documento de referência, respondida por
+     download real do `ipe_cia_aberta_2026.csv`: a categoria
+     `Relatório Proventos` é o anúncio oficial de provento (dividendo/JCP),
+     confirmada com linhas reais para BBAS3 e PSSA3. Mapeada para
+     `dividend-or-distribution` em `categoryMapping.ts` — provider CVM IPE
+     já existente (Fato Relevante/Comunicado ao Mercado) cobre dividendo
+     sem fonte nova, só a adição do mapeamento. Evento de ocorrência
+     (data, título, link), não o valor do provento em si — extrair o
+     valor exigiria ler o PDF/link, fora do escopo desta entrada.
+4. **Providers ETF** — 1 de 3 itens resolvido (`DEC-084`), 2 seguem
+   bloqueados (`DEC-083`).
+   - **NAV por cota / cotas em circulação — premissa errada, corrigida.**
+     "Campo já existe no formulário" não é verdade: baixado e inspecionado
+     um N-PORT real da VOO (`accessionNumber 0000036405-26-000325`,
+     `primary_doc.xml` completo) — todas as ~90 tags XML existentes foram
+     listadas e nenhuma delas é NAV por cota nem cotas em circulação
+     (`totAssets`/`totLiabs`/`netAssets` no nível do fundo é tudo que
+     existe; `monthlyTotReturns` é retorno percentual, não cotas). Esse
+     dado não está no N-PORT — precisaria de outra fonte (ex.: N-CEN,
+     site do fundo) ainda não pesquisada. **Segue bloqueado.**
+   - **Shiller/Yale CAPE — resolvido e implementado (`DEC-084`).** Provider
+     completo em `src/data/fundamentals/shiller/` (download, parser `.xls`
+     via dependência nova `xlsx`, extração do valor mais recente), tabela
+     global nova `market_valuation_ratios` (mesmo padrão de segurança de
+     `market_reference_rates`), CLI (`--provider=shiller-cape`), 5 arquivos
+     de teste novos. Usuário aprovou explicitamente a dependência `.xls`.
+   - **FRED `DFII10`** — exige chave de API gratuita que só o usuário pode
+     obter e fornecer; não é algo que dá para resolver de forma autônoma.
+     **Segue bloqueado.**
+   - Os 2 itens restantes seguem pausados até o usuário decidir (nova fonte
+     de dado para NAV/cotas, ou fornecer a chave do FRED) — nenhum é
+     codificável sem essa decisão externa. Por aprovação explícita do
+     usuário, a sessão seguiu para a Fase 5 sem esperar por eles.
+5. **Motor de score** — sinais das tabelas do rascunho, com estado
+   explícito `unavailable` (sem provider) e `stale` (dado velho, limiar
+   por fonte — não um número global, ver frescor por fonte abaixo).
+6. **Integração no motor** — `desvioAjustado = desvioCandidato − (score ×
+   peso)`, aplicado somente entre candidatos que já passam
+   `compareDeviation(bestDeviation, currentDeviation) < 0`. Score nunca
+   aprova compra que não melhora o desvio — `stopReason:
+   'no-improving-purchase'` continua sendo o piso de segurança.
+7. **Dossiê e IA** — `TechnicalDossierV1` ganha bloco `signals` com valor,
+   fonte, status e pontos. IA continua só explicando, nunca decidindo.
+8. **Documentação** — atualizar `PRODUCT.md`, `ARCHITECTURE.md`; revisar
+   `no-fundamental-score`, `no-technical-plan-modification`,
+   `technical-ranking-not-exposed-v1`.
+9. **Testes** — determinismo, trava de segurança do laço guloso,
+   priorização com scores diferentes, sinal `unavailable`/`stale` não
+   quebra cálculo, cenário real com ativo sem sinal disponível.
+
+Frescor por fonte, confirmado antes do planejamento (não uniforme — o teto
+é da fonte, não do sistema): preço de mercado já roda a cada hora
+(`refresh-market-data`, `pg_cron`). NTN-B e FRED são diários. CVM Informe
+Mensal e Shiller são mensais. CVM Informe Trimestral e DFP/ITR são
+trimestrais. SEC N-PORT é o pior caso: só o mês de fechamento de trimestre
+é público, publicado com até 60 dias de atraso — o dado pode refletir
+posição de até ~5 meses antes da consulta, e isso é regra da SEC, não falha
+de ingestão.
+
+Fora de escopo, sinalizado explicitamente: notícia editorial/sentimento
+(`NO-GO`, `DEC-036`, não reaberto), CAPE de VEA, expense ratio de ETF,
+métricas de Basileia/NIM/NPL/índice combinado/RAB, contrato típico/atípico
+de FII (texto livre), cap rate exato, leasing spread, same-store.
 
 ## Itens abertos sem prazo
 

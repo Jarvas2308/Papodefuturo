@@ -34,13 +34,25 @@ estado real; este README resume.
 - infraestrutura completa de eventos oficiais aplicada ao Supabase real, com
   runtime ativado em `read-only` e verificado com sessão autenticada real
   (`DEC-041`, `DEC-042`);
-- runner gradual de backfill de eventos oficiais e RPC transacional de upsert
-  de fundamentos disponíveis; nenhum backfill amplo nem ingestão real de
-  fundamentos foi executado ainda;
+- backfill amplo de eventos oficiais executado (`official_asset_events` em
+  902 linhas, CVM IPE e CVM Fund Delivery cobrindo 2025 e 2026 completos,
+  `DEC-058`) e ingestão real de fundamentos aplicada
+  (`fundamental_snapshots` em 21 linhas, três providers — CVM DFP/ITR, CVM
+  FII, SEC N-PORT — com dado real, `DEC-059`);
 - notícias editoriais em `NO-GO` (`DEC-036`); sentimento e score não foram
   integrados;
 - plano de aporte persistido (`ContributionPlan`, `DEC-055`) e IA explicativa
   interpretando o Dossiê Técnico (`DEC-056`) já integrados;
+- recuperação de senha real (`/recuperar-senha`, `/redefinir-senha`,
+  `DEC-069`);
+- configurações reais e persistidas (nome de exibição, moeda, casas
+  decimais, view compacta, estratégia padrão de aporte, lembrete de
+  aporte), sem a antiga seção de notificações — nunca teve canal de envio
+  (`DEC-070`);
+- log estruturado nas Edge Functions, aviso de preço obsoleto na interface
+  e `npm run check:health` contra o job agendado (`DEC-071`);
+- suíte de testes de interação (`jsdom` + Testing Library) iniciada,
+  cobrindo autenticação e registro/edição de compra (`DEC-072`);
 - modo demo preservado, sem fallback silencioso após erro de consulta real.
 
 Nenhuma ordem financeira é executada automaticamente. O plano de aporte é uma
@@ -48,10 +60,14 @@ simulação e a decisão permanece com o usuário.
 
 ## O que ainda falta
 
-- backfill amplo dos providers de eventos oficiais e ingestão real de
-  fundamentos (hoje as tabelas seguem vazias);
-- runtime e UI consumindo os contratos de fundamentos já construídos;
-- notícias editoriais (sem provider aprovado).
+- habilitar `auth_leaked_password_protection` no painel do Supabase — ação
+  manual, não automatizável por ciclo de código;
+- ampliar a suíte de testes de interação além de autenticação e compra
+  (ex.: cancelamento de compra em `/historico`);
+- motor recomendador por score, consumindo dado externo (balanço, câmbio,
+  indexador) para priorizar o plano de aporte dentro do universo fechado
+  (`DEC-068`, ver `docs/ROADMAP.md` Sprint 16);
+- notícias editoriais (sem provider aprovado, `NO-GO`).
 
 Ver `docs/ROADMAP.md` § Próximo para o detalhe operacional de cada item.
 
@@ -105,6 +121,8 @@ npm run build
 
 - `/`
 - `/login`
+- `/recuperar-senha`
+- `/redefinir-senha`
 - `/dashboard`
 - `/carteira`
 - `/novo-aporte`

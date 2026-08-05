@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import type { Asset } from '../../../domain/models'
+import type { CvmCapitalCompositionDocument } from './capitalComposition'
 import {
   CVM_BRAZILIAN_STOCK_COMPANIES,
   getCvmBrazilianStockCompany,
@@ -12,6 +13,108 @@ import type {
   CvmStatement,
   CvmStatementDocument,
 } from './types'
+
+type CapitalCompositionFixtureRow = {
+  cnpj: string
+  companyName: string
+  referenceDate: string
+  version: string
+  ordinaryShares: string
+  preferredShares: string
+  totalShares: string
+}
+
+// Espelha o dado real de dfp_cia_aberta_composicao_capital_2025.csv,
+// baixado e conferido nesta sessao (DEC-081): BBAS3/WEGE3/PSSA3 so tem
+// classe ON (PN=0), ITSA4 tem ON e PN (negocia a PN), TAEE11 e' unit
+// (ON+PN, usa o total).
+function createCapitalCompositionRows(): CapitalCompositionFixtureRow[] {
+  return [
+    {
+      cnpj: '00.000.000/0001-91',
+      companyName: 'BCO BRASIL S.A.',
+      referenceDate: '2025-12-31',
+      version: '1',
+      ordinaryShares: '5730834040',
+      preferredShares: '0',
+      totalShares: '5730834040',
+    },
+    {
+      cnpj: '61.532.644/0001-15',
+      companyName: 'ITAÚSA S.A.',
+      referenceDate: '2025-12-31',
+      version: '1',
+      ordinaryShares: '3853634',
+      preferredShares: '7360053',
+      totalShares: '11213687',
+    },
+    {
+      cnpj: '07.859.971/0001-30',
+      companyName: 'TRANSMISSORA ALIANÇA DE ENERGIA ELÉTRICA S.A.',
+      referenceDate: '2025-12-31',
+      version: '1',
+      ordinaryShares: '590714',
+      preferredShares: '442783',
+      totalShares: '1033497',
+    },
+    {
+      cnpj: '84.429.695/0001-11',
+      companyName: 'WEG S.A.',
+      referenceDate: '2025-12-31',
+      version: '1',
+      ordinaryShares: '4197317998',
+      preferredShares: '0',
+      totalShares: '4197317998',
+    },
+    {
+      cnpj: '02.149.205/0001-69',
+      companyName: 'PORTO SEGURO S.A.',
+      referenceDate: '2025-12-31',
+      version: '1',
+      ordinaryShares: '646586',
+      preferredShares: '0',
+      totalShares: '646586',
+    },
+  ]
+}
+
+function capitalCompositionRowToCsv(row: CapitalCompositionFixtureRow): string {
+  return [
+    row.cnpj,
+    row.referenceDate,
+    row.version,
+    row.companyName,
+    row.ordinaryShares,
+    row.preferredShares,
+    row.totalShares,
+    '0',
+    '0',
+    '0',
+  ].join(';')
+}
+
+function toCapitalCompositionDocument(
+  rows: readonly CapitalCompositionFixtureRow[] = createCapitalCompositionRows()
+): CvmCapitalCompositionDocument {
+  return {
+    fileName: 'dfp_cia_aberta_composicao_capital_2025.csv',
+    content: [
+      [
+        'CNPJ_CIA',
+        'DT_REFER',
+        'VERSAO',
+        'DENOM_CIA',
+        'QT_ACAO_ORDIN_CAP_INTEGR',
+        'QT_ACAO_PREF_CAP_INTEGR',
+        'QT_ACAO_TOTAL_CAP_INTEGR',
+        'QT_ACAO_ORDIN_TESOURO',
+        'QT_ACAO_PREF_TESOURO',
+        'QT_ACAO_TOTAL_TESOURO',
+      ].join(';'),
+      ...rows.map(capitalCompositionRowToCsv),
+    ].join('\n'),
+  }
+}
 
 type FixtureRow = {
   statement: CvmStatement
@@ -154,13 +257,15 @@ function toDocuments(rows: readonly FixtureRow[]): CvmStatementDocument[] {
 
 function extract(
   rows: readonly FixtureRow[] = createRows(),
-  source: CvmArchiveSource = 'ITR'
+  source: CvmArchiveSource = 'ITR',
+  capitalCompositionDocument: CvmCapitalCompositionDocument = toCapitalCompositionDocument()
 ) {
   return extractCvmBrazilianStockFundamentals({
     source,
     archiveId:
       source === 'ITR' ? 'itr_cia_aberta_2026.zip' : 'dfp_cia_aberta_2025.zip',
     documents: toDocuments(rows),
+    capitalCompositionDocument,
   })
 }
 
@@ -539,5 +644,118 @@ describe('extractCvmBrazilianStockFundamentals', () => {
         )
       })
     ).toBe(true)
+  })
+})
+
+describe('extractCvmBrazilianStockFundamentals issued shares (composicao_capital)', () => {
+  it('uses the ordinary (ON) column for single-class companies', () => {
+    const records = extract()
+
+    expect(findRecord(records, 'BBAS3').facts.issuedShares).toEqual({
+      unscaledValue: 5_730_834_040,
+      scale: 0,
+    })
+    expect(findRecord(records, 'WEGE3').facts.issuedShares).toEqual({
+      unscaledValue: 4_197_317_998,
+      scale: 0,
+    })
+    expect(findRecord(records, 'PSSA3').facts.issuedShares).toEqual({
+      unscaledValue: 646_586,
+      scale: 0,
+    })
+  })
+
+  it('uses the preferred (PN) column for ITSA4', () => {
+    const records = extract()
+
+    expect(findRecord(records, 'ITSA4').facts.issuedShares).toEqual({
+      unscaledValue: 7_360_053,
+      scale: 0,
+    })
+  })
+
+  it('uses the combined total for the TAEE11 unit', () => {
+    const records = extract()
+
+    expect(findRecord(records, 'TAEE11').facts.issuedShares).toEqual({
+      unscaledValue: 1_033_497,
+      scale: 0,
+    })
+  })
+
+  it('records issued shares provenance pointing at the real CVM column', () => {
+    const records = extract()
+    const bbas3 = findRecord(records, 'BBAS3')
+
+    expect(bbas3.provenance.issuedShares).toEqual(
+      expect.objectContaining({
+        column: 'QT_ACAO_ORDIN_CAP_INTEGR',
+        rawValue: '5730834040',
+        referenceDate: '2025-12-31',
+        version: 1,
+      })
+    )
+  })
+
+  it('returns null issued shares when no capital composition row matches the company', () => {
+    const rows = createCapitalCompositionRows().filter(
+      (row) => row.cnpj !== '00.000.000/0001-91'
+    )
+    const bbas3 = findRecord(
+      extract(undefined, undefined, toCapitalCompositionDocument(rows)),
+      'BBAS3'
+    )
+
+    expect(bbas3.facts.issuedShares).toBeNull()
+    expect(bbas3.provenance.issuedShares).toBeNull()
+  })
+
+  it('selects the latest reference date before comparing versions', () => {
+    const rows = createCapitalCompositionRows()
+    const bbas3Row = rows.find((row) => row.cnpj === '00.000.000/0001-91')!
+    const staleNewerVersion = {
+      ...bbas3Row,
+      referenceDate: '2024-12-31',
+      version: '99',
+      ordinaryShares: '1',
+    }
+    const record = findRecord(
+      extract(
+        undefined,
+        undefined,
+        toCapitalCompositionDocument([...rows, staleNewerVersion])
+      ),
+      'BBAS3'
+    )
+
+    expect(record.facts.issuedShares).toEqual({
+      unscaledValue: 5_730_834_040,
+      scale: 0,
+    })
+  })
+
+  it('rejects an ambiguous capital composition filing', () => {
+    const rows = createCapitalCompositionRows()
+    const bbas3Row = rows.find((row) => row.cnpj === '00.000.000/0001-91')!
+
+    expect(() =>
+      extract(
+        undefined,
+        undefined,
+        toCapitalCompositionDocument([...rows, { ...bbas3Row }])
+      )
+    ).toThrow('Ambiguous CVM capital composition row')
+  })
+
+  it('rejects a capital composition row with a divergent company name', () => {
+    const rows = createCapitalCompositionRows().map((row) =>
+      row.cnpj === '00.000.000/0001-91'
+        ? { ...row, companyName: 'NOME INESPERADO' }
+        : row
+    )
+
+    expect(() =>
+      extract(undefined, undefined, toCapitalCompositionDocument(rows))
+    ).toThrow('Unexpected official CVM capital composition name for BBAS3')
   })
 })

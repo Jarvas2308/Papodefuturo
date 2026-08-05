@@ -6,8 +6,10 @@ import type {
   AssetMarket,
   AssetPrice,
   AssetPriceSource,
+  AssetSegment,
   AssetStatus,
   CurrencyCode,
+  FiiAssetType,
   Purchase,
   PurchaseStatus,
 } from '../../domain/models'
@@ -66,6 +68,23 @@ function readMoneyInMinorUnits(value: number, fieldName: string): number {
   return value
 }
 
+const FII_ASSET_TYPES: readonly FiiAssetType[] = ['tijolo', 'papel', 'fof']
+const ASSET_SEGMENTS: readonly AssetSegment[] = [
+  'shopping',
+  'lajes-corporativas',
+  'logistica',
+  'renda-urbana',
+  'hibrido',
+  'banco',
+  'seguradora',
+  'regulado',
+  'holding',
+  'industrial',
+  'indice-amplo-us',
+  'reit-us',
+  'mercados-desenvolvidos-ex-us',
+]
+
 export function mapAssetRow(row: AssetRow): Asset {
   return {
     id: row.id,
@@ -78,6 +97,12 @@ export function mapAssetRow(row: AssetRow): Asset {
     ),
     market: readAllowedValue(row.market, ASSET_MARKETS, 'asset market'),
     status: readAllowedValue(row.status, ASSET_STATUSES, 'asset status'),
+    assetType: row.asset_type
+      ? readAllowedValue(row.asset_type, FII_ASSET_TYPES, 'asset type')
+      : null,
+    assetSegment: row.asset_segment
+      ? readAllowedValue(row.asset_segment, ASSET_SEGMENTS, 'asset segment')
+      : null,
   }
 }
 

@@ -102,8 +102,8 @@ export type BrazilianStockDerivedSnapshotV1 =
 export type RealEstateFundDerivedSnapshotV1 =
   FundamentalDerivedSnapshotReference & {
     kind: 'real-estate-fund'
-    period: 'monthly'
-    source: 'cvm-fii-inf-mensal'
+    period: 'monthly' | 'quarterly'
+    source: 'cvm-fii-inf-mensal' | 'cvm-fii-inf-trimestral'
     metrics: {
       netAssetValuePerIssuedShare: FundamentalDerivedMetric<
         ScaledMonetaryPerQuantity,

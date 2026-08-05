@@ -1,3 +1,4 @@
+import { CalibrationGauge } from '../../../components/ui/CalibrationGauge'
 import { Card } from '../../../components/ui/Card'
 import type { DashboardView } from '../types'
 
@@ -32,37 +33,26 @@ export function AllocationOverview({ allocation }: AllocationOverviewProps) {
                     <h3 className="text-sm font-semibold text-[var(--color-text)]">
                       {item.category}
                     </h3>
-                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                      Meta monitorada {item.targetLabel}
+                    <p className="figure mt-1 text-sm text-[var(--color-text-muted)]">
+                      Meta {item.targetLabel}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-[var(--color-text)]">
+                    <p className="figure text-sm font-semibold text-[var(--color-text)]">
                       Atual {item.currentLabel}
                     </p>
-                    <p className={`mt-1 text-xs font-medium ${toneClass}`}>
+                    <p className={`figure mt-1 text-xs font-medium ${toneClass}`}>
                       {item.differenceLabel}
                     </p>
                   </div>
                 </div>
 
-                <div
-                  className="h-3 rounded-full bg-[var(--color-surface-muted)]"
-                  role="progressbar"
-                  aria-valuenow={item.current}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`Participação atual de ${item.category}`}
-                >
-                  <div
-                    className={`h-full rounded-full ${
-                      item.tone === 'alert'
-                        ? 'bg-[var(--color-alert)]'
-                        : 'bg-[var(--color-brand)]'
-                    }`}
-                    style={{ width: `${item.current}%` }}
-                  />
-                </div>
+                <CalibrationGauge
+                  label={item.category}
+                  targetPercent={item.target}
+                  currentPercent={item.current}
+                  alert={item.tone === 'alert'}
+                />
               </div>
             )
           })}

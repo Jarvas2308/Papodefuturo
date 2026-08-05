@@ -480,6 +480,7 @@ describe('extractCvmRealEstateFundFundamentals', () => {
       netAssetValue: null,
       issuedShares: null,
       shareholderCount: null,
+      vacancyInBasisPoints: null,
     })
   })
 

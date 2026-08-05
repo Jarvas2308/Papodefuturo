@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   BrazilianStockFundamentalSnapshotInput,
+  ExactDecimalQuantity,
   SignedMonetaryFact,
 } from '../../domain/fundamentals'
+import { normalizeExactDecimalQuantity } from '../../domain/fundamentals'
 import type { Asset } from '../../domain/models'
 import type {
   Database,
@@ -18,6 +20,7 @@ import type {
 } from './contracts'
 import type {
   CvmBrazilianStockFundamentalRecord,
+  CvmCapitalCompositionProvenance,
   CvmFactProvenance,
   CvmStatement,
 } from './cvm/types'
@@ -59,6 +62,18 @@ function factProvenanceToJson(
   }
 }
 
+function capitalCompositionProvenanceToJson(
+  value: CvmCapitalCompositionProvenance
+): FundamentalSnapshotJson {
+  return {
+    fileName: value.fileName,
+    column: value.column,
+    rawValue: value.rawValue,
+    referenceDate: value.referenceDate,
+    version: value.version,
+  }
+}
+
 function toJson(
   value: CvmBrazilianStockFundamentalRecord['provenance']
 ): FundamentalSnapshotJson {
@@ -68,6 +83,10 @@ function toJson(
     totalAssets: factProvenanceToJson(value.totalAssets),
     totalEquity: factProvenanceToJson(value.totalEquity),
     operatingCashFlow: factProvenanceToJson(value.operatingCashFlow),
+    issuedShares:
+      value.issuedShares === null
+        ? null
+        : capitalCompositionProvenanceToJson(value.issuedShares),
   }
 }
 
@@ -136,6 +155,12 @@ function toInsertRow(
   assertBrlSafeFact(record.facts.totalEquity, 'Total equity')
   assertBrlSafeFact(record.facts.operatingCashFlow, 'Operating cash flow')
   assertRecordProvenance(record)
+  if (
+    (record.facts.issuedShares === null) !==
+    (record.provenance.issuedShares === null)
+  ) {
+    throw new Error('Issued shares fact and provenance must agree on null')
+  }
 
   return {
     ticker: normalizeAssetTicker(record.ticker),
@@ -159,8 +184,8 @@ function toInsertRow(
     operating_cash_flow_minor:
       record.facts.operatingCashFlow?.amountInMinorUnits ?? null,
     net_asset_value_minor: null,
-    issued_shares_unscaled: null,
-    issued_shares_scale: null,
+    issued_shares_unscaled: record.facts.issuedShares?.unscaledValue ?? null,
+    issued_shares_scale: record.facts.issuedShares?.scale ?? null,
     shareholder_count: null,
     provenance: toJson(record.provenance),
   }
@@ -179,12 +204,29 @@ function readNullableBrlFact(
   return { amountInMinorUnits: value, currency: 'BRL' }
 }
 
+function readIssuedShares(
+  unscaledValue: number | null,
+  scale: number | null
+): ExactDecimalQuantity | null {
+  if (unscaledValue === null && scale === null) {
+    return null
+  }
+  if (unscaledValue === null || scale === null) {
+    throw new Error('Issued shares unscaled value and scale must both be set')
+  }
+  return normalizeExactDecimalQuantity(
+    { unscaledValue, scale },
+    'Issued shares'
+  )
+}
+
 type FundamentalProvenance = {
   totalRevenue: null
   netIncome: CvmFactProvenance
   totalAssets: CvmFactProvenance
   totalEquity: CvmFactProvenance
   operatingCashFlow: CvmFactProvenance
+  issuedShares: CvmCapitalCompositionProvenance | null
 }
 
 function isJsonRecord(
@@ -232,6 +274,35 @@ function readFactProvenance(
   }
 }
 
+function readCapitalCompositionProvenance(
+  value: FundamentalSnapshotJson | undefined
+): CvmCapitalCompositionProvenance {
+  if (!isJsonRecord(value)) {
+    throw new Error('Invalid issuedShares provenance')
+  }
+  if (
+    typeof value.fileName !== 'string' ||
+    !value.fileName.trim() ||
+    typeof value.column !== 'string' ||
+    !value.column.trim() ||
+    typeof value.rawValue !== 'string' ||
+    typeof value.referenceDate !== 'string' ||
+    typeof value.version !== 'number' ||
+    !Number.isSafeInteger(value.version) ||
+    value.version <= 0
+  ) {
+    throw new Error('Invalid issuedShares provenance')
+  }
+
+  return {
+    fileName: value.fileName,
+    column: value.column,
+    rawValue: value.rawValue,
+    referenceDate: value.referenceDate,
+    version: value.version,
+  }
+}
+
 function readProvenance(value: FundamentalSnapshotJson): FundamentalProvenance {
   if (!value || Array.isArray(value) || typeof value !== 'object') {
     throw new Error('Invalid fundamental snapshot provenance')
@@ -249,6 +320,10 @@ function readProvenance(value: FundamentalSnapshotJson): FundamentalProvenance {
       value.operatingCashFlow,
       'operatingCashFlow'
     ),
+    issuedShares:
+      value.issuedShares === null
+        ? null
+        : readCapitalCompositionProvenance(value.issuedShares),
   }
 }
 
@@ -294,6 +369,14 @@ export function mapFundamentalSnapshotRow(
     }
   }
 
+  const issuedShares = readIssuedShares(
+    row.issued_shares_unscaled,
+    row.issued_shares_scale
+  )
+  if ((issuedShares === null) !== (provenance.issuedShares === null)) {
+    throw new Error('Issued shares fact and provenance must agree on null')
+  }
+
   return {
     assetId,
     kind: 'brazilian-stock',
@@ -313,6 +396,7 @@ export function mapFundamentalSnapshotRow(
         row.operating_cash_flow_minor,
         'Operating cash flow'
       ),
+      issuedShares,
     },
   }
 }

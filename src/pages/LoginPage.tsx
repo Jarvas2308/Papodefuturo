@@ -1,6 +1,6 @@
 import { ArrowRight, LockKeyhole, Mail } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -208,6 +208,14 @@ export function LoginPage() {
                   placeholder="Digite sua senha"
                 />
               </div>
+              {!isSignUp && !isDemoMode ? (
+                <Link
+                  to="/recuperar-senha"
+                  className="inline-block text-sm font-semibold text-[var(--color-brand)] underline-offset-4 hover:underline"
+                >
+                  Esqueceu sua senha?
+                </Link>
+              ) : null}
             </div>
 
             <p

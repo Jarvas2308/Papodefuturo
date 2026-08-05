@@ -130,21 +130,21 @@ export function MobileSidebar({
       />
       <aside
         ref={dialogRef}
-        className="absolute left-0 top-0 flex h-full w-[18rem] max-w-[85vw] flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl transition-transform duration-200"
+        className="absolute left-0 top-0 flex h-full w-[18rem] max-w-[85vw] flex-col border-r border-[var(--color-ink-border)] bg-[var(--color-ink-surface)] shadow-2xl transition-transform duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--color-ink-border)] px-4 py-4">
           <div>
             <p
               id={titleId}
-              className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-brand-strong)]"
+              className="[font-family:var(--font-display)] text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-brand)]"
             >
               Papo de Futuro
             </p>
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+            <p className="mt-1 text-sm text-[var(--color-ink-text-muted)]">
               Inteligência para o seu próximo aporte
             </p>
           </div>
@@ -153,6 +153,7 @@ export function MobileSidebar({
             type="button"
             variant="ghost"
             size="icon"
+            className="text-[var(--color-ink-text-muted)] hover:bg-[var(--color-ink-surface-raised)] hover:text-[var(--color-ink-text)]"
             onClick={onClose}
             aria-label="Fechar menu de navegação"
           >

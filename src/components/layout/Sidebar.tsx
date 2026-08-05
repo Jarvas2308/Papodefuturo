@@ -43,17 +43,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'hidden border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-[width] duration-200 lg:flex lg:min-h-screen lg:flex-col',
+        'hidden border-r border-[var(--color-ink-border)] bg-[var(--color-ink-surface)] transition-[width] duration-200 lg:flex lg:min-h-screen lg:flex-col',
         collapsed ? 'lg:w-24' : 'lg:w-72'
       )}
       aria-label="Navegação principal"
     >
-      <div className="flex items-start justify-between border-b border-[var(--color-border)] px-4 py-5">
+      <div className="flex items-start justify-between border-b border-[var(--color-ink-border)] px-4 py-5">
         <div className={cn('min-w-0', collapsed && 'sr-only')}>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-brand-strong)]">
+          <p className="[font-family:var(--font-display)] text-sm font-semibold uppercase tracking-[0.24em] text-[var(--color-brand)]">
             Papo de Futuro
           </p>
-          <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+          <p className="mt-2 text-sm text-[var(--color-ink-text-muted)]">
             Inteligência para o seu próximo aporte
           </p>
         </div>
@@ -65,7 +65,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           aria-label={
             collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'
           }
-          className={cn('shrink-0', collapsed && 'mx-auto')}
+          className={cn(
+            'shrink-0 text-[var(--color-ink-text-muted)] hover:bg-[var(--color-ink-surface-raised)] hover:text-[var(--color-ink-text)]',
+            collapsed && 'mx-auto'
+          )}
         >
           {collapsed ? (
             <ChevronRight className="size-5" />
@@ -111,11 +114,11 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      'group flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-3 text-sm font-medium outline-none transition-colors',
+                      'group relative flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-3 text-sm font-medium outline-none transition-colors',
                       'focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
                       isActive
-                        ? 'bg-[var(--color-brand-subtle)] text-[var(--color-brand-strong)]'
-                        : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]',
+                        ? 'bg-[var(--color-ink-surface-raised)] text-[var(--color-brand)] before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-[var(--color-brand)] before:content-[""]'
+                        : 'text-[var(--color-ink-text-muted)] hover:bg-[var(--color-ink-surface-raised)] hover:text-[var(--color-ink-text)]',
                       collapsed && 'justify-center px-2'
                     )
                   }
@@ -132,10 +135,10 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
           })}
         </ul>
       </nav>
-      <div className="border-t border-[var(--color-border)] px-3 py-4">
+      <div className="border-t border-[var(--color-ink-border)] px-3 py-4">
         <div
           className={cn(
-            'flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-surface-muted)] px-3 py-3',
+            'flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-ink-surface-raised)] px-3 py-3',
             collapsed && 'justify-center px-2'
           )}
         >
@@ -146,10 +149,10 @@ export function SidebarContent({ collapsed, onNavigate }: SidebarContentProps) {
             {profileInitials}
           </div>
           <div className={cn('min-w-0', collapsed && 'sr-only')}>
-            <p className="truncate text-sm font-semibold text-[var(--color-text)]">
+            <p className="truncate text-sm font-semibold text-[var(--color-ink-text)]">
               {profileName}
             </p>
-            <p className="truncate text-sm text-[var(--color-text-muted)]">
+            <p className="truncate text-sm text-[var(--color-ink-text-muted)]">
               {profileDetail}
             </p>
           </div>

@@ -86,7 +86,12 @@ function createRecord(
     sourceArchive: archiveId,
     filingVersion,
     exerciseOrder: null,
-    facts: { netAssetValue, issuedShares, shareholderCount },
+    facts: {
+      netAssetValue,
+      issuedShares,
+      shareholderCount,
+      vacancyInBasisPoints: null,
+    },
     provenance: {
       dataset: 'FII: Documentos: Informe Mensal Estruturado',
       archiveId,
@@ -148,6 +153,14 @@ function createRow(
     total_equity_minor: null,
     total_liabilities_minor: null,
     operating_cash_flow_minor: null,
+    vacancy_basis_points: null,
+    ipca_revenue_share_basis_points: null,
+    igpm_revenue_share_basis_points: null,
+    inpc_revenue_share_basis_points: null,
+    incc_revenue_share_basis_points: null,
+    tenant_concentration_basis_points: null,
+    quarterly_net_financial_result_minor: null,
+    wale_months_x100: null,
     provenance: {
       dataset: record.provenance.dataset,
       archiveId: record.provenance.archiveId,
@@ -450,6 +463,7 @@ describe('FII snapshot row mapping', () => {
       netAssetValue: null,
       issuedShares: null,
       shareholderCount: null,
+      vacancyInBasisPoints: null,
     })
   })
 
@@ -715,6 +729,14 @@ describe('Supabase FII fundamental snapshot repository', () => {
       issued_shares_unscaled: null,
       issued_shares_scale: null,
       shareholder_count: null,
+      vacancy_basis_points: null,
+      ipca_revenue_share_basis_points: null,
+      igpm_revenue_share_basis_points: null,
+      inpc_revenue_share_basis_points: null,
+      incc_revenue_share_basis_points: null,
+      tenant_concentration_basis_points: null,
+      quarterly_net_financial_result_minor: null,
+      wale_months_x100: null,
       provenance: {
         totalRevenue: null,
         netIncome: {
@@ -749,6 +771,7 @@ describe('Supabase FII fundamental snapshot repository', () => {
           version: 1,
           exerciseOrder: 'ULTIMO',
         },
+        issuedShares: null,
       },
       created_at: '2026-07-16T12:00:00.000Z',
       updated_at: '2026-07-16T12:00:00.000Z',

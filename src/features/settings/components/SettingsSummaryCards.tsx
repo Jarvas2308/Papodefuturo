@@ -1,10 +1,7 @@
 import { BellRing, CircleCheck, Coins, Goal } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import type { SettingsValidation, UserSettings } from '../types'
-import {
-  countEnabledNotifications,
-  getContributionStrategyLabel,
-} from '../utils/settings'
+import { getContributionStrategyLabel } from '../utils/settings'
 
 export function SettingsSummaryCards({
   settings,
@@ -37,9 +34,11 @@ export function SettingsSummaryCards({
       icon: Goal,
     },
     {
-      label: 'Notificações',
-      value: `${countEnabledNotifications(settings)} de 3`,
-      helper: 'Somente controles demonstrativos',
+      label: 'Lembrete de aporte',
+      value: settings.planning.contributionReminderEnabled
+        ? `Dia ${settings.planning.contributionReminderDay}`
+        : 'Desativado',
+      helper: 'Preferência local, sem envio automático ainda',
       icon: BellRing,
     },
   ]

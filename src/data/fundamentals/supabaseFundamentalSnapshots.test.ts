@@ -46,6 +46,7 @@ function createProvenance() {
       version: 1,
       exerciseOrder: 'ÚLTIMO',
     },
+    issuedShares: null,
   }
 }
 
@@ -73,6 +74,7 @@ function createRecord(): CvmBrazilianStockFundamentalRecord {
       totalAssets: { amountInMinorUnits: 200, currency: 'BRL' },
       totalEquity: { amountInMinorUnits: 50, currency: 'BRL' },
       operatingCashFlow: { amountInMinorUnits: -10, currency: 'BRL' },
+      issuedShares: null,
     },
     provenance: createProvenance(),
   }
@@ -104,6 +106,14 @@ function createRow(): FundamentalSnapshotRow {
     total_liabilities_minor: null,
     operating_cash_flow_minor: -10,
     shareholder_count: null,
+    vacancy_basis_points: null,
+    ipca_revenue_share_basis_points: null,
+    igpm_revenue_share_basis_points: null,
+    inpc_revenue_share_basis_points: null,
+    incc_revenue_share_basis_points: null,
+    tenant_concentration_basis_points: null,
+    quarterly_net_financial_result_minor: null,
+    wale_months_x100: null,
     provenance: createProvenance(),
     created_at: '2026-07-15T12:00:00.000Z',
     updated_at: '2026-07-15T12:00:00.000Z',
@@ -249,6 +259,86 @@ describe('Supabase fundamental snapshot persistence', () => {
 
     expect(snapshot.facts.totalRevenue).toBeNull()
     expect(snapshot.facts.operatingCashFlow?.amountInMinorUnits).toBe(-10)
+    expect(snapshot.facts.issuedShares).toBeNull()
+  })
+
+  it('round-trips issued shares (composicao_capital) through write and read', async () => {
+    const record: CvmBrazilianStockFundamentalRecord = {
+      ...createRecord(),
+      facts: {
+        ...createRecord().facts,
+        issuedShares: { unscaledValue: 5_730_834_040, scale: 0 },
+      },
+      provenance: {
+        ...createProvenance(),
+        issuedShares: {
+          fileName: 'dfp_cia_aberta_composicao_capital_2025.csv',
+          column: 'QT_ACAO_ORDIN_CAP_INTEGR',
+          rawValue: '5730834040',
+          referenceDate: '2025-12-31',
+          version: 1,
+        },
+      },
+    }
+    let sentArgs: { records: [Record<string, unknown>] } | undefined
+    const rpc = vi.fn(async (_functionName: string, args: unknown) => {
+      sentArgs = args as { records: [Record<string, unknown>] }
+      return { data: { attempted: 1, upserted: 1 }, error: null }
+    })
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+
+    await storage.upsertMany([record])
+
+    expect(sentArgs!.records[0]).toEqual(
+      expect.objectContaining({
+        issued_shares_unscaled: 5_730_834_040,
+        issued_shares_scale: 0,
+      })
+    )
+
+    const row = {
+      ...createRow(),
+      issued_shares_unscaled: 5_730_834_040,
+      issued_shares_scale: 0,
+      provenance: sentArgs!.records[0]!.provenance as FundamentalSnapshotRow['provenance'],
+    }
+    const snapshot = mapFundamentalSnapshotRow(row, 'asset-bbas3')
+
+    expect(snapshot.facts.issuedShares).toEqual({
+      unscaledValue: 5_730_834_040,
+      scale: 0,
+    })
+  })
+
+  it('rejects a write where the issued-shares fact and provenance disagree on null', async () => {
+    const record: CvmBrazilianStockFundamentalRecord = {
+      ...createRecord(),
+      facts: {
+        ...createRecord().facts,
+        issuedShares: { unscaledValue: 100, scale: 0 },
+      },
+    }
+    const rpc = vi.fn()
+    const client = { rpc } as unknown as FundamentalSnapshotsRpcClientV1
+    const storage = createSupabaseFundamentalSnapshotStorage(client)
+
+    await expect(storage.upsertMany([record])).rejects.toThrow(
+      'Issued shares fact and provenance must agree on null'
+    )
+  })
+
+  it('rejects a persisted row where issued shares and provenance disagree on null', () => {
+    expect(() =>
+      mapFundamentalSnapshotRow(
+        {
+          ...createRow(),
+          issued_shares_unscaled: 100,
+          issued_shares_scale: 0,
+        },
+        'asset-bbas3'
+      )
+    ).toThrow('Issued shares fact and provenance must agree on null')
   })
 
   it('rejects persisted CVM revenue that violates the V1 comparability decision', () => {

@@ -4,6 +4,30 @@ export type CvmArchiveSource = 'DFP' | 'ITR'
 
 export type CvmStatement = 'BPA' | 'BPP' | 'DRE' | 'DFC_MD' | 'DFC_MI'
 
+// Qual quantidade de `composicao_capital` representa o ticker negociado
+// (DEC-081). BBAS3/WEGE3/PSSA3 tem so classe ON; ITSA4 negocia a PN;
+// TAEE11 e' unit (combina ON+PN), entao usa o total.
+export type CvmBrazilianStockShareClass = 'ON' | 'PN' | 'unit-total'
+
+export type CvmCapitalCompositionRow = {
+  fileName: string
+  cnpj: string
+  referenceDate: string
+  version: string
+  companyName: string
+  ordinaryShares: string
+  preferredShares: string
+  totalShares: string
+}
+
+export type CvmCapitalCompositionProvenance = {
+  fileName: string
+  column: string
+  rawValue: string
+  referenceDate: string
+  version: number
+}
+
 export type CvmStatementDocument = {
   fileName: string
   statement: CvmStatement
@@ -32,6 +56,7 @@ export type CvmBrazilianStockCompany = {
   officialName: string
   cvmCode: string
   cnpj: string
+  shareClass: CvmBrazilianStockShareClass
 }
 
 export type CvmBrazilianStockTicker =
@@ -70,6 +95,7 @@ export type CvmBrazilianStockFundamentalRecord = {
     totalAssets: CvmFactProvenance
     totalEquity: CvmFactProvenance
     operatingCashFlow: CvmFactProvenance
+    issuedShares: CvmCapitalCompositionProvenance | null
   }
 }
 

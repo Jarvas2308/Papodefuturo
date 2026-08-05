@@ -56,6 +56,7 @@ const CATEGORY_CASES = [
     'legal-or-regulatory-action',
   ],
   ['OPA - Edital de Oferta Pública de Ações', 'offering-or-issuance'],
+  ['Relatório Proventos', 'dividend-or-distribution'],
   ['Reunião da Administração', 'regulatory-filing'],
 ] as const
 
@@ -120,7 +121,6 @@ describe('CVM IPE stock event identity', () => {
     for (const forbidden of [
       'other-official-event',
       'earnings-release',
-      'dividend-or-distribution',
       'capital-structure-change',
       'management-change',
       'merger-acquisition-or-reorganization',

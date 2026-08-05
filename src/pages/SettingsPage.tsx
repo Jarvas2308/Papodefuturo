@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Card } from '../components/ui/Card'
 import { SettingsDisplaySection } from '../features/settings/components/SettingsDisplaySection'
-import { SettingsNotificationsSection } from '../features/settings/components/SettingsNotificationsSection'
 import { SettingsPlanningSection } from '../features/settings/components/SettingsPlanningSection'
 import { SettingsPrivacySection } from '../features/settings/components/SettingsPrivacySection'
 import { SettingsProfileSection } from '../features/settings/components/SettingsProfileSection'
 import { SettingsSummaryCards } from '../features/settings/components/SettingsSummaryCards'
 import { SettingsToolbar } from '../features/settings/components/SettingsToolbar'
 import { SettingsValidationPanel } from '../features/settings/components/SettingsValidationPanel'
-import { settingsMock } from '../features/settings/mocks/settingsMock'
+import { useSettingsData } from '../features/settings/useSettingsData'
 import type {
   PercentageDecimals,
   SettingsCurrency,
@@ -23,94 +23,137 @@ import {
 } from '../features/settings/utils/settings'
 import type { ContributionStrategyType } from '../features/contribution/types'
 
-type NotificationKey = keyof UserSettings['notifications']
-
 export function SettingsPage() {
-  const [appliedSettings, setAppliedSettings] = useState(() =>
-    cloneSettings(settingsMock)
+  const { settings, status, error, isDemo, saveSettings } = useSettingsData()
+  const [appliedSettings, setAppliedSettings] = useState<UserSettings | null>(
+    null
   )
-  const [draft, setDraft] = useState(() => createSettingsDraft(settingsMock))
+  const [draft, setDraft] = useState<UserSettings | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (settings && !appliedSettings) {
+      setAppliedSettings(cloneSettings(settings))
+      setDraft(createSettingsDraft(settings))
+    }
+  }, [settings, appliedSettings])
+
+  if (status === 'loading' || !appliedSettings || !draft) {
+    return (
+      <Card>
+        <p role="status" className="text-sm text-[var(--color-text-muted)]">
+          Carregando suas configurações...
+        </p>
+      </Card>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <Card>
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">
+          Não foi possível carregar as configurações
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+          {error ?? 'Tente novamente após atualizar a página.'}
+        </p>
+      </Card>
+    )
+  }
 
   const activeSettings = isEditing ? draft : appliedSettings
   const validation = validateSettings(activeSettings)
   const hasChanges = !areSettingsEqual(draft, appliedSettings)
 
   function startEditing() {
-    setDraft(createSettingsDraft(appliedSettings))
+    setDraft(createSettingsDraft(appliedSettings!))
     setFeedback('')
     setIsEditing(true)
   }
 
-  function updateProfile(field: 'displayName' | 'email', value: string) {
-    setDraft((current) => ({
-      ...current,
-      profile: { ...current.profile, [field]: value },
-    }))
+  function updateProfile(field: 'displayName', value: string) {
+    setDraft((current) =>
+      current
+        ? { ...current, profile: { ...current.profile, [field]: value } }
+        : current
+    )
   }
 
   function updateDisplay<K extends keyof UserSettings['display']>(
     field: K,
     value: UserSettings['display'][K]
   ) {
-    setDraft((current) => ({
-      ...current,
-      display: { ...current.display, [field]: value },
-    }))
+    setDraft((current) =>
+      current
+        ? { ...current, display: { ...current.display, [field]: value } }
+        : current
+    )
   }
 
   function updatePlanning<K extends keyof UserSettings['planning']>(
     field: K,
     value: UserSettings['planning'][K]
   ) {
-    setDraft((current) => ({
-      ...current,
-      planning: { ...current.planning, [field]: value },
-    }))
-  }
-
-  function updateNotification(key: NotificationKey, enabled: boolean) {
-    setDraft((current) => ({
-      ...current,
-      notifications: { ...current.notifications, [key]: enabled },
-    }))
-  }
-
-  function applyChanges() {
-    if (!validation.isValid || !hasChanges) {
-      return
-    }
-
-    const normalized = normalizeSettings(draft)
-    setAppliedSettings(normalized)
-    setDraft(createSettingsDraft(normalized))
-    setIsEditing(false)
-    setFeedback(
-      'Configurações aplicadas apenas nesta sessão. Nenhum dado foi persistido.'
+    setDraft((current) =>
+      current
+        ? { ...current, planning: { ...current.planning, [field]: value } }
+        : current
     )
   }
 
+  async function applyChanges() {
+    if (!validation.isValid || !hasChanges || isSaving) {
+      return
+    }
+
+    const normalized = normalizeSettings(draft!)
+    setIsSaving(true)
+
+    try {
+      await saveSettings(normalized)
+      setAppliedSettings(normalized)
+      setDraft(createSettingsDraft(normalized))
+      setIsEditing(false)
+      setFeedback(
+        isDemo
+          ? 'Configurações aplicadas apenas nesta sessão. Nenhum dado foi persistido.'
+          : 'Configurações salvas na sua conta.'
+      )
+    } catch (saveError) {
+      setFeedback(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível salvar as configurações. Tente novamente.'
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   function cancelChanges() {
-    setDraft(createSettingsDraft(appliedSettings))
+    setDraft(createSettingsDraft(appliedSettings!))
     setIsEditing(false)
     setFeedback('Alterações não aplicadas foram descartadas.')
   }
 
   function restoreDefault() {
-    const defaultSettings = restoreDefaultSettings()
+    const defaultSettings = restoreDefaultSettings(appliedSettings!.profile)
 
     if (isEditing) {
       setDraft(defaultSettings)
       setFeedback(
-        'Configurações padrão preparadas. Aplique para usar nesta sessão.'
+        'Configurações padrão preparadas. Aplique para salvar.'
       )
       return
     }
 
-    setAppliedSettings(defaultSettings)
-    setDraft(createSettingsDraft(defaultSettings))
-    setFeedback('Configurações padrão restauradas apenas nesta sessão.')
+    setDraft(defaultSettings)
+    setIsEditing(true)
+    setFeedback(
+      'Configurações padrão preparadas. Aplique para salvar.'
+    )
   }
 
   return (
@@ -119,8 +162,9 @@ export function SettingsPage() {
         isEditing={isEditing}
         isValid={validation.isValid}
         hasChanges={hasChanges}
+        isDemo={isDemo}
         onEdit={startEditing}
-        onApply={applyChanges}
+        onApply={() => void applyChanges()}
         onCancel={cancelChanges}
         onRestore={restoreDefault}
       />
@@ -142,6 +186,7 @@ export function SettingsPage() {
         settings={activeSettings}
         validation={validation}
         isEditing={isEditing}
+        isDemo={isDemo}
         onChange={updateProfile}
       />
 
@@ -175,13 +220,7 @@ export function SettingsPage() {
         />
       </div>
 
-      <SettingsNotificationsSection
-        settings={activeSettings}
-        isEditing={isEditing}
-        onChange={updateNotification}
-      />
-
-      <SettingsPrivacySection />
+      <SettingsPrivacySection isDemo={isDemo} />
     </section>
   )
 }

@@ -3,11 +3,14 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildOfficialCvmArchiveUrl,
   downloadOfficialCvmArchive,
+  readCvmCapitalCompositionDocument,
   readCvmConsolidatedDocuments,
 } from './archive'
 
 const HEADER =
   'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;GRUPO_DFP;MOEDA;ESCALA_MOEDA;ORDEM_EXERC;DT_FIM_EXERC;CD_CONTA;DS_CONTA;VL_CONTA;ST_CONTA_FIXA'
+const CAPITAL_COMPOSITION_HEADER =
+  'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_TOTAL_CAP_INTEGR;QT_ACAO_ORDIN_TESOURO;QT_ACAO_PREF_TESOURO;QT_ACAO_TOTAL_TESOURO'
 
 function createArchive() {
   return zipSync({
@@ -16,6 +19,9 @@ function createArchive() {
     'dfp_cia_aberta_DRE_con_2025.csv': strToU8(HEADER),
     'dfp_cia_aberta_DFC_MI_con_2025.csv': strToU8(HEADER),
     'dfp_cia_aberta_DRE_ind_2025.csv': strToU8(HEADER),
+    'dfp_cia_aberta_composicao_capital_2025.csv': strToU8(
+      CAPITAL_COMPOSITION_HEADER
+    ),
     'README.txt': strToU8('ignored'),
   })
 }
@@ -69,6 +75,40 @@ describe('official CVM archive', () => {
 
     expect(() => readCvmConsolidatedDocuments(archive)).toThrow(
       'missing consolidated cash flow'
+    )
+  })
+
+  it('reads the capital composition document, distinct from the statement files', () => {
+    const document = readCvmCapitalCompositionDocument(createArchive())
+
+    expect(document.fileName).toBe(
+      'dfp_cia_aberta_composicao_capital_2025.csv'
+    )
+    expect(document.content).toContain('QT_ACAO_ORDIN_CAP_INTEGR')
+  })
+
+  it('rejects an archive missing the capital composition document', () => {
+    const archive = zipSync({
+      'dfp_cia_aberta_BPA_con_2025.csv': strToU8(HEADER),
+    })
+
+    expect(() => readCvmCapitalCompositionDocument(archive)).toThrow(
+      'exactly one capital composition document'
+    )
+  })
+
+  it('rejects an archive with more than one capital composition document', () => {
+    const archive = zipSync({
+      'dfp_cia_aberta_composicao_capital_2025.csv': strToU8(
+        CAPITAL_COMPOSITION_HEADER
+      ),
+      'itr_cia_aberta_composicao_capital_2025.csv': strToU8(
+        CAPITAL_COMPOSITION_HEADER
+      ),
+    })
+
+    expect(() => readCvmCapitalCompositionDocument(archive)).toThrow(
+      'exactly one capital composition document'
     )
   })
 })

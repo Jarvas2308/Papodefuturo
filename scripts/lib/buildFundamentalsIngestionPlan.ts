@@ -5,17 +5,19 @@
 // Nao faz rede, nao le env, nao escreve nada. Todo I/O fica no script chamador.
 
 export type FundamentalsIngestionProviderV1 =
-  'cvm-stocks' | 'cvm-fii' | 'sec-nport'
+  'cvm-stocks' | 'cvm-fii' | 'sec-nport' | 'shiller-cape'
 
 export type FundamentalsIngestionPlanV1 =
   | { provider: 'cvm-stocks'; source: 'DFP' | 'ITR'; year: number }
   | { provider: 'cvm-fii'; year: number }
   | { provider: 'sec-nport' }
+  | { provider: 'shiller-cape' }
 
 const SUPPORTED_PROVIDERS: readonly FundamentalsIngestionProviderV1[] = [
   'cvm-stocks',
   'cvm-fii',
   'sec-nport',
+  'shiller-cape',
 ]
 
 const SUPPORTED_CVM_SOURCES: readonly ('DFP' | 'ITR')[] = ['DFP', 'ITR']
@@ -94,5 +96,9 @@ export function buildFundamentalsIngestionPlanV1(
     return { provider: 'cvm-fii', year }
   }
 
-  return { provider: 'sec-nport' }
+  if (providerRaw === 'sec-nport') {
+    return { provider: 'sec-nport' }
+  }
+
+  return { provider: 'shiller-cape' }
 }

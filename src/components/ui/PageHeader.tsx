@@ -16,7 +16,7 @@ export function PageHeader({
       <h1
         className={cn(
           'font-semibold tracking-tight text-[var(--color-text)]',
-          compact ? 'truncate text-lg sm:text-xl' : 'text-3xl'
+          compact ? 'truncate text-lg sm:text-xl' : 'text-3xl sm:text-4xl'
         )}
       >
         {title}

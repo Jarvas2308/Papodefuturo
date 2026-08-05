@@ -33,6 +33,11 @@ describe('buildFundamentalsIngestionPlanV1', () => {
     expect(plan).toEqual({ provider: 'sec-nport' })
   })
 
+  it('builds a shiller-cape plan with no extra flags', () => {
+    const plan = buildFundamentalsIngestionPlanV1(['--provider=shiller-cape'])
+    expect(plan).toEqual({ provider: 'shiller-cape' })
+  })
+
   it('ignores unrelated flags such as --confirm', () => {
     const plan = buildFundamentalsIngestionPlanV1([
       '--provider=sec-nport',

@@ -6,7 +6,12 @@ import {
 } from '../../../../domain/fundamentals'
 
 const DECIMAL_PATTERN = /^([+-]?)(\d+)(?:[.,](\d+))?$/
-const NON_NEGATIVE_DECIMAL_PATTERN = /^\+?(\d+)(?:[.,](\d+))?$/
+// Aceita notacao cientifica (ex.: "6.8E-05") - a CVM exporta essa forma
+// para valores pequenos em varias tabelas do Informe Trimestral (imovel,
+// complemento), confirmado em dado real. Sem suporte a expoente, o parser
+// rejeitava linhas validas de producao.
+const NON_NEGATIVE_DECIMAL_PATTERN =
+  /^\+?(\d+)(?:[.,](\d+))?(?:[eE]([+-]?\d+))?$/
 const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER)
 
 export function parseNullableCvmFiiMoney(
@@ -91,13 +96,25 @@ export function parseNullableCvmFiiExactDecimalQuantity(
     throw new Error(`Invalid CVM FII ${description}: ${value}`)
   }
 
-  const [, integerPart, fractionPart = ''] = match
+  const [, integerPart, fractionPart = '', exponentPart] = match
   const normalizedFraction = fractionPart.replace(/0+$/, '')
-  if (normalizedFraction.length > MAX_EXACT_DECIMAL_SCALE) {
+  let scale = normalizedFraction.length
+  let unscaledDigits = `${integerPart}${normalizedFraction}`
+
+  if (exponentPart) {
+    const exponent = Number(exponentPart)
+    scale -= exponent
+    if (scale < 0) {
+      unscaledDigits += '0'.repeat(-scale)
+      scale = 0
+    }
+  }
+
+  if (scale > MAX_EXACT_DECIMAL_SCALE) {
     throw new RangeError(`CVM FII ${description} has an invalid scale`)
   }
 
-  const unscaled = BigInt(`${integerPart}${normalizedFraction}`)
+  const unscaled = BigInt(unscaledDigits)
   if (unscaled > MAX_SAFE_INTEGER_BIGINT) {
     throw new RangeError(
       `CVM FII ${description} coefficient is outside the safe integer range`
@@ -107,7 +124,7 @@ export function parseNullableCvmFiiExactDecimalQuantity(
   return normalizeExactDecimalQuantity(
     {
       unscaledValue: Number(unscaled),
-      scale: normalizedFraction.length,
+      scale,
     },
     `CVM FII ${description}`
   )

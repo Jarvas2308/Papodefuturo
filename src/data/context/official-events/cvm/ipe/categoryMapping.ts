@@ -21,6 +21,14 @@ export function getCvmIpeEventType(
       return 'offering-or-issuance'
     case 'Fato Relevante':
       return 'material-fact'
+    // Categoria real da CVM IPE para anuncio de dividendo/JCP (DEC-082),
+    // confirmada por download real de ipe_cia_aberta_2026.csv - resolve a
+    // pergunta em aberto de docs/reference/ACOES_BR_SETORES_E_METRICAS.md,
+    // secao 6.2. BBAS3 e PSSA3 confirmados com linhas reais nesta
+    // categoria; as outras 3 do universo ainda nao verificadas, mas a
+    // categoria e' generica (nao especifica por empresa).
+    case 'Relatório Proventos':
+      return 'dividend-or-distribution'
     case 'Informações Companhias em Falência':
     case 'Informações Companhias em Liquidação':
     case 'Informações de Companhias em Recuperação Judicial ou Extrajudicial':

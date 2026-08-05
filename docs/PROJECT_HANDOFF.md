@@ -112,6 +112,35 @@ de 8 sprints aprovado em 28 de julho de 2026 está integralmente aplicado em
 produção; trabalho futuro segue em `docs/ROADMAP.md` § Próximo como itens
 abertos, não como um novo plano numerado.
 
+Uma décima quinta atualização, entre 30 de julho e 4 de agosto de 2026,
+registra o encerramento do Sprint 9 (`DEC-067`) e a execução, nesta ordem,
+de um novo ciclo de prontidão de sete sprints (`DEC-068`, aprovado em 31 de
+julho): Sprint 10, recuperação de senha real (`DEC-069`) —
+`resetPasswordForEmail`/`updatePassword` em `AuthProvider`, rotas públicas
+`/recuperar-senha` e `/redefinir-senha`; Sprint 11, configurações deixam de
+ser mock (`DEC-070`) — nome de exibição persiste em `profiles`, subconjunto
+útil de preferências em tabela nova `user_preferences`, seção de
+notificações removida por completo (nunca teve canal de envio), e-mail
+virou somente leitura da sessão real; Sprint 12, observabilidade e frescor
+de dado (`DEC-071`) — log estruturado nas duas Edge Functions, aviso de
+preço obsoleto em `/carteira` (limiar de 4 dias, distinto da janela de 60
+min do cron), `npm run check:health` contra `cron.job_run_details` via RPC
+`SECURITY DEFINER`; Sprint 13, entrega inicial de testes de interação
+(`DEC-072`) — `jsdom` + Testing Library instalados, ambiente por arquivo
+via pragma (não global), 17 testes novos cobrindo autenticação e
+registro/edição de compra, cancelamento de compra em `/historico` ainda
+sem cobertura. As migrations novas (`user_preferences`,
+`check_market_data_health_v1`) foram aplicadas em produção com confirmação
+explícita do usuário; `database.types.ts` regenerado. Sequência ordenada
+pelo próprio usuário como 13 → 14 → 16, não pela ordem numérica original —
+14 (reconciliação documental e limpeza) e 16 (motor recomendador por
+score, pesquisa de fonte já concluída para FII/ação/ETF em
+`docs/reference/`) seguem como próximos itens, detalhados em
+`docs/ROADMAP.md`, não duplicados aqui. Pendência manual real, não
+fechada por este agente: `auth_leaked_password_protection` desabilitado
+no painel do Supabase, reconfirmado pelo `get_advisors` do próprio
+projeto depois de cada migration aplicada nesse ciclo.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -134,6 +163,10 @@ Estado consolidado:
   canário real bem-sucedido, ambos com autorização explícita — ver seção 8;
 - notícias editoriais em `NO-GO`; sentimento e score não foram integrados;
   IA explicativa integrada desde `DEC-056` (Sprint 7);
+- recuperação de senha real integrada (`DEC-069`); configurações reais e
+  persistidas, sem notificações (`DEC-070`); log estruturado, aviso de
+  preço obsoleto e checagem de saúde do cron (`DEC-071`); testes de
+  interação iniciados para autenticação e compra (`DEC-072`);
 - modo demo preservado e sem fallback silencioso após erro de consulta real.
 
 Nenhuma ordem financeira é executada automaticamente. O plano de aporte é uma
@@ -150,11 +183,16 @@ Ao encontrar divergência, usar esta ordem:
 5. `docs/PRODUCT.md` e seções recentes de `docs/ARCHITECTURE.md`;
 6. roadmap e documentos históricos.
 
-Há dívida documental conhecida: partes de `README.md`, do início de
-`docs/ARCHITECTURE.md` e de `docs/SUPABASE_SCHEMA_PLAN.md` ainda descrevem o app
-como apenas demonstrativo. Não remover fluxos reais com base nesses trechos.
-`AGENTS.md`, `docs/PRODUCT.md`, o código e as migrations mais recentes têm
-precedência.
+Dívida documental que motivou a Sprint 14 (`DEC-072` em diante — reconciliação
+documental e limpeza de código morto, ordenada antes da Sprint 16 por decisão
+do usuário): `README.md`, o início de `docs/ARCHITECTURE.md` e
+`docs/SUPABASE_SCHEMA_PLAN.md` já apontam para este documento e para
+`docs/ROADMAP.md` como fonte mais atual, e `README.md` foi corrigido nesta
+sprint (backfill/fundamentos deixaram de ser descritos como vazios; rotas de
+recuperação de senha e o restante das Sprints 10-13 adicionados). Se algum
+trecho remanescente ainda descrever o app como apenas demonstrativo, não
+remover fluxo real com base nele — `AGENTS.md`, `docs/PRODUCT.md`, o código e
+as migrations mais recentes têm precedência.
 
 Leitura obrigatória antes de alterar o projeto:
 
@@ -821,32 +859,31 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 
 ## 14. Próxima sequência recomendada
 
-O código está integrado em `main` desde 27 de julho de 2026 (PRs #86 a #96,
-commit final `5b05e11`). O schema de eventos oficiais foi aplicado ao Supabase
-real no mesmo dia, com `database.types.ts` regenerado e dois bugs de produção
-corrigidos após auditoria transacional (seção 8). A sequência operacional
-original de deployment — schema, canário real, ativação `read-only`,
-verificação com sessão real — está encerrada (`DEC-037` a `DEC-042`). O que
-resta é operação contínua, não deployment:
+A sequência operacional original de deployment (schema, canário, ativação
+`read-only`) e o backfill amplo que ela precedia estão ambos encerrados
+(`DEC-037` a `DEC-042`, depois `DEC-058`/`DEC-059` — ver seção 13). O ciclo
+de prontidão de sete sprints (`DEC-068`) também está parcialmente concluído:
+Sprints 9 a 13 fechadas, na ordem 9 → 10 → 11 → 12 → 13 (a última reordenada
+antes da 14 e da 16 por decisão do usuário — ver a décima quinta atualização
+no topo deste documento). O que resta:
 
-1. decidir sobre backfill gradual (runbook, seção 18: um job por execução,
-   confirmação manual entre CVM IPE, CVM Fund Delivery e SEC EDGAR), com
-   autorização própria por provider/job — nenhum foi executado além do
-   canário de `DEC-040`;
-2. monitorar o runtime `read-only` real em produção (falhas por job,
-   conflitos, latência de leitura) conforme a seção 19 do runbook;
-3. conectar `supabase/tests/database/rls_user_isolation.test.sql` a produção
-   real de forma automatizada, se decidido — hoje só roda em CI contra um
-   Postgres local efêmero (`DEC-039`).
-
-Concluído neste ciclo, sem tocar produção: a suíte pgTAP foi conectada a um
-job de CI (`DEC-039`, confirmado rodando com sucesso em CI real após o merge)
-e as três branches obsoletas do incidente de publicação foram removidas
-(`DEC-038`). Concluído neste ciclo, tocando produção com autorização
-explícita: o canário de um job de backfill real (CVM Fund Delivery, 2026-07)
-rodou com sucesso e `fetchedEventCount: 0` (`DEC-040`), o runtime `read-only`
-foi ativado (`DEC-041`), e a ativação foi verificada em produção com sessão
-autenticada real (`DEC-042`) — ver a seção 8.
+1. **Sprint 14** — reconciliação documental (esta seção e as seções 1, 2 e
+   13 já corrigidas nesta rodada; verificar `docs/ARCHITECTURE.md` e
+   `docs/PRODUCT.md` quanto a trecho pré-persistência remanescente) e
+   limpeza de código morto;
+2. **Sprint 16** — motor evolui de determinístico puro para recomendador
+   por score (`DEC-068`), dentro do universo fechado de 12 ativos, com peso
+   definido pelo usuário e confirmação manual obrigatória antes de qualquer
+   `purchases`. Pesquisa de fonte concluída para FII, ação BR e ETF
+   internacional em `docs/reference/`; nenhum provider novo, campo de
+   schema (`asset_type`/`asset_segment`) ou integração no motor foi
+   implementado ainda;
+3. habilitar `auth_leaked_password_protection` no painel do Supabase —
+   pendência manual reconfirmada pelo `get_advisors` do projeto após cada
+   migration desta rodada, não fechável por ciclo de código;
+4. ampliar a suíte de testes de interação (Sprint 13) além de autenticação
+   e formulário de compra — cancelamento de compra em `/historico` é o
+   próximo item natural, mesmo padrão já estabelecido.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir

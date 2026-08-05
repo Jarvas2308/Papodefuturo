@@ -17,6 +17,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [status, setStatus] = useState<AuthStatus>(() =>
     client ? 'loading' : 'demo'
   )
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
   useEffect(() => {
     if (!client) {
@@ -42,9 +43,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange((_event, nextSession) => {
+    } = client.auth.onAuthStateChange((event, nextSession) => {
       if (!isActive) {
         return
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true)
       }
 
       setSession(nextSession)
@@ -98,6 +103,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (error) {
       throw error
     }
+
+    setIsPasswordRecovery(false)
+  }
+
+  async function resetPasswordForEmail(email: string): Promise<void> {
+    if (!client) {
+      throw new Error('Supabase Auth is not configured')
+    }
+
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    })
+
+    if (error) {
+      throw error
+    }
+  }
+
+  async function updatePassword(newPassword: string): Promise<void> {
+    if (!client) {
+      throw new Error('Supabase Auth is not configured')
+    }
+
+    const { error } = await client.auth.updateUser({ password: newPassword })
+
+    if (error) {
+      throw error
+    }
+
+    setIsPasswordRecovery(false)
   }
 
   return (
@@ -107,9 +142,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         session,
         user: session?.user ?? null,
         client,
+        isPasswordRecovery,
         signIn,
         signUp,
         signOut,
+        resetPasswordForEmail,
+        updatePassword,
       }}
     >
       {children}

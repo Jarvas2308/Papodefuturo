@@ -4,7 +4,14 @@
   }
 
   html {
-    background: var(--color-bg);
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 31px,
+        color-mix(in srgb, var(--color-text) 4%, transparent) 32px
+      ),
+      var(--color-bg);
     color: var(--color-text);
     scroll-behavior: smooth;
   }
@@ -14,7 +21,7 @@
     min-width: 320px;
     background: var(--color-bg);
     color: var(--color-text);
-    font-family: Inter, 'Segoe UI', BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-body);
   }
 
   body,
@@ -32,6 +39,23 @@
   textarea,
   select {
     font: inherit;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Numeric data reads as an instrument, not prose: money, percentages,
+     basis points and tickers all get tabular mono figures. */
+  .figure,
+  .font-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   @media (prefers-reduced-motion: reduce) {
