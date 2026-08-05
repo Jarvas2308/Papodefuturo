@@ -1065,7 +1065,7 @@ integração com o motor, editável).
    de ativo.
 6. **Integração no motor — implementada e conectada ao fluxo real
    (`DEC-085`/`DEC-086`).** `desvioAjustado = desvioCandidato − (score ×
-   peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
+peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    `scoreWeightInBasisPoints`, ambos opcionais — comportamento antigo
    inalterado quando ausentes), aplicado somente entre candidatos que já
    passam `compareDeviation(candidateDeviation, currentDeviation) < 0` (ou

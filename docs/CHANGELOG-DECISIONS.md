@@ -3193,9 +3193,9 @@ no-improving-purchase, even with a high score on the losing asset'`).
      commit `6618cce` (28/07/2026, quando fundamentos era só apresentação,
      "sem score/ranking/recomendação"), uma checagem que proibia qualquer
      menção à palavra "fundamentals" nos fluxos financeiros críticos
-     (`contribution`/`portfolio`/`history`) — proteção correta *para aquele
-     momento*, mas que hoje conflita diretamente com o objetivo explícito
-     da Fase 5/6 (`DEC-068`): o motor de score *precisa* ler dado de
+     (`contribution`/`portfolio`/`history`) — proteção correta _para aquele
+     momento_, mas que hoje conflita diretamente com o objetivo explícito
+     da Fase 5/6 (`DEC-068`): o motor de score _precisa_ ler dado de
      fundamentos para pontuar candidatos no laço guloso. Descoberto ao
      rodar a suíte completa após o wiring — não foi contornado nem
      enfraquecido sem entender a causa: a checagem foi reescrita para
