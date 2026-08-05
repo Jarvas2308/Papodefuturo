@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Card } from '../components/ui/Card'
 import { SettingsDisplaySection } from '../features/settings/components/SettingsDisplaySection'
 import { SettingsPlanningSection } from '../features/settings/components/SettingsPlanningSection'
@@ -33,12 +33,10 @@ export function SettingsPage() {
   const [feedback, setFeedback] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
-  useEffect(() => {
-    if (settings && !appliedSettings) {
-      setAppliedSettings(cloneSettings(settings))
-      setDraft(createSettingsDraft(settings))
-    }
-  }, [settings, appliedSettings])
+  if (settings && !appliedSettings) {
+    setAppliedSettings(cloneSettings(settings))
+    setDraft(createSettingsDraft(settings))
+  }
 
   if (status === 'loading' || !appliedSettings || !draft) {
     return (
