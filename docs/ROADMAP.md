@@ -1085,9 +1085,18 @@ peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    mesmo comportamento de antes desta fase). IA continua só explicando,
    nunca decidindo — o dossiê só expõe o que o motor já calculou, sem
    adicionar julgamento novo.
-8. **Documentação** — atualizar `PRODUCT.md`, `ARCHITECTURE.md`; revisar
-   `no-fundamental-score`, `no-technical-plan-modification`,
-   `technical-ranking-not-exposed-v1`.
+8. **Documentação — implementada para a fatia FII tijolo (`DEC-088`).**
+   `PRODUCT.md` e `ARCHITECTURE.md` corrigidos (revisão cirúrgica, não
+   reescrita) onde diziam que fundamentos não influenciam o Motor V2 —
+   agora apontam para o módulo separado `src/domain/fundamentals/score`.
+   `no-fundamental-score`/`no-technical-plan-modification` (em
+   `buildFundamentalFactsV1.ts`/`buildFundamentalDerivedFactsV1.ts`)
+   reescritos para descrever exatamente o que o contrato em si ainda não
+   inclui, sem esconder o que o score downstream já faz.
+   `technical-ranking-not-exposed-v1` permanece válido sem alteração — o
+   motor ainda não expõe o histórico de candidatos avaliados a cada
+   iteração, só o resultado priorizado. Cada nova fatia (ação, ETF, spread
+   de DY) reabre a mesma revisão.
 9. **Testes** — determinismo, trava de segurança do laço guloso,
    priorização com scores diferentes, sinal `unavailable`/`stale` não
    quebra cálculo, cenário real com ativo sem sinal disponível.

@@ -27,8 +27,13 @@ aporte), Supabase Auth real, motor estratégico V2 determinístico integrado
 ao Novo Aporte, dados de mercado e câmbio globais atualizados
 automaticamente, e uma camada de IA explicativa interpretando o plano já
 calculado. O modo demo permanece como fallback determinístico quando o
-ambiente Supabase não está configurado. Notícias editoriais, sentimento e
-score continuam fora de escopo (`NO-GO`, `DEC-036`).
+ambiente Supabase não está configurado. Notícias editoriais e sentimento
+continuam fora de escopo (`NO-GO`, `DEC-036`) — o `NO-GO` cobria
+especificamente score derivado de notícia/sentimento editorial, nunca score
+de dado estruturado regulatório. Desde o Sprint 16 (`DEC-068`, `DEC-085` a
+`DEC-087`), o motor consome score derivado de dado estruturado (CVM, SEC,
+Tesouro Transparente, FRED, Shiller) para priorizar candidatos dentro do
+universo fechado — ver "Motor de score" abaixo.
 
 ## Filosofia
 
@@ -246,11 +251,35 @@ rejeita ou confirma.
 - comparação exata do desvio total antes e depois;
 - seleção somente de unidades que melhoram estritamente a carteira;
 - limite operacional de até 3 ativos distintos por plano;
-- saldo não alocado quando nenhuma nova unidade acessível melhora o desvio.
+- saldo não alocado quando nenhuma nova unidade acessível melhora o desvio;
+- desde o Sprint 16 (`DEC-085`/`DEC-086`): entre candidatos que já melhoram
+  o desvio, o score do motor de fundamentos reordena a prioridade
+  (`desvioAjustado = desvioCandidato − score × peso`) — nunca aprova uma
+  compra que não melhora a carteira, essa trava é a mesma de sempre.
 
 O Dossiê Técnico V1 recebe esses fatos sem recalcular ou modificar o plano
 produzido pelo motor. Futuras camadas qualitativas deverão consumir esse
 contrato ou uma evolução explicitamente versionada dele.
+
+## Motor de score (Sprint 16)
+
+Desde `DEC-068`, o motor deixou de ser só um veto e passa a pontuar
+candidatos dentro do universo fechado — nunca um recomendador irrestrito
+(usuário mantém confirmação obrigatória, item 6 da filosofia). Estado atual
+(`DEC-085` a `DEC-087`):
+
+- cobre só a fatia FII tijolo (KNRI11, VISC11, XPLG11, HGRU11) — ação e ETF
+  ainda não têm nenhum sinal;
+- 4 de 5 sinais do rascunho de pontuação implementados: P/VP, vacância
+  financeira, WALE (substituto documentado de "receita vencendo em 24
+  meses") e concentração do maior inquilino; spread de DY sobre NTN-B
+  segue bloqueado (falta o valor do provento, só o evento foi ingerido);
+- faixas de pontuação configuráveis por usuário (`signal_rules`), semeadas
+  com valores de partida na primeira simulação de aporte técnico;
+- score é best-effort: qualquer falha na leitura de fundamentos degrada
+  para score vazio, nunca trava a simulação de aporte;
+- exposto no Dossiê Técnico V1 (`signals`) para a IA poder explicar por que
+  um ativo foi priorizado, sem a IA decidir nada sozinha.
 
 ## Dossiê Técnico V1
 
@@ -261,10 +290,13 @@ somente em memória que consolida:
 - estratégia e metas globais individuais já derivadas;
 - últimas cotações e último câmbio USD/BRL selecionados pelos helpers do domínio;
 - `TargetAllocationContributionResult` e impactos produzidos pelo Motor V2;
-- cobertura dos fatos de mercado e limitações explícitas do plano.
+- cobertura dos fatos de mercado e limitações explícitas do plano;
+- desde o Sprint 16 (`DEC-087`): `signals`, o score do motor de
+  fundamentos por ativo (hoje só FII tijolo), quando calculado.
 
-O dossiê não é persistido, não recalcula a carteira ou o plano, não expõe um
-ranking técnico inexistente e não chama IA, APIs ou serviços externos.
+O dossiê não é persistido, não recalcula a carteira ou o plano, não expõe o
+histórico de candidatos avaliados a cada iteração do laço guloso (isso
+continua sem existir) e não chama IA, APIs ou serviços externos.
 
 ## Fundamental Facts V1
 
@@ -324,9 +356,12 @@ independentes no provider `sec-nport`, a ingestão dos 3 ETFs internacionais
 três categorias do universo fechado pela primeira vez. Um runtime opcional
 (`disabled`/`read-only`, mesmo padrão do runtime de eventos oficiais) e uma
 apresentação autenticada existem em `src/application/context/fundamentals` e
-`src/features/fundamentals`, rota `/fundamentos`, mas a composição real
-permanece `disabled` — ativação em produção é decisão separada. Ainda não
-existe scheduler; fundamentos não modificam o Motor V2 nem `TechnicalDossierV1`.
+`src/features/fundamentals`, rota `/fundamentos`, e a composição real está
+ativa (`DEC-060`). Ainda não existe scheduler. `FundamentalFactsV1` em si
+não modifica o Motor V2 nem `TechnicalDossierV1` — mas, desde o Sprint 16
+(`DEC-085` a `DEC-087`), o motor de score (`src/domain/fundamentals/score`,
+módulo separado que consome estes mesmos fatos) modifica a priorização de
+compra e é exposto no dossiê, hoje só para FII tijolo.
 
 ## Fundamental Derived Facts V1
 
@@ -346,10 +381,15 @@ positivo, moeda divergente e aritmética fora do intervalo seguro são estados
 explícitos de indisponibilidade, não valores inventados.
 
 Os derivados preservam asset, período, fonte, data e documento do snapshot
-factual. Não usam preço de mercado, não calculam crescimento, score, ranking ou
-recomendação, não alteram o Motor V2 e não são persistidos. Neste ciclo, o
-builder permanece somente em memória, sem runtime, UI, chamada externa ou
-alteração na tabela global vazia `fundamental_snapshots`.
+factual. `FundamentalDerivedFactsV1` em si não usa preço de mercado, não
+calcula crescimento nem recomendação, e não é persistido — mas P/VP de FII
+tijolo (que combina o valor patrimonial por cota aqui derivado com a
+cotação de mercado) e o score do motor (que consome estes derivados) já
+existem desde o Sprint 16, em módulos separados
+(`src/domain/fundamentals/score`), e o score modifica a priorização de
+compra do Motor V2. O builder deste contrato em si permanece somente em
+memória, sem runtime, UI, chamada externa ou alteração na tabela global
+`fundamental_snapshots`.
 
 ## Papel da IA
 
