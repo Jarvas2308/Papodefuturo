@@ -331,15 +331,20 @@ Princípios da fronteira:
 - no provider CVM V1, `totalRevenue` é `null` por falta de comparabilidade
   econômica comprovada entre as linhas oficiais DRE 3.01 auditadas;
 - não há conversão cambial;
-- não há P/L, P/VP, margens, crescimento, valuation, ranking ou score;
-- o contrato não altera o Motor V2 nem o schema `technical-dossier.v1`.
+- este contrato em si não inclui P/L, P/VP, margens, crescimento, valuation,
+  ranking ou score — desde o Sprint 16 (`DEC-085` a `DEC-087`), P/VP de FII
+  tijolo e o score do motor são calculados à parte, em
+  `src/domain/fundamentals/score`, consumindo estes mesmos fatos;
+- o contrato em si não altera o Motor V2 nem o schema `technical-dossier.v1`
+  — o score derivado dele altera, via `desvioAjustado` (ver seção do motor
+  de score).
 
 Os providers CVM DFP/ITR para ações brasileiras, Informe Mensal para FIIs e SEC
 N-PORT para ETFs internacionais produzem o contrato e já têm ingestão real
 executada (`DEC-049`, `DEC-051`): `fundamental_snapshots` tem 12 linhas,
 cobrindo as três categorias do universo fechado. Runtime `read-only` e
-apresentação em `/fundamentos` também estão integrados; ativação em
-produção continua sendo decisão separada (`FUNDAMENTALS_REAL_UI_MODE`). A
+apresentação em `/fundamentos` também estão integrados e ativos em produção
+desde `DEC-060` (`FUNDAMENTALS_REAL_UI_MODE = 'read-only'`). A
 tabela global `fundamental_snapshots`, sem `user_id` ou FK para `assets.id`,
 está aplicada no Supabase real, com leitura autenticada, escrita reservada a
 contexto server-side privilegiado e adapters separados para ações, FIIs e
@@ -396,11 +401,15 @@ positivo, moeda divergente e resultado fora do intervalo de inteiro seguro são
 indisponibilidades contratuais explícitas. Inconsistências estruturais do
 snapshot factual são rejeitadas.
 
-A camada não usa preço de mercado, não calcula crescimento, score, ranking ou
-recomendação e não modifica o plano técnico. Também não possui persistência,
-tabela, integração runtime, UI ou chamada externa. A tabela global
-`fundamental_snapshots` continua vazia e armazena somente fatos normalizados,
-nunca os derivados.
+`FundamentalDerivedFactsV1` em si não usa preço de mercado, não calcula
+crescimento nem recomendação, e não possui persistência, tabela, integração
+runtime, UI ou chamada externa própria — a tabela global
+`fundamental_snapshots` armazena somente os fatos normalizados de entrada,
+nunca os derivados calculados a partir deles. Desde o Sprint 16 (`DEC-085`
+a `DEC-087`), P/VP de FII tijolo (que usa preço de mercado) e o score do
+motor (que consome estes derivados) existem em
+`src/domain/fundamentals/score`, um módulo separado que modifica a
+priorização de compra do Motor V2 — ver seção "Motor de score" abaixo.
 
 ### Fronteira aprovada de News & Events V1
 
@@ -669,11 +678,19 @@ acesso a repository, adapter ou Supabase pelos componentes. Estados
 `disabled`, autenticação necessária, acesso não resolvido, falha e vazio
 permanecem distintos; nenhum score, ranking ou recomendação é exibido.
 
-Diferente de eventos oficiais, a composição real permanece explicitamente
-`disabled` (`FUNDAMENTALS_REAL_UI_MODE` em `src/features/fundamentals/composition.ts`):
-o item não é criado na sidebar e a rota direta `/fundamentos` informa que o
-recurso não foi ativado, sem executar leitura. Ativação em produção é decisão
-separada, como foi para eventos oficiais.
+A composição real está ativa em `read-only` desde `DEC-060`
+(`FUNDAMENTALS_REAL_UI_MODE` em `src/features/fundamentals/composition.ts`):
+o item aparece na sidebar e a rota `/fundamentos` consulta o repository de
+leitura via Supabase, mesmo padrão de eventos oficiais.
+
+Esta apresentação permanece isolada do motor de score do Sprint 16
+(`DEC-085` a `DEC-087`, ver seção "Motor de score" acima) — o score não é
+calculado nem exibido aqui, só no fluxo de aporte (Novo Aporte, dossiê
+técnico). `src/features/fundamentals/boundary.test.ts` foi revisado pela
+`DEC-086` para permitir que os fluxos financeiros críticos (contribuição,
+carteira, histórico) leiam fundamentos via os builders puros de domínio e o
+repositório de leitura — mas continua proibindo, sem exceção, que esses
+fluxos importem esta feature de apresentação ou o runtime dela.
 
 ### Infraestrutura
 

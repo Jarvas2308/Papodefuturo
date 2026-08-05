@@ -61,11 +61,17 @@ const LIMITATIONS: readonly FundamentalDerivedFactsLimitation[] = [
   },
   {
     code: 'no-score',
-    description: 'Nenhum score fundamentalista é produzido neste ciclo.',
+    description:
+      'Este objeto de derivados não inclui score — o motor de score ' +
+      '(src/domain/fundamentals/score, Sprint 16) calcula isso separadamente ' +
+      'a partir destes derivados, hoje só para FII tijolo (DEC-085).',
   },
   {
     code: 'no-ranking',
-    description: 'Nenhum ranking de ativos é produzido neste ciclo.',
+    description:
+      'Nenhum ranking completo entre candidatos é produzido — o motor de ' +
+      'score prioriza a escolha de compra (desvioAjustado), mas não expõe ' +
+      'um ranking ordenado de todos os ativos elegíveis.',
   },
   {
     code: 'no-recommendation',
@@ -75,7 +81,10 @@ const LIMITATIONS: readonly FundamentalDerivedFactsLimitation[] = [
   {
     code: 'no-technical-plan-modification',
     description:
-      'Os derivados não alteram o plano técnico nem as regras do Motor Estratégico V2.',
+      'Estes derivados, por si só, não alteram o plano técnico — o score ' +
+      'calculado a partir deles modifica a priorização de compra via ' +
+      'desvioAjustado (targetAllocationStrategy.ts, DEC-085/DEC-086), quando ' +
+      'o fluxo de aporte real o calcula e fornece.',
   },
   {
     code: 'not-persisted',

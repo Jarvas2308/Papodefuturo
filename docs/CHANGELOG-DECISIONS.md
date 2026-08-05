@@ -3282,3 +3282,52 @@ no-improving-purchase, even with a high score on the losing asset'`).
   testes de `DEC-086`). Fora da Fase 5-9: spread de DY de FII (bloqueado em
   dado), ação e ETF (nenhum sinal ainda), NAV/cotas de ETF e FRED
   (bloqueados desde `DEC-083`).
+
+## DEC-088 — Sprint 16, Fase 8: revisão de documentação desatualizada pelo motor de score
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: `docs/ROADMAP.md` (item 8) já apontava `no-fundamental-score`,
+  `no-technical-plan-modification` e `technical-ranking-not-exposed-v1`
+  como códigos de limitação a revisar depois do motor de score. Na
+  revisão, achado mais amplo do que o esperado: `PRODUCT.md` e
+  `ARCHITECTURE.md` tinham várias afirmações que eram verdade quando
+  escritas (Sprint 4-8) e se tornaram falsas com o Sprint 16 — não só nas
+  limitações formais, mas em prosa descritiva ("fundamentos não modificam
+  o Motor V2", "não há P/L, P/VP... ranking ou score", "a tabela global
+  `fundamental_snapshots` continua vazia"). Achado também, sem relação com
+  score: `PRODUCT.md` e `ARCHITECTURE.md` ainda diziam que a composição
+  real de fundamentos permanecia `disabled`, quando na verdade está
+  `read-only` em produção desde `DEC-060` (28 dias antes desta entrada) —
+  dívida documental já existente, não introduzida pelo Sprint 16, corrigida
+  no mesmo passe por estar no mesmo parágrafo.
+- Decisão: revisão cirúrgica, não reescrita. Cada afirmação falsa foi
+  corrigida apontando exatamente qual objeto continua com a limitação
+  original (ex.: `FundamentalFactsV1`/`FundamentalDerivedFactsV1`, os
+  contratos em si, continuam sem campo de score — o score é um módulo
+  separado e downstream, `src/domain/fundamentals/score`, que consome
+  esses fatos) em vez de simplesmente apagar a limitação. Afirmações ainda
+  verdadeiras foram mantidas sem alteração — em particular,
+  `technical-ranking-not-exposed-v1` e as frases correspondentes em
+  `ARCHITECTURE.md`/`PRODUCT.md` continuam válidas: o motor ainda não expõe
+  o histórico completo de candidatos avaliados a cada iteração do laço
+  guloso, só o resultado final priorizado por score. `PRODUCT.md` ganhou
+  uma seção nova, "Motor de score (Sprint 16)", resumindo o estado atual
+  (fatia FII tijolo, 4 de 5 sinais, best-effort, exposto no dossiê) em vez
+  de espalhar esse resumo em vários parágrafos preexistentes.
+  `ARCHITECTURE.md` ganhou um parágrafo equivalente na seção de
+  apresentação opcional de fundamentos, deixando explícito que aquela
+  página (`/fundamentos`) continua isolada do motor de score — o score só
+  aparece no fluxo de aporte.
+- Verificação: nenhuma mudança de comportamento — só descrição em
+  `PRODUCT.md`, `ARCHITECTURE.md` e nas mensagens de `limitations` de
+  `buildFundamentalFactsV1.ts`/`buildFundamentalDerivedFactsV1.ts` (só os
+  textos; os códigos, já testados por nome exato em
+  `buildFundamentalFactsV1.test.ts`/`buildFundamentalDerivedFactsV1.test.ts`,
+  não mudaram). Suíte completa: 161/161 arquivos, 2419/2419 testes
+  passando, sem nenhum ajustado. Typecheck, lint e format limpos.
+- Consequências: fecha a Fase 8 do plano de Sprint 16 para a fatia FII
+  tijolo já implementada. Cada nova fatia (P/VP de ação, ETF, spread de DY)
+  vai reabrir a mesma dívida documental nos mesmos arquivos — registrar
+  isso explicitamente para a próxima sessão não esquecer de repetir esta
+  revisão.

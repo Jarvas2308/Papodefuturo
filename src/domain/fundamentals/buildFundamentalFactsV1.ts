@@ -40,16 +40,25 @@ const LIMITATIONS: readonly FundamentalFactsLimitation[] = [
   {
     code: 'no-derived-fundamental-ratios',
     description:
-      'P/L, P/VP, margens, crescimento e outros derivados não são calculados.',
+      'Este objeto de fatos não inclui P/L, P/VP, margens, crescimento nem ' +
+      'outros derivados — P/VP de FII tijolo é calculado à parte, a partir ' +
+      'destes mesmos fatos, pelo motor de score (Sprint 16, DEC-086).',
   },
   {
     code: 'no-fundamental-score',
     description:
-      'Nenhum score, ranking ou classificação de qualidade é produzido.',
+      'Este objeto de fatos não inclui score, ranking nem classificação de ' +
+      'qualidade — o motor de score (src/domain/fundamentals/score, ' +
+      'Sprint 16) calcula isso separadamente a partir destes fatos, hoje só ' +
+      'para FII tijolo (DEC-085).',
   },
   {
     code: 'no-technical-plan-modification',
-    description: 'Fundamentos não modificam o plano técnico do Motor V2.',
+    description:
+      'Este objeto de fatos, por si só, não modifica o plano técnico — o ' +
+      'score derivado dele modifica via desvioAjustado no laço guloso ' +
+      '(targetAllocationStrategy.ts, DEC-085/DEC-086), quando o fluxo de ' +
+      'aporte real o calcula e fornece.',
   },
 ]
 
