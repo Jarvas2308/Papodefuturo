@@ -4,6 +4,8 @@ import type { FundamentalFactsAsset } from '../types'
 import { buildFiiTijoloScoreV1 } from './buildFiiTijoloScoreV1'
 import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from './defaultFiiSignalRules'
 
+const NOW = '2026-08-05T00:00:00.000Z'
+
 function monthlyDerivedSnapshot(
   referenceDate: string,
   navPerShareScaledAmount: number | null
@@ -104,6 +106,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.totalPoints).toBe(2)
@@ -143,6 +146,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.totalPoints).toBe(-3)
@@ -157,6 +161,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'papel',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.totalPoints).toBe(0)
@@ -187,6 +192,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: null,
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(
@@ -201,6 +207,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals).toEqual([
@@ -233,6 +240,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[0]).toMatchObject({ observedValue: 300, points: 1 })
@@ -264,6 +272,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[0]).toMatchObject({ observedValue: 300 })
@@ -278,6 +287,7 @@ describe('buildFiiTijoloScoreV1', () => {
       asset,
       assetType: 'tijolo',
       rules: [],
+      now: NOW,
     })
 
     expect(score.signals[0]).toEqual({
@@ -305,6 +315,7 @@ describe('buildFiiTijoloScoreV1', () => {
           enabled: false,
         },
       ],
+      now: NOW,
     })
 
     expect(score.signals[0]).toMatchObject({ points: 0 })
@@ -324,6 +335,7 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
       latestMarketPriceInMinorUnits: 850, // 850/1000 = 0.85 -> < 0.90 -> +2
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[3]).toEqual({
@@ -342,6 +354,7 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
       latestMarketPriceInMinorUnits: 850,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[3]).toEqual({
@@ -362,6 +375,7 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
       derivedAsset,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[3]).toEqual({
@@ -383,6 +397,7 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
       latestMarketPriceInMinorUnits: 850,
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[3]).toEqual({
@@ -405,6 +420,7 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
       latestMarketPriceInMinorUnits: 1_000, // 1000/1000 = 1.0 -> [1.00,1.10) -> 0
       assetType: 'tijolo',
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(score.signals[3]).toMatchObject({
@@ -430,6 +446,7 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
         latestMarketPriceInMinorUnits: marketPrice,
         assetType: 'tijolo',
         rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+        now: NOW,
       })
 
       expect(score.signals[3]).toMatchObject({
@@ -438,4 +455,88 @@ describe('buildFiiTijoloScoreV1 - P/VP signal', () => {
       })
     }
   )
+})
+
+describe('buildFiiTijoloScoreV1 - frescor por fonte (DEC-089)', () => {
+  it('marks trimestral signals stale when the reference date is past the threshold', () => {
+    const asset = buildAsset([
+      trimestralSnapshot('2025-01-01', {
+        vacancyInBasisPoints: 300,
+        tenantConcentrationInBasisPoints: 2_000,
+        waleMonthsScaledBy100: 6_000,
+      }),
+    ])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'tijolo',
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[0]).toEqual({
+      signalKey: 'fii_vacancy',
+      status: 'stale',
+      observedValue: 300,
+      referenceDate: '2025-01-01',
+      staleAfterDays: 180,
+    })
+    expect(score.signals[1]).toMatchObject({ status: 'stale' })
+    expect(score.signals[2]).toMatchObject({ status: 'stale' })
+  })
+
+  it('does not count stale signal points toward totalPoints', () => {
+    const asset = buildAsset([
+      trimestralSnapshot('2025-01-01', { vacancyInBasisPoints: 300 }), // would be +1 if fresh
+    ])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'tijolo',
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.totalPoints).toBe(0)
+  })
+
+  it('marks P/VP stale when the NAV-per-share reference date is past the threshold', () => {
+    const asset = buildAsset([])
+    const derivedAsset = buildDerivedAsset([
+      monthlyDerivedSnapshot('2025-01-01', 1_000_000_000),
+    ])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      derivedAsset,
+      latestMarketPriceInMinorUnits: 850,
+      assetType: 'tijolo',
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'fii_pvp',
+      status: 'stale',
+      observedValue: 850_000,
+      referenceDate: '2025-01-01',
+      staleAfterDays: 180,
+    })
+  })
+
+  it('keeps a fresh signal applied at exactly the threshold boundary', () => {
+    // NOW is 2026-08-05; 2026-02-06 is exactly 180 days earlier.
+    const asset = buildAsset([
+      trimestralSnapshot('2026-02-06', { vacancyInBasisPoints: 300 }),
+    ])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'tijolo',
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[0]).toMatchObject({ status: 'applied', points: 1 })
+  })
 })

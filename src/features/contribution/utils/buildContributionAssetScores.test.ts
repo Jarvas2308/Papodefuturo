@@ -12,6 +12,8 @@ import {
 } from './buildContributionAssetScores'
 import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from '../../../domain/fundamentals/score'
 
+const NOW = '2026-08-05T00:00:00.000Z'
+
 function fiiTijoloAsset(id: string): Asset {
   return {
     id,
@@ -121,6 +123,7 @@ describe('buildContributionAssetScoresV1', () => {
       derived: emptyDerived(),
       latestPricesByAsset: new Map(),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(scores).toEqual([])
@@ -135,6 +138,7 @@ describe('buildContributionAssetScoresV1', () => {
       derived: emptyDerived(),
       latestPricesByAsset: new Map(),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(scores).toEqual([])
@@ -178,6 +182,7 @@ describe('buildContributionAssetScoresV1', () => {
       derived: emptyDerived(),
       latestPricesByAsset: new Map(),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(scores).toHaveLength(1)
@@ -246,6 +251,7 @@ describe('buildContributionAssetScoresV1', () => {
       derived,
       latestPricesByAsset: new Map([[asset.id, wrongCurrencyPrice]]),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
     })
 
     expect(scores).toHaveLength(1)

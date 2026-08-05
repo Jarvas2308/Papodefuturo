@@ -723,6 +723,8 @@ describe('buildTechnicalDossierV1', () => {
             observedValue: 300,
             points: 1,
             unavailableReason: null,
+            referenceDate: null,
+            staleAfterDays: null,
           },
           {
             signalKey: 'fii_pvp',
@@ -730,6 +732,49 @@ describe('buildTechnicalDossierV1', () => {
             observedValue: null,
             points: null,
             unavailableReason: 'missing-input',
+            referenceDate: null,
+            staleAfterDays: null,
+          },
+        ],
+      },
+    ])
+  })
+
+  it('flattens a stale signal with its reference date and threshold, points null', () => {
+    const dossier = buildTechnicalDossierV1({
+      ...createInput(),
+      assetFundamentalScores: [
+        {
+          schemaVersion: 'asset-score.v1',
+          assetId: knri11.id,
+          totalPoints: 0,
+          signals: [
+            {
+              signalKey: 'fii_vacancy',
+              status: 'stale',
+              observedValue: 300,
+              referenceDate: '2025-01-01',
+              staleAfterDays: 180,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(dossier.signals).toEqual([
+      {
+        assetId: knri11.id,
+        ticker: 'KNRI11',
+        totalPoints: 0,
+        signals: [
+          {
+            signalKey: 'fii_vacancy',
+            status: 'stale',
+            observedValue: 300,
+            points: null,
+            unavailableReason: null,
+            referenceDate: '2025-01-01',
+            staleAfterDays: 180,
           },
         ],
       },
