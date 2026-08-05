@@ -1054,15 +1054,29 @@ integração com o motor, editável).
      de dado para NAV/cotas, ou fornecer a chave do FRED) — nenhum é
      codificável sem essa decisão externa. Por aprovação explícita do
      usuário, a sessão seguiu para a Fase 5 sem esperar por eles.
-5. **Motor de score — fatia 1 (FII tijolo) implementada (`DEC-085`/`DEC-086`).**
-   `src/domain/fundamentals/score/` calcula 4 sinais de FII tijolo com dado
-   já ingerido (vacância, WALE, concentração do maior inquilino, P/VP —
-   preço de mercado combinado com o VP por cota já derivado), regime-aware
-   (`wrong-regime` para FII papel/FOF, que não existem no universo fechado
-   hoje). Spread de DY sobre NTN-B (precisa valor de provento, só o evento
-   foi ingerido — `DEC-082`) segue `unavailable` — próxima sub-fatia de
-   FII. Ação e ETF ainda não têm sinal nenhum — próximas fatias por classe
-   de ativo.
+5. **Motor de score — fechado até onde o dado real permite
+   (`DEC-085`/`DEC-086`/`DEC-090`).** `src/domain/fundamentals/score/`
+   cobre, hoje, 5 dos 12 sinais do rascunho de pontuação:
+   - **FII tijolo (4/5):** vacância, WALE, concentração do maior
+     inquilino, P/VP. Spread de DY sobre NTN-B bloqueado — precisa valor
+     do provento, só o evento foi ingerido (`DEC-082`).
+   - **Ação (1/4):** ROE, aplicável a todos os regimes exceto holding
+     pura. Os outros 3 ficam bloqueados por motivos diferentes: payout
+     (mesmo bloqueio de valor de provento do FII), dívida líquida/EBITDA
+     (dívida financeira e D&A não são extraídos do DFP/ITR — precisa
+     provider novo, não só o motor), P/L vs série histórica (só 1-2
+     períodos ingeridos por empresa até agora — amostra pequena demais
+     para um quartil confiável; o mecanismo existiria, falta profundidade
+     histórica real).
+   - **ETF (0/3):** todos bloqueados. CAPE vs média de 10 anos exige
+     reingestão do Shiller (a ingestão atual, `DEC-084`, guarda só o
+     ponto mais recente e descarta o histórico que já vem no mesmo
+     arquivo) mais um módulo de score de ETF que ainda não existe. Spread
+     de DY sobre TIPS depende de chave de API do FRED (usuário). Prêmio/
+     desconto sobre NAV depende de campo que não existe no N-PORT
+     (`DEC-083`, sem fonte alternativa conhecida).
+   - Cada classe de ativo com sinal implementado está conectada ao fluxo
+     real de aporte (não é só o motor de domínio isolado) — ver item 6.
 6. **Integração no motor — implementada e conectada ao fluxo real
    (`DEC-085`/`DEC-086`).** `desvioAjustado = desvioCandidato − (score ×
 peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /

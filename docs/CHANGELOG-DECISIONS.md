@@ -3388,3 +3388,85 @@ no-improving-purchase, even with a high score on the losing asset'`).
   completas para FII tijolo (4 de 5 sinais; spread de DY segue bloqueado
   em dado). Próxima fatia natural: ação, ETF, ou desbloquear o valor do
   provento de FII — decisão do usuário.
+
+## DEC-090 — Sprint 16, Fase 5: ROE de ação + fechamento do inventário de sinais
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada — usuário pediu explicitamente terminar a
+  Fase 5 por completo. Decisão, nesta entrada: implementar tudo que é
+  tecnicamente viável com o dado já ingerido (ROE) e documentar, com
+  motivo específico e verificado, cada um dos 6 sinais restantes que não
+  são — em vez de forçar um número sobre premissa fraca só para marcar a
+  fase como "completa".
+- Decisão, em duas partes:
+  1. **ROE implementado — único sinal de ação tecnicamente pronto hoje.**
+     `computeStockRoeScaledV1` (`src/domain/fundamentals/score/`) —
+     lucro líquido ÷ patrimônio líquido, `BigInt` exato, mesma disciplina
+     de `computeFiiPvpScaledV1`. Usa patrimônio líquido de fim de período
+     (não a média início+fim da fórmula acadêmica) — simplificação
+     pragmática documentada no código, mesma prática de calculadoras
+     públicas quando só há um snapshot por período disponível.
+     `buildBrazilianStockScoreV1` aplica regime via `Asset.assetSegment`:
+     `wrong-regime` para holding pura (ITSA4), aplicável aos demais
+     (banco, seguradora, regulado, industrial) — ROE é a métrica mais
+     universal da lista justamente por funcionar nos três regimes com
+     patrimônio/lucro no mesmo sentido contábil
+     (`ACOES_BR_SETORES_E_METRICAS.md`, 3.3). `DEFAULT_STOCK_SIGNAL_RULES`
+     segue a mesma convenção min-inclusivo/max-exclusivo já usada em
+     `defaultFiiSignalRules.ts`. `buildContributionAssetScoresV1`
+     estendido para rotear por categoria (FII tijolo → `buildFiiTijoloScoreV1`,
+     ação → `buildBrazilianStockScoreV1`) e `useContributionData.ts`
+     passa a buscar snapshots de ação (`createSupabaseFundamentalSnapshotRepository`)
+     junto dos de FII. Seed de `signal_rules` (`getMissingDefaultFiiSignalRules`,
+     nome mantido por compatibilidade histórica do símbolo) agora cobre
+     as faixas default de ambas as classes.
+  2. **Os 6 sinais restantes ficam bloqueados, cada um com motivo
+     verificado e específico — não a mesma causa genérica:**
+     - **Payout de ação** — precisa do valor do provento; `DEC-082` só
+       ingeriu o evento (data/título/link do Fato Relevante), não o
+       número. Mesmo bloqueio do spread de DY de FII.
+     - **Dívida líquida/EBITDA** — dívida financeira e depreciação/
+       amortização não são extraídas do DFP/ITR hoje
+       (`BrazilianStockFundamentalFacts` não tem esses campos). Não é
+       falta de motor, é falta de provider — pesquisa de conta contábil
+       real por empresa ainda não feita (mesmo tipo de trabalho da Fase
+       2/3, não desta fase).
+     - **P/L vs série histórica** — o mecanismo de cálculo é trivial
+       (preço/EPS por período), mas só há 1-2 períodos ingeridos por
+       empresa até agora. Um quartil de amostra com 1-2 pontos não é
+       estatisticamente confiável — bloqueio de profundidade histórica
+       real, não de engenharia.
+     - **CAPE de ETF vs média de 10 anos** — achado ao investigar: a
+       ingestão do Shiller (`DEC-084`) **descarta o histórico**. O
+       arquivo baixado (`ie_data.xls`) contém a série completa desde
+       1871, mas `extractShillerCapeRecord` deliberadamente extrai só o
+       ponto mais recente (decisão correta _para o que a Fase 4 pedia
+       então_ — só o valor atual). Calcular uma média de 10 anos precisa
+       reingerir guardando o histórico, escrever um repositório de
+       leitura de `market_valuation_ratios` (só o de escrita existe) e
+       criar um módulo de score de ETF inteiro (nenhum existe ainda) —
+       escopo de uma fatia própria, não um ajuste desta entrada.
+     - **Spread de DY sobre TIPS (VNQ)** — segue bloqueado por chave de
+       API do FRED, sem mudança desde `DEC-083`.
+     - **Prêmio/desconto sobre NAV (ETF)** — segue bloqueado: o campo não
+       existe no N-PORT, verificado por download real de filing
+       (`DEC-083`), sem fonte alternativa conhecida.
+- Verificação: 2 arquivos de teste novos
+  (`computeStockRoeScaledV1.test.ts`: 7 testes;
+  `buildBrazilianStockScoreV1.test.ts`: 9 testes, incluindo regime,
+  `stale`, dado ausente e seleção do snapshot mais recente), mais testes
+  novos em `buildContributionAssetScores.test.ts` (score de ação real,
+  ETF sem sinal, seed combinado FII+ação) e ajustes nos testes existentes
+  de seed que agora esperam as faixas das duas classes. Suíte completa:
+  164/164 arquivos, 2449/2449 testes passando. Typecheck, lint e format
+  limpos.
+- Consequências: Fase 5 fechada no sentido literal pedido — todo sinal
+  tecnicamente viável com o dado real já ingerido está implementado (5 de
+  12: 4 de FII, 1 de ação). Os 7 restantes têm blockers reais e
+  documentados, não “ainda não fizemos”. Trabalho futuro claro por
+  blocker: extrair valor de provento (desbloqueia payout de ação + DY de
+  FII de uma vez), pesquisar contas de dívida/D&A no DFP/ITR (desbloqueia
+  dívida/EBITDA), acumular mais períodos de ingestão (desbloqueia P/L
+  histórico com o tempo, sem trabalho novo), reingerir Shiller com
+  histórico + módulo de score de ETF (fatia própria), chave FRED e nova
+  fonte de NAV de ETF (decisões do usuário).

@@ -28,7 +28,10 @@ import {
   type PortfolioSnapshot,
 } from '../../../domain/portfolioSnapshot'
 import { buildTechnicalDossierV1 } from '../../../domain/technicalDossier'
-import { createSupabaseRealEstateFundSnapshotRepository } from '../../../data/fundamentals'
+import {
+  createSupabaseFundamentalSnapshotRepository,
+  createSupabaseRealEstateFundSnapshotRepository,
+} from '../../../data/fundamentals'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
 import type { AssetScoreV1 } from '../../../domain/fundamentals/score'
@@ -118,13 +121,17 @@ export async function loadContributionAssetScoresBestEffort(
     // portfolio, historico - nunca importam aquele modulo).
     const fiiSnapshotRepository =
       createSupabaseRealEstateFundSnapshotRepository(client)
-    const fiiSnapshots =
-      await fiiSnapshotRepository.listRealEstateFundSnapshots(assets)
+    const stockSnapshotRepository =
+      createSupabaseFundamentalSnapshotRepository(client)
+    const [fiiSnapshots, stockSnapshots] = await Promise.all([
+      fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
+      stockSnapshotRepository.listBrazilianStockSnapshots(assets),
+    ])
     const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
       generatedAt: now,
       assets,
-      snapshots: fiiSnapshots,
+      snapshots: [...fiiSnapshots, ...stockSnapshots],
     })
     const derived = buildFundamentalDerivedFactsV1(facts)
 
