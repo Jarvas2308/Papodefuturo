@@ -38,7 +38,7 @@ sei" com "neutro", que são coisas diferentes.
 
 | Sinal                                                   | Regra proposta             | Pontos | Status                                                  | Referência   |
 | ------------------------------------------------------- | -------------------------- | ------ | ------------------------------------------------------- | ------------ |
-| P/VP                                                    | < 0,90                     | +2     | Dado pronto, motor ainda nao consome (proxima fatia)    | FII 3.1      |
+| P/VP                                                    | < 0,90                     | +2     | **Implementado (DEC-086)**                              | FII 3.1      |
 | P/VP                                                    | 0,90 – 1,00                | +1     | idem                                                    | FII 3.1      |
 | P/VP                                                    | 1,00 – 1,10                | 0      | idem                                                    | FII 3.1      |
 | P/VP                                                    | > 1,10                     | -2     | idem                                                    | FII 3.1      |
@@ -165,8 +165,11 @@ compra que reduz desvio.
   expense ratio (ETF), ficam fora da tabela até pesquisa adicional — não
   finja disponibilidade que os documentos de referência já marcaram como gap.
 - A decisão da seção 5 bloqueia início de implementação do motor em si.
-- **Atualização (DEC-085):** o mecanismo da seção 5 está implementado desde
-  a Fase 5, fatia 1 — `desvioAjustado`, trava de segurança e os 3 sinais
-  de FII tijolo com dado pronto (vacância, WALE, concentração). Ação e
-  ETF ainda não têm nenhum sinal calculado; P/VP de FII e spread de DY
-  seguem pendentes dentro da própria fatia FII (ver seção 1).
+- **Atualização (DEC-085/DEC-086):** o mecanismo da seção 5 está implementado
+  desde a Fase 5, fatia 1 — `desvioAjustado`, trava de segurança e 4 sinais
+  de FII tijolo com dado pronto (vacância, WALE, concentração, P/VP). O
+  motor está conectado ao fluxo real de aporte (`useContributionData.ts`),
+  com semeadura automática das faixas default na primeira vez que o
+  usuário simula um aporte técnico. Ação e ETF ainda não têm nenhum sinal
+  calculado; spread de DY sobre NTN-B segue pendente dentro da própria
+  fatia FII (precisa do valor do provento, não só o evento — ver seção 1).

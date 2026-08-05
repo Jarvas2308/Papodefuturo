@@ -65,9 +65,21 @@ describe('fundamentals UI boundary', () => {
     }
   })
 
-  it('keeps financial features independent from the optional UI', () => {
+  it('keeps financial features independent from the optional fundamentals UI', () => {
+    // Isolamento original (Sprint 4, commit 6618cce): fundamentos era so
+    // apresentacao, sem score/ranking/recomendacao - qualquer mencao a
+    // "fundamentals" nos fluxos financeiros criticos seria acoplamento
+    // acidental. Revisado deliberadamente pela Fase 5/6 do Sprint 16
+    // (DEC-086): o motor de score le dado de fundamentos (data/fundamentals,
+    // domain/fundamentals) para pontuar candidatos no laco guloso - decisao
+    // explicita, nao um vazamento. O que continua proibido, sem excecao: a
+    // feature de apresentacao opcional (features/fundamentals) e o runtime
+    // read-only dela (application/context/fundamentals/runtime, ja coberto
+    // por boundary.test.ts na propria pasta do runtime) - os fluxos
+    // financeiros nunca dependem daquele modulo, so dos builders puros de
+    // dominio e do repositorio de leitura.
     const source = Object.values(criticalFinancialSources).join('\n')
-    expect(source).not.toContain('fundamentals')
+    expect(source).not.toMatch(/features\/fundamentals|fundamentals\/runtime/)
   })
 
   it('registers one protected route and an explicit UI-mode composition without env', () => {

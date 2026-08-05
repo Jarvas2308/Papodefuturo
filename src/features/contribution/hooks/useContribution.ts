@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { calculateContribution as contributionEngine } from '../contributionEngine'
 import type {
   AllocationTarget,
+  ContributionAssetScore,
   ContributionAssetTarget,
   ContributionPosition,
   ContributionResult,
@@ -15,6 +16,10 @@ type UseContributionOptions = {
   carteiraAtual: ContributionPosition[]
   metasAlocacao: AllocationTarget[]
   metasGlobaisPorAtivo: ContributionAssetTarget[]
+  // Score do motor de recomendação (Sprint 16, Fase 5/6, DEC-085/DEC-086) -
+  // opcionais: ausentes, o laço guloso se comporta como antes da Fase 5.
+  assetScores?: ContributionAssetScore[]
+  scoreWeightInBasisPoints?: number
 }
 
 export function useContribution({
@@ -23,6 +28,8 @@ export function useContribution({
   carteiraAtual,
   metasAlocacao,
   metasGlobaisPorAtivo,
+  assetScores,
+  scoreWeightInBasisPoints,
 }: UseContributionOptions) {
   const [valorAporte, setValorAporte] = useState(initialValue)
   const [strategy, setStrategy] =
@@ -54,6 +61,8 @@ export function useContribution({
         metasAlocacao,
         metasGlobaisPorAtivo,
         strategy,
+        assetScores,
+        scoreWeightInBasisPoints,
       })
 
       setResult(simulation)

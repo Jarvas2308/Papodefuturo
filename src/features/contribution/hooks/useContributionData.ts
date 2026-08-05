@@ -28,6 +28,10 @@ import {
   type PortfolioSnapshot,
 } from '../../../domain/portfolioSnapshot'
 import { buildTechnicalDossierV1 } from '../../../domain/technicalDossier'
+import { createSupabaseRealEstateFundSnapshotRepository } from '../../../data/fundamentals'
+import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
+import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
+import type { SupabaseBrowserClient } from '../../../lib/supabaseClient'
 import type { StrategyCategory } from '../../strategy/types'
 import {
   buildRealStrategyPositions,
@@ -36,6 +40,7 @@ import {
 import { contributionMock } from '../mocks/contributionMock'
 import type {
   AllocationTarget,
+  ContributionAssetScore,
   ContributionAssetTarget,
   ContributionDistribution,
   ContributionPosition,
@@ -43,6 +48,10 @@ import type {
 } from '../types'
 import { buildGlobalAssetTargets } from '../utils/buildGlobalAssetTargets'
 import { getContributionAssetCurrency } from '../utils/confirmedPurchases'
+import {
+  buildContributionAssetScoresV1,
+  getMissingDefaultFiiSignalRules,
+} from '../utils/buildContributionAssetScores'
 
 type ContributionDataStatus = 'loading' | 'ready' | 'error'
 
@@ -79,6 +88,68 @@ export async function loadRealContributionInputs(
   ])
 
   return { assets, purchases, prices, allocationTargets, rates }
+}
+
+// Score é reforço best-effort no laço guloso (Sprint 16, Fase 5/6,
+// DEC-085/DEC-086) - mesmo padrão de refreshMarketDataBestEffort e
+// explainContributionPlanBestEffort: qualquer falha aqui (dossiê
+// indisponível, RPC de signal_rules fora do ar, etc.) não pode travar o
+// fluxo de aporte, só faz o motor operar sem priorização por score.
+export async function loadContributionAssetScoresBestEffort(
+  client: SupabaseBrowserClient,
+  repositories: AppRepositories,
+  assets: readonly Asset[],
+  prices: readonly AssetPrice[],
+  userId: EntityId
+): Promise<{
+  assetScores: ContributionAssetScore[]
+  scoreWeightInBasisPoints: number
+}> {
+  const empty = { assetScores: [], scoreWeightInBasisPoints: 0 }
+
+  try {
+    // Le fundamentos direto do repositorio de leitura (data/fundamentals) e
+    // monta os fatos com os builders puros de dominio - deliberadamente NAO
+    // usa o modulo de leitura sob application/context, pasta "runtime" (do
+    // ingles, "em tempo de execucao") de fundamentos (isolamento arquitetural
+    // testado em boundary.test.ts: fluxos financeiros criticos - contribuicao,
+    // portfolio, historico - nunca importam aquele modulo).
+    const fiiSnapshotRepository =
+      createSupabaseRealEstateFundSnapshotRepository(client)
+    const fiiSnapshots =
+      await fiiSnapshotRepository.listRealEstateFundSnapshots(assets)
+    const facts = buildFundamentalFactsV1({
+      generatedAt: new Date().toISOString(),
+      assets,
+      snapshots: fiiSnapshots,
+    })
+    const derived = buildFundamentalDerivedFactsV1(facts)
+
+    let rules = await repositories.signalRules.list()
+    const missingRules = getMissingDefaultFiiSignalRules(rules)
+    if (missingRules.length > 0) {
+      await Promise.all(
+        missingRules.map((rule) => repositories.signalRules.create(rule))
+      )
+      rules = await repositories.signalRules.list()
+    }
+
+    const preferences = await repositories.userPreferences.get(userId)
+    const latestPricesByAsset = getLatestAssetPricesByAsset(prices)
+
+    return {
+      assetScores: buildContributionAssetScoresV1({
+        assets,
+        facts,
+        derived,
+        latestPricesByAsset,
+        rules,
+      }),
+      scoreWeightInBasisPoints: preferences.scoreWeightInBasisPoints,
+    }
+  } catch {
+    return empty
+  }
 }
 
 export function buildContributionPositions(
@@ -234,6 +305,8 @@ export function useContributionData() {
   >([])
   const [portfolioSnapshot, setPortfolioSnapshot] =
     useState<PortfolioSnapshot | null>(null)
+  const [assetScores, setAssetScores] = useState<ContributionAssetScore[]>([])
+  const [scoreWeightInBasisPoints, setScoreWeightInBasisPoints] = useState(0)
 
   const loadReal = useCallback(async () => {
     if (authStatus !== 'authenticated' || !client || !user) {
@@ -297,6 +370,16 @@ export function useContributionData() {
     setPortfolioSnapshot(snapshotResult.snapshot)
     setError(null)
     setStatus('ready')
+
+    const scoreResult = await loadContributionAssetScoresBestEffort(
+      client,
+      repositories,
+      assets,
+      prices,
+      user.id
+    )
+    setAssetScores(scoreResult.assetScores)
+    setScoreWeightInBasisPoints(scoreResult.scoreWeightInBasisPoints)
   }, [authStatus, client, user])
 
   useEffect(() => {
@@ -484,6 +567,8 @@ export function useContributionData() {
     resultPositions,
     targets,
     assetTargets,
+    assetScores,
+    scoreWeightInBasisPoints,
     status,
     error,
     needsExchangeRate,

@@ -1054,23 +1054,29 @@ integração com o motor, editável).
      de dado para NAV/cotas, ou fornecer a chave do FRED) — nenhum é
      codificável sem essa decisão externa. Por aprovação explícita do
      usuário, a sessão seguiu para a Fase 5 sem esperar por eles.
-5. **Motor de score — fatia 1 (FII tijolo) implementada (`DEC-085`).**
-   `src/domain/fundamentals/score/` calcula os 3 sinais de FII tijolo com
-   dado já ingerido (vacância, WALE, concentração do maior inquilino),
-   regime-aware (`wrong-regime` para FII papel/FOF, que não existem no
-   universo fechado hoje). P/VP (precisa preço de mercado) e spread de DY
-   sobre NTN-B (precisa valor de provento) seguem `unavailable` — próxima
-   sub-fatia de FII. Ação e ETF ainda não têm sinal nenhum — próximas
-   fatias por classe de ativo (`DEC-085`).
-6. **Integração no motor — implementada (`DEC-085`).**
-   `desvioAjustado = desvioCandidato − (score × peso)`
-   (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
+5. **Motor de score — fatia 1 (FII tijolo) implementada (`DEC-085`/`DEC-086`).**
+   `src/domain/fundamentals/score/` calcula 4 sinais de FII tijolo com dado
+   já ingerido (vacância, WALE, concentração do maior inquilino, P/VP —
+   preço de mercado combinado com o VP por cota já derivado), regime-aware
+   (`wrong-regime` para FII papel/FOF, que não existem no universo fechado
+   hoje). Spread de DY sobre NTN-B (precisa valor de provento, só o evento
+   foi ingerido — `DEC-082`) segue `unavailable` — próxima sub-fatia de
+   FII. Ação e ETF ainda não têm sinal nenhum — próximas fatias por classe
+   de ativo.
+6. **Integração no motor — implementada e conectada ao fluxo real
+   (`DEC-085`/`DEC-086`).** `desvioAjustado = desvioCandidato − (score ×
+   peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    `scoreWeightInBasisPoints`, ambos opcionais — comportamento antigo
    inalterado quando ausentes), aplicado somente entre candidatos que já
    passam `compareDeviation(candidateDeviation, currentDeviation) < 0` (ou
    na primeira compra de carteira vazia). Score nunca aprova compra que
    não melhora o desvio — `stopReason: 'no-improving-purchase'` continua
    sendo o piso de segurança, verificado por teste dedicado.
+   `useContributionData.ts` lê fundamentos e `signal_rules` direto do
+   repositório (nunca via `application/context/fundamentals/runtime` — ver
+   `DEC-086` sobre o boundary revisado), semeia as faixas default na
+   primeira vez que o usuário simula, e falha de forma best-effort (score
+   vazio, nunca quebra o aporte) se qualquer etapa falhar.
 7. **Dossiê e IA** — `TechnicalDossierV1` ganha bloco `signals` com valor,
    fonte, status e pontos. IA continua só explicando, nunca decidindo.
 8. **Documentação** — atualizar `PRODUCT.md`, `ARCHITECTURE.md`; revisar

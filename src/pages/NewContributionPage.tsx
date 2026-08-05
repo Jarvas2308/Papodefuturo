@@ -12,6 +12,7 @@ import type { Asset, ContributionPlan, ExchangeRate } from '../domain/models'
 import type { AiExplanationV1 } from '../domain/aiExplanation'
 import type {
   AllocationTarget,
+  ContributionAssetScore,
   ContributionAssetTarget,
   ContributionDistribution,
   ContributionPosition,
@@ -33,6 +34,8 @@ type ContributionWorkspaceProps = {
   resultPositions: ResultPosition[]
   targets: AllocationTarget[]
   assetTargets: ContributionAssetTarget[]
+  assetScores: ContributionAssetScore[]
+  scoreWeightInBasisPoints: number
   isDemo: boolean
   contributionPlan: ContributionPlan | null
   onPresentPlan(
@@ -57,6 +60,8 @@ function ContributionWorkspace({
   resultPositions,
   targets,
   assetTargets,
+  assetScores,
+  scoreWeightInBasisPoints,
   isDemo,
   contributionPlan,
   onPresentPlan,
@@ -79,6 +84,8 @@ function ContributionWorkspace({
     carteiraAtual: positions,
     metasAlocacao: targets,
     metasGlobaisPorAtivo: assetTargets,
+    assetScores,
+    scoreWeightInBasisPoints,
   })
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [aiExplanation, setAiExplanation] = useState<AiExplanationV1 | null>(
@@ -231,6 +238,8 @@ export function NewContributionPage() {
         resultPositions={contributionData.resultPositions}
         targets={contributionData.targets}
         assetTargets={contributionData.assetTargets}
+        assetScores={contributionData.assetScores}
+        scoreWeightInBasisPoints={contributionData.scoreWeightInBasisPoints}
         isDemo={contributionData.isDemo}
         contributionPlan={contributionData.contributionPlan}
         onPresentPlan={contributionData.presentContributionPlan}
