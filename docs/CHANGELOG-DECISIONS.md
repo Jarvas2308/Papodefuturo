@@ -3231,3 +3231,54 @@ no-improving-purchase, even with a high score on the losing asset'`).
   em dado (valor do provento). Próximas fatias naturais: extrair o valor
   do provento (desbloqueia o 5º sinal de FII), ou a próxima classe de
   ativo (ação ou ETF) — decisão do usuário.
+
+## DEC-087 — Sprint 16, Fase 7: score exposto no dossiê técnico
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: o dossiê técnico (`TechnicalDossierV1`, consumido pela
+  explicação de IA) carregava desde o Sprint 8 uma limitação explícita
+  (`technical-ranking-not-exposed-v1`, ainda válida — o dossiê não expõe o
+  histórico de candidatos avaliados a cada iteração do laço guloso), mas
+  não tinha nenhum campo para o score em si, que agora existe e influencia
+  a escolha de compra (`DEC-085`/`DEC-086`). Sem esse campo, a IA
+  explicaria o plano técnico sem poder mencionar por que um FII foi
+  priorizado sobre outro com desvio parecido.
+- Decisão: `TechnicalDossierV1` ganha `signals: TechnicalDossierAssetSignals[]`
+  — um item por ativo com score calculado (`assetId`, `ticker`,
+  `totalPoints`, `signals[]`), cada sinal achatado em campos opcionais
+  (`status`, `observedValue`/`points` quando `applied`,
+  `unavailableReason` quando `unavailable`) em vez do union discriminado
+  do domínio (`AssetScoreSignal`) — o dossiê é JSON simples consumido pela
+  explicação de IA, não precisa do union. `BuildTechnicalDossierV1Input`
+  ganha `assetFundamentalScores?: readonly AssetScoreV1[]`, opcional:
+  ausente, `signals` sai `[]`, mesmo comportamento de antes desta entrada
+  — nenhum teste existente quebrou. `useContributionData.ts` passa
+  `assetFundamentalScores` (a forma completa, com a quebra por sinal) para
+  `buildTechnicalDossierV1` dentro de `explainContributionPlan`; o laço
+  guloso continua recebendo só a forma reduzida (`assetId`/`points`, via
+  novo `toContributionAssetScores`) porque é tudo que
+  `targetAllocationStrategy.ts` precisa. Ativo sem score calculado
+  simplesmente não aparece em `signals` — mesmo critério de "ausência, não
+  zero forçado" do resto do domínio de fundamentos; um score que referencia
+  um `assetId` fora da lista de ativos conhecidos é descartado
+  silenciosamente (defensivo, não deveria acontecer com os dados reais do
+  fluxo).
+- Verificação: 3 testes novos em `buildTechnicalDossierV1.test.ts`
+  (signals vazio por padrão, achatamento de sinal aplicado/indisponível,
+  descarte de score de ativo desconhecido) e 1 em
+  `buildContributionAssetScores.test.ts` (`toContributionAssetScores`);
+  testes existentes de `buildContributionAssetScoresV1` atualizados para o
+  novo retorno (`AssetScoreV1[]` completo, não mais `{assetId,points}`).
+  Suíte completa: 161/161 arquivos, 2419/2419 testes passando. Typecheck,
+  lint e format limpos. Boundary tests de fundamentos (`DEC-086`)
+  continuam passando sem alteração — `technicalDossier` importa só
+  `domain/fundamentals/score` (builders puros), nunca o runtime nem a UI.
+- Consequências: Fase 5-7 (motor, integração, dossiê) completas para a
+  fatia FII tijolo. Restam: Fase 8 (docs — `PRODUCT.md`, `ARCHITECTURE.md`,
+  revisar `no-fundamental-score`/`no-technical-plan-modification`, ambos
+  desatualizados desde a `DEC-085`) e Fase 9 (testes adicionais de
+  determinismo/segurança do laço guloso, já parcialmente cobertos pelos
+  testes de `DEC-086`). Fora da Fase 5-9: spread de DY de FII (bloqueado em
+  dado), ação e ETF (nenhum sinal ainda), NAV/cotas de ETF e FRED
+  (bloqueados desde `DEC-083`).

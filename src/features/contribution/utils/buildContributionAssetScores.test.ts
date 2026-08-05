@@ -8,6 +8,7 @@ import type { Asset, AssetPrice } from '../../../domain/models'
 import {
   buildContributionAssetScoresV1,
   getMissingDefaultFiiSignalRules,
+  toContributionAssetScores,
 } from './buildContributionAssetScores'
 import { DEFAULT_FII_TIJOLO_SIGNAL_RULES } from '../../../domain/fundamentals/score'
 
@@ -179,7 +180,8 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
     })
 
-    expect(scores).toEqual([{ assetId: asset.id, points: 2 }])
+    expect(scores).toHaveLength(1)
+    expect(scores[0]).toMatchObject({ assetId: asset.id, totalPoints: 2 })
   })
 
   it('ignores a matching price quoted in a currency other than BRL', () => {
@@ -246,6 +248,22 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
     })
 
-    expect(scores).toEqual([{ assetId: asset.id, points: 0 }])
+    expect(scores).toHaveLength(1)
+    expect(scores[0]).toMatchObject({ assetId: asset.id, totalPoints: 0 })
+  })
+})
+
+describe('toContributionAssetScores', () => {
+  it('reduces full scores to the assetId/points shape the greedy loop consumes', () => {
+    const reduced = toContributionAssetScores([
+      {
+        schemaVersion: 'asset-score.v1',
+        assetId: 'asset-knri11',
+        totalPoints: 2,
+        signals: [],
+      },
+    ])
+
+    expect(reduced).toEqual([{ assetId: 'asset-knri11', points: 2 }])
   })
 })

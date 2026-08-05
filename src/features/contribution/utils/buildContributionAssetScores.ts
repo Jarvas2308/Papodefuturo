@@ -1,7 +1,11 @@
-// Wiring do motor de score (Sprint 16, Fase 5/6, DEC-085/DEC-086) no fluxo
-// real de aporte - puro, sem I/O, para ser testavel sem mocks de rede.
+// Wiring do motor de score (Sprint 16, Fase 5/6/7, DEC-085/DEC-086/DEC-087)
+// no fluxo real de aporte - puro, sem I/O, para ser testavel sem mocks de
+// rede.
 import { buildFiiTijoloScoreV1 } from '../../../domain/fundamentals/score'
-import type { SignalRuleV1 } from '../../../domain/fundamentals/score'
+import type {
+  AssetScoreV1,
+  SignalRuleV1,
+} from '../../../domain/fundamentals/score'
 import type {
   FundamentalDerivedFactsV1,
   FundamentalFactsV1,
@@ -43,8 +47,8 @@ export function buildContributionAssetScoresV1(input: {
   derived: FundamentalDerivedFactsV1
   latestPricesByAsset: ReadonlyMap<string, AssetPrice>
   rules: readonly SignalRuleV1[]
-}): ContributionAssetScore[] {
-  const scores: ContributionAssetScore[] = []
+}): AssetScoreV1[] {
+  const scores: AssetScoreV1[] = []
 
   for (const asset of input.assets) {
     if (asset.category !== 'real-estate-fund' || asset.assetType !== 'tijolo') {
@@ -67,16 +71,28 @@ export function buildContributionAssetScoresV1(input: {
         ? latestPrice.price.amountInMinorUnits
         : null
 
-    const score = buildFiiTijoloScoreV1({
-      asset: factsAsset,
-      derivedAsset,
-      latestMarketPriceInMinorUnits,
-      assetType: asset.assetType,
-      rules: input.rules,
-    })
-
-    scores.push({ assetId: asset.id, points: score.totalPoints })
+    scores.push(
+      buildFiiTijoloScoreV1({
+        asset: factsAsset,
+        derivedAsset,
+        latestMarketPriceInMinorUnits,
+        assetType: asset.assetType,
+        rules: input.rules,
+      })
+    )
   }
 
   return scores
+}
+
+// Reducao para o formato simplificado que o laco guloso consome
+// (targetAllocationStrategy.ts so precisa do total, nao da quebra por
+// sinal - a quebra completa vai pro dossie tecnico, DEC-087).
+export function toContributionAssetScores(
+  scores: readonly AssetScoreV1[]
+): ContributionAssetScore[] {
+  return scores.map((score) => ({
+    assetId: score.assetId,
+    points: score.totalPoints,
+  }))
 }

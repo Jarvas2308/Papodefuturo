@@ -6,12 +6,14 @@ import {
   type AssetCategory,
   type ExchangeRate,
 } from '../models'
+import type { AssetScoreV1 } from '../fundamentals/score'
 import { MAX_PLAN_ASSETS } from '../../features/contribution/strategies/targetAllocationStrategy'
 import type { ContributionAssetTarget } from '../../features/contribution/types'
 import type { StrategyCategory } from '../../features/strategy/types'
 import {
   TECHNICAL_DOSSIER_V1_SCHEMA_VERSION,
   type BuildTechnicalDossierV1Input,
+  type TechnicalDossierAssetSignals,
   type TechnicalDossierLimitation,
   type TechnicalDossierPortfolio,
   type TechnicalDossierStrategy,
@@ -387,6 +389,47 @@ function buildTechnicalPlan(
   }
 }
 
+function buildAssetSignals(
+  assetFundamentalScores: readonly AssetScoreV1[] | undefined,
+  assetById: ReadonlyMap<string, Asset>
+): TechnicalDossierAssetSignals[] {
+  if (!assetFundamentalScores) {
+    return []
+  }
+
+  return assetFundamentalScores.flatMap((score) => {
+    const asset = assetById.get(score.assetId)
+    if (!asset) {
+      return []
+    }
+
+    return [
+      {
+        assetId: score.assetId,
+        ticker: asset.ticker,
+        totalPoints: score.totalPoints,
+        signals: score.signals.map((signal) =>
+          signal.status === 'applied'
+            ? {
+                signalKey: signal.signalKey,
+                status: 'applied' as const,
+                observedValue: signal.observedValue,
+                points: signal.points,
+                unavailableReason: null,
+              }
+            : {
+                signalKey: signal.signalKey,
+                status: 'unavailable' as const,
+                observedValue: null,
+                points: null,
+                unavailableReason: signal.reason,
+              }
+        ),
+      },
+    ]
+  })
+}
+
 export function buildTechnicalDossierV1({
   generatedAt,
   contributionAmountInCents,
@@ -397,6 +440,7 @@ export function buildTechnicalDossierV1({
   assetPrices,
   exchangeRates,
   technicalPlan,
+  assetFundamentalScores,
 }: BuildTechnicalDossierV1Input): TechnicalDossierV1 {
   assertValidGeneratedAt(generatedAt)
   assertSafeNonNegativeInteger(contributionAmountInCents, 'Contribution amount')
@@ -449,6 +493,7 @@ export function buildTechnicalDossierV1({
       totalReductionInBasisPoints:
         technicalPlan.technicalImpact.totalDeviationReductionInBasisPoints,
     },
+    signals: buildAssetSignals(assetFundamentalScores, assetById),
     dataCoverage: {
       eligibleAssetCount: eligibleAssets.length,
       latestPriceFactCount: latestAssetPrices.length,

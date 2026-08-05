@@ -681,4 +681,74 @@ describe('buildTechnicalDossierV1', () => {
       totalReductionInBasisPoints: 1_234,
     })
   })
+
+  it('defaults to an empty signals array when no score is provided', () => {
+    expect(buildTechnicalDossierV1(createInput()).signals).toEqual([])
+  })
+
+  it('flattens applied and unavailable signals for a scored asset', () => {
+    const dossier = buildTechnicalDossierV1({
+      ...createInput(),
+      assetFundamentalScores: [
+        {
+          schemaVersion: 'asset-score.v1',
+          assetId: knri11.id,
+          totalPoints: 1,
+          signals: [
+            {
+              signalKey: 'fii_vacancy',
+              status: 'applied',
+              observedValue: 300,
+              points: 1,
+            },
+            {
+              signalKey: 'fii_pvp',
+              status: 'unavailable',
+              reason: 'missing-input',
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(dossier.signals).toEqual([
+      {
+        assetId: knri11.id,
+        ticker: 'KNRI11',
+        totalPoints: 1,
+        signals: [
+          {
+            signalKey: 'fii_vacancy',
+            status: 'applied',
+            observedValue: 300,
+            points: 1,
+            unavailableReason: null,
+          },
+          {
+            signalKey: 'fii_pvp',
+            status: 'unavailable',
+            observedValue: null,
+            points: null,
+            unavailableReason: 'missing-input',
+          },
+        ],
+      },
+    ])
+  })
+
+  it('drops a score that references an asset outside the known asset list', () => {
+    const dossier = buildTechnicalDossierV1({
+      ...createInput(),
+      assetFundamentalScores: [
+        {
+          schemaVersion: 'asset-score.v1',
+          assetId: 'asset-unknown',
+          totalPoints: 0,
+          signals: [],
+        },
+      ],
+    })
+
+    expect(dossier.signals).toEqual([])
+  })
 })
