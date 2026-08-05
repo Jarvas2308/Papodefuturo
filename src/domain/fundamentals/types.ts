@@ -52,6 +52,15 @@ export type RealEstateFundFundamentalFacts = {
   // secao 7.1). Escala 0-10000 (pontos-base), mesmo padrao de BasisPoints
   // usado no resto do dominio.
   vacancyInBasisPoints: number | null
+  // So populado por 'cvm-fii-inf-trimestral'. Participacao do maior
+  // inquilino na receita do imovel dominante, escala 0-10000 (pontos-base).
+  tenantConcentrationInBasisPoints: number | null
+  // So populado por 'cvm-fii-inf-trimestral'. Prazo medio ponderado de
+  // vencimento dos contratos, em meses, escala x100 (2 casas decimais
+  // implicitas) - mesmo padrao das demais quantidades escaladas do
+  // dominio. Usado no motor de score (Fase 5) como proxy de "receita
+  // vencendo no curto prazo" do rascunho de pontuacao.
+  waleMonthsScaledBy100: number | null
 }
 
 export type RealEstateFundFundamentalSnapshotInput = {

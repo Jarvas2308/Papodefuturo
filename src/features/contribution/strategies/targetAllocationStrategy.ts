@@ -154,6 +154,19 @@ function validateAndAlignTargets(
   })
 }
 
+function buildScoreByIndex(
+  positions: readonly ContributionPosition[],
+  assetScores: readonly { assetId: string; points: number }[] | undefined
+): number[] {
+  if (!assetScores || assetScores.length === 0) {
+    return positions.map(() => 0)
+  }
+  const pointsByAssetId = new Map(
+    assetScores.map((score) => [score.assetId, score.points])
+  )
+  return positions.map((position) => pointsByAssetId.get(position.assetId) ?? 0)
+}
+
 function executeTargetAllocationStrategy(
   input: ContributionInput
 ): ContributionResult {
@@ -166,6 +179,8 @@ function executeTargetAllocationStrategy(
     input.carteiraAtual,
     input.metasGlobaisPorAtivo
   )
+  const scoreByIndex = buildScoreByIndex(input.carteiraAtual, input.assetScores)
+  const scoreWeightInBasisPoints = input.scoreWeightInBasisPoints ?? 0
   const initialValues = input.carteiraAtual.map((position) =>
     BigInt(position.currentValueInCents)
   )
@@ -186,6 +201,9 @@ function executeTargetAllocationStrategy(
   while (remaining > 0n) {
     let bestIndex: number | null = null
     let bestDeviation: Deviation | null = null
+    let bestAdjustedIndex: number | null = null
+    let bestAdjustedDeviation: Deviation | null = null
+    let bestAdjustedRank: number | null = null
 
     for (let index = 0; index < values.length; index += 1) {
       if (selected.size >= MAX_PLAN_ASSETS && !selected.has(index)) {
@@ -207,29 +225,53 @@ function executeTargetAllocationStrategy(
         bestIndex = index
         bestDeviation = candidateDeviation
       }
+
+      // Trava de seguranca (DEC-068): score so reordena entre candidatos
+      // que ja melhoram o desvio (ou na primeira compra de carteira
+      // vazia, que nao tem "melhora" para comparar) - nunca decide sozinho
+      // que uma compra que piora ou nao muda a carteira deve entrar.
+      if (scoreWeightInBasisPoints > 0) {
+        const improves =
+          isInitiallyEmpty ||
+          compareDeviation(candidateDeviation, currentDeviation) < 0
+        if (improves) {
+          const adjustedRank =
+            deviationInBasisPoints(candidateDeviation) -
+            (scoreByIndex[index] ?? 0) * scoreWeightInBasisPoints
+          if (bestAdjustedRank === null || adjustedRank < bestAdjustedRank) {
+            bestAdjustedRank = adjustedRank
+            bestAdjustedIndex = index
+            bestAdjustedDeviation = candidateDeviation
+          }
+        }
+      }
     }
 
-    if (bestIndex === null || bestDeviation === null) {
+    const chosenIndex = bestAdjustedIndex ?? bestIndex
+    const chosenDeviation =
+      bestAdjustedIndex !== null ? bestAdjustedDeviation : bestDeviation
+
+    if (chosenIndex === null || chosenDeviation === null) {
       stopReason = 'no-affordable-unit'
       break
     }
     if (
       !isInitiallyEmpty &&
-      compareDeviation(bestDeviation, currentDeviation) >= 0
+      compareDeviation(chosenDeviation, currentDeviation) >= 0
     ) {
       stopReason = 'no-improving-purchase'
       break
     }
 
-    if (!selected.has(bestIndex)) {
-      selected.add(bestIndex)
-      selectionOrder.push(bestIndex)
+    if (!selected.has(chosenIndex)) {
+      selected.add(chosenIndex)
+      selectionOrder.push(chosenIndex)
     }
-    values[bestIndex] =
-      (values[bestIndex] ?? 0n) + (unitPrices[bestIndex] ?? 0n)
-    quantities[bestIndex] = (quantities[bestIndex] ?? 0n) + 1n
-    remaining -= unitPrices[bestIndex] ?? 0n
-    currentDeviation = bestDeviation
+    values[chosenIndex] =
+      (values[chosenIndex] ?? 0n) + (unitPrices[chosenIndex] ?? 0n)
+    quantities[chosenIndex] = (quantities[chosenIndex] ?? 0n) + 1n
+    remaining -= unitPrices[chosenIndex] ?? 0n
+    currentDeviation = chosenDeviation
 
     if (remaining === 0n) {
       stopReason = 'budget-exhausted'

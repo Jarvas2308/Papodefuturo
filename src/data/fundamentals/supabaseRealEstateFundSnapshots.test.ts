@@ -15,6 +15,7 @@ import {
   createSupabaseRealEstateFundSnapshotRepository,
   createSupabaseRealEstateFundSnapshotStorage,
   mapRealEstateFundSnapshotRow,
+  mapRealEstateFundTrimestralSnapshotRow,
   type RealEstateFundSnapshotRow,
   type RealEstateFundSnapshotSupabaseClient,
 } from './supabaseRealEstateFundSnapshots'
@@ -91,6 +92,8 @@ function createRecord(
       issuedShares,
       shareholderCount,
       vacancyInBasisPoints: null,
+      tenantConcentrationInBasisPoints: null,
+      waleMonthsScaledBy100: null,
     },
     provenance: {
       dataset: 'FII: Documentos: Informe Mensal Estruturado',
@@ -178,6 +181,26 @@ function createRow(
     },
     created_at: '2026-07-16T12:00:00.000Z',
     updated_at: '2026-07-16T12:00:00.000Z',
+  }
+}
+
+function createTrimestralRow(
+  ticker: CvmRealEstateFundTicker = 'KNRI11',
+  overrides: Partial<RealEstateFundSnapshotRow> = {}
+): RealEstateFundSnapshotRow {
+  const base = createRow(ticker)
+  return {
+    ...base,
+    period: 'quarterly',
+    source: 'cvm-fii-inf-trimestral',
+    net_asset_value_minor: null,
+    issued_shares_unscaled: null,
+    issued_shares_scale: null,
+    shareholder_count: null,
+    vacancy_basis_points: 350,
+    tenant_concentration_basis_points: 1_200,
+    wale_months_x100: 5_640,
+    ...overrides,
   }
 }
 
@@ -464,7 +487,53 @@ describe('FII snapshot row mapping', () => {
       issuedShares: null,
       shareholderCount: null,
       vacancyInBasisPoints: null,
+      tenantConcentrationInBasisPoints: null,
+      waleMonthsScaledBy100: null,
     })
+  })
+})
+
+describe('FII trimestral snapshot row mapping', () => {
+  it('maps vacancy, tenant concentration and WALE into facts', () => {
+    const snapshot = mapRealEstateFundTrimestralSnapshotRow(
+      createTrimestralRow('VISC11'),
+      'asset-visc11'
+    )
+
+    expect(snapshot).toMatchObject({
+      assetId: 'asset-visc11',
+      kind: 'real-estate-fund',
+      period: 'quarterly',
+      source: 'cvm-fii-inf-trimestral',
+      facts: {
+        netAssetValue: null,
+        issuedShares: null,
+        shareholderCount: null,
+        vacancyInBasisPoints: 350,
+        tenantConcentrationInBasisPoints: 1_200,
+        waleMonthsScaledBy100: 5_640,
+      },
+    })
+  })
+
+  it('rejects a monthly row', () => {
+    expect(() =>
+      mapRealEstateFundTrimestralSnapshotRow(
+        createRow('KNRI11'),
+        'asset-knri11'
+      )
+    ).toThrow('Invalid persisted FII trimestral snapshot contract')
+  })
+
+  it('rejects a trimestral row that also carries net asset value', () => {
+    expect(() =>
+      mapRealEstateFundTrimestralSnapshotRow(
+        createTrimestralRow('KNRI11', { net_asset_value_minor: 100 }),
+        'asset-knri11'
+      )
+    ).toThrow(
+      'Net asset value / issued shares / shareholder count columns must remain null'
+    )
   })
 
   it.each([
@@ -644,6 +713,32 @@ describe('Supabase FII fundamental snapshot repository', () => {
     expect(query.in).toHaveBeenCalledWith('ticker', tickers)
     expect(query.order).toHaveBeenCalledWith('reference_date', {
       ascending: false,
+    })
+  })
+
+  it('maps mensal and trimestral rows for the same fund by source', async () => {
+    const { query, client } = createQueryClient([
+      createRow('KNRI11'),
+      createTrimestralRow('KNRI11'),
+    ])
+    const repository = createSupabaseRealEstateFundSnapshotRepository(client)
+
+    const snapshots = await repository.listRealEstateFundSnapshots([
+      createAsset('KNRI11'),
+    ])
+
+    expect(query.in).toHaveBeenCalledWith('source', [
+      'cvm-fii-inf-mensal',
+      'cvm-fii-inf-trimestral',
+    ])
+    expect(snapshots.map((snapshot) => snapshot.source)).toEqual([
+      'cvm-fii-inf-mensal',
+      'cvm-fii-inf-trimestral',
+    ])
+    expect(snapshots[1]?.facts).toMatchObject({
+      vacancyInBasisPoints: 350,
+      tenantConcentrationInBasisPoints: 1_200,
+      waleMonthsScaledBy100: 5_640,
     })
   })
 

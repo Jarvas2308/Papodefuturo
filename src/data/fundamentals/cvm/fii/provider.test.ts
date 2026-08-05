@@ -481,6 +481,8 @@ describe('extractCvmRealEstateFundFundamentals', () => {
       issuedShares: null,
       shareholderCount: null,
       vacancyInBasisPoints: null,
+      tenantConcentrationInBasisPoints: null,
+      waleMonthsScaledBy100: null,
     })
   })
 

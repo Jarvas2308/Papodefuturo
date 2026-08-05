@@ -454,3 +454,94 @@ describe('targetAllocationStrategy', () => {
     }
   )
 })
+
+describe('score integration (DEC-068)', () => {
+  it('does not change behavior when no score is provided (default, unchanged)', () => {
+    const result = targetResult(
+      input(
+        [position('a', 0), position('b', 0), position('over', 100)],
+        targets([
+          ['a', 5_000],
+          ['b', 5_000],
+          ['over', 0],
+        ]),
+        10
+      )
+    )
+
+    expect(result.distribuicao).toEqual([{ assetId: 'a', valorEmCentavos: 10 }])
+  })
+
+  it('reorders an exact tie by score, weighted by scoreWeightInBasisPoints', () => {
+    const value = input(
+      [position('a', 0), position('b', 0), position('over', 100)],
+      targets([
+        ['a', 5_000],
+        ['b', 5_000],
+        ['over', 0],
+      ]),
+      10
+    )
+    value.assetScores = [
+      { assetId: 'a', points: 0 },
+      { assetId: 'b', points: 2 },
+    ]
+    value.scoreWeightInBasisPoints = 100
+
+    const result = targetResult(value)
+
+    expect(result.distribuicao).toEqual([{ assetId: 'b', valorEmCentavos: 10 }])
+  })
+
+  it('ignores score when scoreWeightInBasisPoints is zero or absent', () => {
+    const value = input(
+      [position('a', 0), position('b', 0), position('over', 100)],
+      targets([
+        ['a', 5_000],
+        ['b', 5_000],
+        ['over', 0],
+      ]),
+      10
+    )
+    value.assetScores = [
+      { assetId: 'a', points: 0 },
+      { assetId: 'b', points: 2 },
+    ]
+    value.scoreWeightInBasisPoints = 0
+
+    const result = targetResult(value)
+
+    expect(result.distribuicao).toEqual([{ assetId: 'a', valorEmCentavos: 10 }])
+  })
+
+  it('never overrides no-improving-purchase, even with a high score on the losing asset', () => {
+    const value = input([position('a', 50), position('b', 50)])
+    value.assetScores = [{ assetId: 'a', points: 2 }]
+    value.scoreWeightInBasisPoints = 100
+
+    const result = targetResult(value)
+
+    expect(result.distribuicao).toEqual([])
+    expect(result.technicalImpact.stopReason).toBe('no-improving-purchase')
+  })
+
+  it('only reprioritizes among candidates that already improve the deviation', () => {
+    // 'a' is already at target (buying it worsens deviation); 'b' is
+    // underweight (buying it improves). A high score on 'a' must not make
+    // it win over 'b', because 'a' never enters the improving pool.
+    const value = input(
+      [position('a', 50), position('b', 0)],
+      targets([
+        ['a', 5_000],
+        ['b', 5_000],
+      ]),
+      10
+    )
+    value.assetScores = [{ assetId: 'a', points: 2 }]
+    value.scoreWeightInBasisPoints = 100
+
+    const result = targetResult(value)
+
+    expect(result.distribuicao).toEqual([{ assetId: 'b', valorEmCentavos: 10 }])
+  })
+})

@@ -67,6 +67,8 @@ function createFiiSnapshot(
       issuedShares: { unscaledValue: 4, scale: 0 },
       shareholderCount: 321_000,
       vacancyInBasisPoints: null,
+      tenantConcentrationInBasisPoints: null,
+      waleMonthsScaledBy100: null,
     },
     ...overrides,
   }

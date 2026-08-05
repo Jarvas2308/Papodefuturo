@@ -699,6 +699,59 @@ export function mapRealEstateFundSnapshotRow(
       issuedShares,
       shareholderCount,
       vacancyInBasisPoints: null,
+      tenantConcentrationInBasisPoints: null,
+      waleMonthsScaledBy100: null,
+    },
+  }
+}
+
+export function mapRealEstateFundTrimestralSnapshotRow(
+  row: RealEstateFundSnapshotRow,
+  assetId: string
+): RealEstateFundFundamentalSnapshotInput {
+  if (
+    row.kind !== 'real-estate-fund' ||
+    row.category !== 'real-estate-fund' ||
+    row.market !== 'BR' ||
+    row.currency !== 'BRL' ||
+    row.source !== 'cvm-fii-inf-trimestral' ||
+    row.period !== 'quarterly'
+  ) {
+    throw new Error(
+      `Invalid persisted FII trimestral snapshot contract: ${row.ticker}`
+    )
+  }
+  assertPositiveFilingVersion(row.filing_version)
+  if (row.exercise_order !== null) {
+    throw new Error('FII exercise order must be null')
+  }
+  assertStockColumnsNull(row)
+  assertSecColumnsNull(row)
+  if (
+    row.net_asset_value_minor !== null ||
+    row.issued_shares_unscaled !== null ||
+    row.issued_shares_scale !== null ||
+    row.shareholder_count !== null
+  ) {
+    throw new Error(
+      'Net asset value / issued shares / shareholder count columns must remain null for cvm-fii-inf-trimestral snapshots'
+    )
+  }
+
+  return {
+    assetId,
+    kind: 'real-estate-fund',
+    referenceDate: row.reference_date,
+    period: 'quarterly',
+    source: 'cvm-fii-inf-trimestral',
+    sourceDocumentId: row.source_document_id,
+    facts: {
+      netAssetValue: null,
+      issuedShares: null,
+      shareholderCount: null,
+      vacancyInBasisPoints: row.vacancy_basis_points,
+      tenantConcentrationInBasisPoints: row.tenant_concentration_basis_points,
+      waleMonthsScaledBy100: row.wale_months_x100,
     },
   }
 }
@@ -738,18 +791,17 @@ export function createSupabaseRealEstateFundSnapshotRepository(
         return []
       }
 
-      // Filtrado por fonte de proposito: cvm-fii-inf-trimestral (Sprint 16
-      // Fase 2) grava vacancia na mesma tabela, mas mapRealEstateFundSnapshotRow
-      // so sabe ler o formato mensal - sem este filtro, uma linha trimestral
-      // ingerida quebraria a tela /fundamentos real ao tentar mapear. Leitura
-      // de vacancia fica para quando o motor de score (Fase 5) precisar dela.
+      // cvm-fii-inf-mensal (PL/cotas/cotistas) e cvm-fii-inf-trimestral
+      // (vacancia/concentracao/WALE, Sprint 16 Fase 2) sao lidos juntos
+      // desde a Fase 5 (motor de score): cada fonte popula colunas
+      // diferentes da mesma tabela, e o mapper e' escolhido por `source`.
       const { data, error } = await client
         .from('fundamental_snapshots')
         .select('*')
         .eq('kind', 'real-estate-fund')
         .eq('category', 'real-estate-fund')
         .eq('market', 'BR')
-        .eq('source', 'cvm-fii-inf-mensal')
+        .in('source', ['cvm-fii-inf-mensal', 'cvm-fii-inf-trimestral'])
         .in(
           'ticker',
           eligibleAssets.map((asset) => normalizeAssetTicker(asset.ticker))
@@ -773,7 +825,9 @@ export function createSupabaseRealEstateFundSnapshotRepository(
             `Snapshot references an unknown real estate fund identity: ${row.ticker}/${row.category}/${row.market}`
           )
         }
-        return mapRealEstateFundSnapshotRow(row, asset.id)
+        return row.source === 'cvm-fii-inf-trimestral'
+          ? mapRealEstateFundTrimestralSnapshotRow(row, asset.id)
+          : mapRealEstateFundSnapshotRow(row, asset.id)
       })
     },
   }

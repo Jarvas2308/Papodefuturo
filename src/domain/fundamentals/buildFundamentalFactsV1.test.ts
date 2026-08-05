@@ -130,6 +130,8 @@ function createFiiSnapshot(): RealEstateFundFundamentalSnapshotInput {
       issuedShares: { unscaledValue: 10_000_000, scale: 0 },
       shareholderCount: 250_000,
       vacancyInBasisPoints: null,
+      tenantConcentrationInBasisPoints: null,
+      waleMonthsScaledBy100: null,
     },
   }
 }
