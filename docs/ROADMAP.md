@@ -894,19 +894,24 @@ as duas checagens são complementares, não substitutas.
 
 ### Sprints 13 a 15 — pós-uso
 
-13. Testes de interação (`jsdom` + Testing Library) — **entrega inicial
-    concluída** (`DEC-072`), reordenada para antes das Sprints 14 e 16 por
-    ser dívida de cobertura mais urgente. `jsdom`, `@testing-library/react`,
+13. Testes de interação (`jsdom` + Testing Library) — **concluída**
+    (`DEC-072`, fechada em 06/08/2026). `jsdom`, `@testing-library/react`,
     `@testing-library/user-event` e `@testing-library/jest-dom`
     adicionados; ambiente por arquivo via pragma
     `// @vitest-environment jsdom`, não global — suíte de domínio
     permanece em `node`. Cobertos: `LoginPage`, `ForgotPasswordPage`,
-    `ResetPasswordPage` (as três telas da `DEC-069`, sem teste de
-    interação até então) e `PurchaseForm` (criação e edição de compra).
-    **Não coberto ainda:** fluxo de cancelamento de compra em
-    `HistoryPage` (orquestração de página inteira, exige mock do hook
-    `useHistoryData` completo) e demais páginas — item aberto, não
-    fechado por engano.
+    `ResetPasswordPage` (as três telas da `DEC-069`), `PurchaseForm`
+    (criação e edição de compra) e, desde 06/08/2026, `HistoryPage` —
+    fluxo completo de cancelamento de compra (`HistoryPage.test.tsx`, 4
+    testes): abre confirmação, chama `cancelPurchase` e mostra feedback
+    de sucesso; fecha sem cancelar em "Voltar"; mostra erro do
+    repositório e mantém a confirmação aberta (não fecha sozinha no
+    erro — só em sucesso, achado ao escrever o teste); ações de
+    cancelamento ausentes em modo demo. `useHistoryData` mockado por
+    inteiro via `vi.spyOn`, mesmo padrão de `LoginPage.test.tsx`; tabela
+    (`HistoryTable`) e cards (`HistoryCards`) renderizam os mesmos
+    botões simultaneamente (responsivo só por CSS) — teste usa
+    `getAllByRole(...)[0]`, não é bug de duplicata.
 14. Reconciliação documental e limpeza de código morto — **entrega
     inicial concluída** (`DEC-073`). `README.md` e `docs/PROJECT_HANDOFF.md`
     reconciliados com o estado real (Sprints 9-13). `knip` configurado

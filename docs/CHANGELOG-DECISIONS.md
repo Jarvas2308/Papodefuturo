@@ -3886,3 +3886,38 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   trailing-12-meses (regra de `unavailable` no primeiro trimestre
   ilegível, confirmada com o usuário em `DEC-095`) antes de qualquer
   sinal de score ficar `applied`.
+
+## DEC-098 — Sprint 13 fechada: teste de interação de cancelamento de compra em `HistoryPage`
+
+- Data: 6 de agosto de 2026
+- Status: Aceita
+- Contexto: `DEC-072` deixou a Sprint 13 com entrega inicial (`LoginPage`,
+  `ForgotPasswordPage`, `ResetPasswordPage`, `PurchaseForm`), faltando o
+  único fluxo de orquestração de página inteira ainda sem teste:
+  cancelamento de compra em `HistoryPage`.
+- Decisão: `src/pages/HistoryPage.test.tsx` criado com 4 testes,
+  mockando `useHistoryData` por inteiro via `vi.spyOn` (mesmo padrão de
+  `LoginPage.test.tsx`): abre a confirmação e chama `cancelPurchase`
+  com sucesso; fecha sem cancelar em "Voltar"; mostra a mensagem de
+  erro do repositório quando `cancelPurchase` rejeita; oculta as ações
+  de cancelamento em modo demo.
+- Achado ao escrever o teste (comportamento real, não bug): a
+  confirmação de cancelamento só fecha em caso de sucesso —
+  `confirmCancellation` em `HistoryPage.tsx` só chama
+  `setPurchaseToCancelId(null)` dentro do bloco `try`, nunca no
+  `catch`. Primeira versão do teste assumia fechamento em ambos os
+  casos e falhou; corrigida para refletir o comportamento real
+  (usuário vê o erro com a confirmação ainda aberta, pode tentar de
+  novo ou voltar).
+- Achado estrutural: `HistoryTable` (desktop) e `HistoryCards`
+  (mobile) renderizam os mesmos botões de ação simultaneamente no DOM
+  — responsividade é só CSS (`hidden xl:block` / oposto), não
+  montagem condicional. Testes usam `getAllByRole(...)[0]` para os
+  botões de ação; não é duplicata acidental.
+- Verificação: 4/4 testes novos passando, suíte completa 2544/2558
+  (14 falhas pré-existentes de migration/CRLF, mesma baseline
+  confirmada em clone limpo, não relacionadas), `tsc --noEmit` limpo.
+- Consequências: Sprint 13 fechada por completo — não há mais fluxo de
+  interação sem cobertura conhecido. Sprint 14 (reconciliação
+  documental) e a integração do wiring de provento pendente
+  (`DEC-097`) seguem como próximos itens.
