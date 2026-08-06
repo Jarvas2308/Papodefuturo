@@ -36,6 +36,38 @@ export function normalizeExactDecimalQuantity(
   return { unscaledValue, scale }
 }
 
+const DECIMAL_STRING_PATTERN = /^(\d+)(?:\.(\d+))?$/
+
+/**
+ * Parses a non-negative decimal string (dot separator, e.g. "0.48320810620")
+ * into an `ExactDecimalQuantity`, preserving every digit of source
+ * precision. Fails closed (throws) on anything that isn't a plain
+ * non-negative decimal - never guesses.
+ */
+export function parseExactDecimalString(
+  value: string,
+  description = 'Exact decimal quantity'
+): ExactDecimalQuantity {
+  const match = DECIMAL_STRING_PATTERN.exec(value.trim())
+  if (!match) {
+    throw new RangeError(
+      `${description} is not a valid decimal string: ${value}`
+    )
+  }
+
+  const [, integerPart, fractionPart = ''] = match
+  const unscaledValue = Number(`${integerPart}${fractionPart}`)
+  const scale = fractionPart.length
+
+  if (!Number.isSafeInteger(unscaledValue)) {
+    throw new RangeError(
+      `${description} is outside the safe integer range: ${value}`
+    )
+  }
+
+  return normalizeExactDecimalQuantity({ unscaledValue, scale }, description)
+}
+
 export function formatExactDecimalQuantity(
   value: ExactDecimalQuantity
 ): string {
