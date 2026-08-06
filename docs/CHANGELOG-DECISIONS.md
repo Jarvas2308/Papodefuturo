@@ -3678,3 +3678,80 @@ no-improving-purchase, even with a high score on the losing asset'`).
   versionado) depois do classificador de permissão bloquear a primeira
   tentativa. `get_advisors` (security) sem achado novo depois do
   UPDATE.
+
+## DEC-095 — Sprint 16 pós-encerramento: backfill de cotas emitidas + dois extratores de PDF pra valor de provento
+
+- Data: 6 de agosto de 2026
+- Status: Aceita, parcialmente implementada (ver "Consequências")
+- Contexto: usuário pediu pra investigar como resolver os 4 sinais que
+  ficaram de fora do encerramento da Sprint 16 (spread DY de FII,
+  payout e P/L histórico de ação, spread DY de ETF).
+- Decisão, em três partes:
+  1. **Backfill real de `composicao_capital` — concluído.** As 10 linhas
+     de ação já persistidas (5 tickers × DFP/ITR) tinham
+     `issued_shares_unscaled`/`scale` `null` mesmo com o provider já
+     extraindo esse campo desde `DEC-081` — a ingestão original que
+     gerou essas linhas rodou antes daquele ciclo. Valores reais
+     confirmados baixando `dfp_cia_aberta_composicao_capital_2025.csv`
+     e `itr_cia_aberta_composicao_capital_2025.csv` de novo nesta
+     sessão (BBAS3 5.730.834.040 ON, ITSA4 7.360.053/7.215.738 PN,
+     TAEE11 1.033.497 total ambos, WEGE3 4.197.317.998 ON, PSSA3
+     646.586 ON) e aplicados via `UPDATE` direto pelo MCP Supabase,
+     mesmo padrão de aprovação explícita da `DEC-094`. `get_advisors`
+     sem achado novo. Resolve uma das três peças que faltavam pro
+     sinal de P/L histórico (a outra é preço de fechamento por data,
+     via B3 COTAHIST histórico, não investigado nesta entrada).
+  2. **Extrator de prosa (Fato Relevante/Aviso aos Acionistas) —
+     implementado, PR #156.** Primeiro parser de texto livre do
+     projeto, aprovado explicitamente pelo usuário como risco aceito.
+     `extractProventoValuePerShareV1` só aceita declaração ÚNICA (um
+     valor bruto + um líquido "por ação"), falha fechada em qualquer
+     formato de ratificação com múltiplas tranches. Verificado com 3
+     documentos reais (ITSA4, PSSA3 × 2).
+  3. **Fonte melhor achada e implementada — PR #157.** Investigando a
+     categoria IPE `Relatório Proventos` (mapeada desde `DEC-082`,
+     nunca backfillada em produção), achado que a CVM gera um PDF de
+     **template fixo** próprio chamado "Provento" — tabela por ISIN
+     com valor bruto, período base, exercício social, data de
+     pagamento. `extractProventoFormV1` extrai essa tabela (blocos
+     fixos de 5 linhas por ISIN no texto do `pdf-parse`). **Cross-
+     validado**: valor de PSSA3 extraído deste formulário
+     (`0,48320810620`) bate exatamente com o mesmo trimestre extraído
+     independentemente da prosa (item 2) — duas fontes, mesmo número
+     real. Nova dependência `pdf-parse` (JS puro, sem vulnerabilidade
+     nova, aprovada explicitamente).
+  4. **Risco de duplicata real descoberto e evitado.** Selecionar
+     evento pelas categorias já em produção
+     (`material-fact`/`market-communication`/`regulatory-filing`)
+     duplica contagem em 3 dos 5 tickers — mesma declaração de JCP
+     reportada 2 a 4 vezes sob tipos de filing diferentes (confirmado
+     consultando `official_asset_events` real em produção). A
+     categoria dedicada `dividend-or-distribution` não tem esse
+     problema — confirmado construindo os 65 eventos reais (5 tickers,
+     2025-2026) localmente com o provider já testado
+     (`fetchCvmIpeStockEvents` + `prepareOfficialAssetEventStorageBatchV1`):
+     zero duplicata interna.
+- Verificação: `extractProventoValuePerShareV1.test.ts` (8 testes),
+  `extractProventoFormV1.test.ts` (6 testes) — 14 testes novos, `tsc -b`
+  e `eslint` limpos, suíte completa 2540/2554 (14 falhas pré-existentes
+  não relacionadas). `composicao_capital`: conferido por consulta
+  somente-leitura em produção, 10/10 linhas populadas corretamente.
+- Consequências: **nenhum dos 4 sinais foi conectado ainda** — os dois
+  extratores existem isolados, testados, sem wiring. Backfill real da
+  categoria `dividend-or-distribution` em produção **não foi
+  executado** nesta entrada: os 65 registros foram montados e
+  validados localmente, mas persistir via SQL direto pelo MCP custaria
+  ~65 mil tokens de contexto (cada registro carrega provenance
+  completa e a mesma URL repetida em até 3 campos) — decisão de não
+  gastar isso e usar o pipeline oficial já testado em vez de um bypass
+  manual. Comando pra rodar quando o usuário tiver as credenciais:
+  `node --env-file=.env.server.local --import tsx
+scripts/run-official-events-backfill.ts --provider=cvm-ipe
+--year=2025 --confirm` (repetir com `--year=2026`). Depois disso,
+  a dedup por "Protocolo Provento" + Versão (mesmo padrão de
+  `selectLatestFilingRows` do DFP/ITR) e a agregação trailing-12-meses
+  (usuário já confirmou: qualquer trimestre não parseável marca o sinal
+  inteiro `unavailable`, nunca soma parcial) ainda precisam ser
+  escritas antes de qualquer um dos 4 sinais existir de fato. Preço de
+  fechamento histórico por data (peça restante do P/L) também não foi
+  investigado nesta entrada.
