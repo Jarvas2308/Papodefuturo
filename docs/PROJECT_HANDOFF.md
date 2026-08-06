@@ -139,7 +139,14 @@ score, pesquisa de fonte já concluída para FII/ação/ETF em
 `docs/ROADMAP.md`, não duplicados aqui. Pendência manual real, não
 fechada por este agente: `auth_leaked_password_protection` desabilitado
 no painel do Supabase, reconfirmado pelo `get_advisors` do próprio
-projeto depois de cada migration aplicada nesse ciclo.
+projeto depois de cada migration aplicada nesse ciclo. **Causa raiz
+achada em 06/08/2026:** não é passo faltando, é paywall — o toggle
+"Prevent use of leaked passwords" (Authentication → Sign In / Providers
+→ Email) recusa a mudança com "available on Pro Plans and up"; o
+projeto está no plano Free do Supabase. Sem upgrade pago, o advisory
+`auth_leaked_password_protection` permanece `WARN` permanentemente —
+não é dívida de código nem de configuração, é decisão de custo do
+usuário.
 
 ## 1. Resumo executivo
 
@@ -879,7 +886,9 @@ no topo deste documento). O que resta:
    schema (`asset_type`/`asset_segment`) ou integração no motor foi
    implementado ainda;
 3. habilitar `auth_leaked_password_protection` no painel do Supabase —
-   pendência manual reconfirmada pelo `get_advisors` do projeto após cada
+   **bloqueado por plano (06/08/2026): exige Supabase Pro, projeto está no
+   Free.** Não é mais pendência de passo, é decisão de custo do usuário.
+   Pendência manual reconfirmada pelo `get_advisors` do projeto após cada
    migration desta rodada, não fechável por ciclo de código;
 4. ampliar a suíte de testes de interação (Sprint 13) além de autenticação
    e formulário de compra — cancelamento de compra em `/historico` é o
