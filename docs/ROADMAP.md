@@ -952,7 +952,9 @@ as duas checagens são complementares, não substitutas.
     dentro desta sprint. Dois arquivos de barrel ainda genuinamente sem
     consumidor (`cvm/fii-trimestral/index.ts`, `shiller/index.ts`) —
     mesma categoria, mesma decisão de não prunar em massa.
-15. Multiusuário — somente se houver segundo usuário.
+15. Multiusuário — **`NO-GO` permanente (`DEC-100`, 06/08/2026).** Usuário
+    confirmou não ter pretensão de segundo usuário; item retirado do
+    roadmap de sprints, sem reabertura prevista.
 
 ### Sprint 16 — Motor com recomendação por score (`DEC-068`) — **concluída**
 
@@ -1237,9 +1239,10 @@ posição de até ~5 meses antes da consulta, e isso é regra da SEC, não falha
 de ingestão.
 
 Fora de escopo, sinalizado explicitamente: notícia editorial/sentimento
-(`NO-GO`, `DEC-036`, não reaberto), CAPE de VEA, expense ratio de ETF,
-métricas de Basileia/NIM/NPL/índice combinado/RAB, contrato típico/atípico
-de FII (texto livre), cap rate exato, leasing spread, same-store.
+(`NO-GO`, `DEC-036`, não reaberto), multiusuário (`NO-GO`, `DEC-100`, não
+reaberto), CAPE de VEA, expense ratio de ETF, métricas de
+Basileia/NIM/NPL/índice combinado/RAB, contrato típico/atípico de FII
+(texto livre), cap rate exato, leasing spread, same-store.
 
 **Sprint 16 encerrada em 06/08/2026.** 8 dos 12 itens do rascunho de
 pontuação implementados, testados e com dado real em produção (4 FII +

@@ -3966,3 +3966,22 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   arquitetura conhecido contradizendo o estado real de produção nem
   código novo desta sessão sem teste. Barrel reexports seguem como
   dívida documentada e deliberada, não pendência esquecida.
+
+## DEC-100 — Sprint 15 (multiusuário) vira `NO-GO` permanente
+
+- Data: 6 de agosto de 2026
+- Status: Aceita
+- Contexto: Sprint 15 estava condicionada a "somente se houver segundo
+  usuário" desde o planejamento do ciclo de prontidão (`DEC-068`).
+  Usuário confirmou explicitamente não ter pretensão de segundo usuário.
+- Decisão: item retirado do roadmap de sprints ativas, movido para a
+  lista de itens permanentemente fora de escopo (mesma categoria de
+  notícias editoriais, `DEC-036`). Não reaberto a menos que o próprio
+  usuário peça.
+- Verificação: nenhuma mudança de código — decisão de escopo pura,
+  `docs/ROADMAP.md` atualizado nos dois pontos onde o item aparecia.
+- Consequências: das Sprints 13 a 15, restam encerradas 13 (`DEC-098`),
+  14 (`DEC-099`) e agora 15 fechada por `NO-GO`, não por entrega. Ciclo
+  de prontidão pós-uso (Sprints 9 a 15) está, portanto, completo. Único
+  trabalho aberto do projeto é o wiring de provento (`DEC-097`, spread
+  DY de FII/ETF e payout de ação) e a profundidade histórica de P/L.
