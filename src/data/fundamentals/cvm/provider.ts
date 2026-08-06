@@ -37,6 +37,28 @@ const OPERATING_CASH_FLOW_DESCRIPTIONS = [
   'Caixa Líquido Atividades Operacionais',
 ] as const
 
+// Insumos de dívida líquida/EBITDA (Sprint 16, Fase 5), confirmados com
+// dado real do DFP 2025 baixado nesta sessão para os 5 tickers do
+// universo. Banco (BBAS3) usa os mesmos códigos de conta para conceitos
+// estruturalmente diferentes ("Depósitos" em vez de "Empréstimos e
+// Financiamentos", "Caixa" em vez de "Caixa e Equivalentes de Caixa") -
+// por isso a descrição, não só o código, precisa bater.
+const FINANCIAL_DEBT_DESCRIPTIONS = ['Empréstimos e Financiamentos'] as const
+const CASH_AND_EQUIVALENTS_DESCRIPTIONS = [
+  'Caixa e Equivalentes de Caixa',
+] as const
+const EBIT_DESCRIPTIONS = [
+  'Resultado Antes do Resultado Financeiro e dos Tributos',
+] as const
+// Código de conta varia por empresa (6.01.01.02 WEGE3/ITSA4 diferem só na
+// capitalização normalizada; 6.01.01.03 TAEE11/PSSA3; nenhum código fixo é
+// confiável) - só a descrição, em allowlist fechada de 3 variantes reais.
+const DEPRECIATION_AND_AMORTIZATION_DESCRIPTIONS = [
+  'Depreciação, Amortização e Exaustão',
+  'Depreciação e Amortização',
+  'Depreciações',
+] as const
+
 type FactSelection = {
   fact: ReturnType<typeof parseCvmMonetaryFact>
   provenance: CvmFactProvenance
@@ -232,6 +254,33 @@ function selectFact({
   }
 }
 
+// Mesma lógica de `selectFact`, exceto que zero candidatos vira `null` em
+// vez de lançar - usado para fatos estruturalmente ausentes em banco
+// (regime errado), não para fatos que devem sempre existir (netIncome,
+// totalAssets etc., onde ausência é anomalia de dado real e deve falhar
+// fechado). Ambiguidade (>1 candidato) continua lançando nos dois casos.
+function selectOptionalFact(input: SelectFactInput): FactSelection | null {
+  const { rows, statements, descriptions, accountCode } = input
+  const normalizedDescriptions = new Set(
+    descriptions.map(normalizeCvmDescription)
+  )
+  const statementRows = rows.filter(
+    (row) =>
+      statements.includes(row.statement) &&
+      (accountCode === undefined || row.accountCode.trim() === accountCode)
+  )
+  const matchingRows = statementRows.filter((row) =>
+    normalizedDescriptions.has(normalizeCvmDescription(row.accountDescription))
+  )
+  const candidates = selectStandaloneQuarterPeriodRows(matchingRows)
+
+  if (candidates.length === 0) {
+    return null
+  }
+
+  return selectFact(input)
+}
+
 function selectCapitalCompositionRow(
   rows: readonly CvmCapitalCompositionRow[],
   company: CvmBrazilianStockCompany
@@ -391,6 +440,40 @@ function buildRecord(
     descriptions: OPERATING_CASH_FLOW_DESCRIPTIONS,
   })
   const issuedShares = selectIssuedShares(capitalCompositionRows, company)
+  const financialDebtCurrent = selectOptionalFact({
+    rows: currentRows,
+    metric: 'financialDebtCurrent',
+    statements: ['BPP'],
+    accountCode: '2.01.04',
+    descriptions: FINANCIAL_DEBT_DESCRIPTIONS,
+  })
+  const financialDebtNonCurrent = selectOptionalFact({
+    rows: currentRows,
+    metric: 'financialDebtNonCurrent',
+    statements: ['BPP'],
+    accountCode: '2.02.01',
+    descriptions: FINANCIAL_DEBT_DESCRIPTIONS,
+  })
+  const cashAndEquivalents = selectOptionalFact({
+    rows: currentRows,
+    metric: 'cashAndEquivalents',
+    statements: ['BPA'],
+    accountCode: '1.01.01',
+    descriptions: CASH_AND_EQUIVALENTS_DESCRIPTIONS,
+  })
+  const ebit = selectOptionalFact({
+    rows: currentRows,
+    metric: 'ebit',
+    statements: ['DRE'],
+    accountCode: '3.05',
+    descriptions: EBIT_DESCRIPTIONS,
+  })
+  const depreciationAndAmortization = selectOptionalFact({
+    rows: currentRows,
+    metric: 'depreciationAndAmortization',
+    statements: ['DFC_MI', 'DFC_MD'],
+    descriptions: DEPRECIATION_AND_AMORTIZATION_DESCRIPTIONS,
+  })
   const facts: BrazilianStockFundamentalFacts = {
     totalRevenue: null,
     netIncome: netIncome.fact,
@@ -398,6 +481,11 @@ function buildRecord(
     totalEquity: totalEquity.fact,
     operatingCashFlow: operatingCashFlow.fact,
     issuedShares: issuedShares.issuedShares,
+    financialDebtCurrent: financialDebtCurrent?.fact ?? null,
+    financialDebtNonCurrent: financialDebtNonCurrent?.fact ?? null,
+    cashAndEquivalents: cashAndEquivalents?.fact ?? null,
+    ebit: ebit?.fact ?? null,
+    depreciationAndAmortization: depreciationAndAmortization?.fact ?? null,
   }
 
   return {
@@ -431,6 +519,12 @@ function buildRecord(
       totalEquity: totalEquity.provenance,
       operatingCashFlow: operatingCashFlow.provenance,
       issuedShares: issuedShares.provenance,
+      financialDebtCurrent: financialDebtCurrent?.provenance ?? null,
+      financialDebtNonCurrent: financialDebtNonCurrent?.provenance ?? null,
+      cashAndEquivalents: cashAndEquivalents?.provenance ?? null,
+      ebit: ebit?.provenance ?? null,
+      depreciationAndAmortization:
+        depreciationAndAmortization?.provenance ?? null,
     },
   }
 }
@@ -465,4 +559,8 @@ export const CVM_ACCOUNT_DESCRIPTION_ALLOWLISTS = {
   totalAssets: TOTAL_ASSETS_DESCRIPTIONS,
   totalEquity: TOTAL_EQUITY_DESCRIPTIONS,
   operatingCashFlow: OPERATING_CASH_FLOW_DESCRIPTIONS,
+  financialDebt: FINANCIAL_DEBT_DESCRIPTIONS,
+  cashAndEquivalents: CASH_AND_EQUIVALENTS_DESCRIPTIONS,
+  ebit: EBIT_DESCRIPTIONS,
+  depreciationAndAmortization: DEPRECIATION_AND_AMORTIZATION_DESCRIPTIONS,
 } as const

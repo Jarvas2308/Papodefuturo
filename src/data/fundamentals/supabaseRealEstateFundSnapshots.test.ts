@@ -164,6 +164,11 @@ function createRow(
     tenant_concentration_basis_points: null,
     quarterly_net_financial_result_minor: null,
     wale_months_x100: null,
+    financial_debt_current_minor: null,
+    financial_debt_noncurrent_minor: null,
+    cash_and_equivalents_minor: null,
+    ebit_minor: null,
+    depreciation_and_amortization_minor: null,
     provenance: {
       dataset: record.provenance.dataset,
       archiveId: record.provenance.archiveId,
@@ -832,6 +837,11 @@ describe('Supabase FII fundamental snapshot repository', () => {
       tenant_concentration_basis_points: null,
       quarterly_net_financial_result_minor: null,
       wale_months_x100: null,
+      financial_debt_current_minor: null,
+      financial_debt_noncurrent_minor: null,
+      cash_and_equivalents_minor: null,
+      ebit_minor: null,
+      depreciation_and_amortization_minor: null,
       provenance: {
         totalRevenue: null,
         netIncome: {

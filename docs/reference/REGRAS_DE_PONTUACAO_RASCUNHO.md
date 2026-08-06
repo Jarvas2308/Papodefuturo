@@ -81,7 +81,7 @@ Ações BR, seção 1. Tabela abaixo já filtra por regime.
 | ROE                             | < 8%                                          | -1     | idem                          | idem                                                                                                                                                   | Ações 3.3      |
 | Payout, variação ano contra ano | queda > 10 p.p.                               | -2     | Todos                         | Precisa valor de provento (so evento ingerido, DEC-082, mesmo bloqueio de FII)                                                                         | Ações 3.7      |
 | Payout, variação ano contra ano | dentro de ±5 p.p. do padrão do próprio regime | 0      | Todos                         | idem                                                                                                                                                   | Ações 3.7      |
-| Dívida líquida / EBITDA         | > 3x                                          | -1     | Todos exceto banco            | Bloqueado - divida financeira e D&A nao sao extraidos do DFP/ITR ainda (provider novo, nao so o motor)                                                 | Ações 3.5      |
+| Dívida líquida / EBITDA         | > 3x                                          | -1     | Todos exceto banco            | **Implementado (DEC-094)** — BPP_con 2.01.04/2.02.01 + BPA_con 1.01.01 + DRE_con 3.05 + DFC_MI                                                         | Ações 3.5      |
 | Dívida líquida / EBITDA         | < 1x                                          | +1     | idem                          | idem                                                                                                                                                   | Ações 3.5      |
 | P/L vs própria série histórica  | abaixo do próprio quartil inferior            | +1     | Todos exceto banco/seguradora | Bloqueado - so 1-2 periodos ingeridos por empresa ate agora, quartil de amostra tao pequena nao e' confiavel (mecanismo existiria, dado historico nao) | Ações 3.1      |
 
@@ -94,27 +94,30 @@ seguradora (índice combinado) e regulado (RAB) não têm linha nesta tabela —
 Ações 3.8 não confirmou fonte estruturada para elas nesta sessão. Ficam de
 fora do score até pesquisa dedicada.
 
-**Atualização (DEC-090):** ROE implementado — único sinal de ação
-tecnicamente viável com o dado já ingerido hoje. Os 3 restantes ficam
-bloqueados por motivos diferentes, não pela mesma causa: payout precisa do
-valor do provento (mesmo bloqueio de FII, DEC-082); dívida/EBITDA precisa
-de um provider novo (dívida financeira e D&A não são extraídos do
-DFP/ITR); P/L histórico precisa de mais períodos acumulados por empresa do
-que os 1-2 já ingeridos (o mecanismo de cálculo existiria, só falta
+**Atualização (DEC-090):** ROE implementado.
+
+**Atualização (DEC-094):** dívida líquida/EBITDA implementado — a premissa
+de "precisa provider novo" estava errada, os insumos vêm do mesmo
+DFP/ITR já consumido pelo provider de ação, só campos novos (dívida
+financeira, caixa, EBIT, D&A). Bloqueado só pra banco (regime errado,
+mesmos códigos de conta usados pra "Depósitos"/"Caixa"). Restam
+bloqueados: payout precisa do valor do provento (mesmo bloqueio de FII,
+DEC-082); P/L histórico precisa de mais períodos acumulados por empresa
+do que os 1-2 já ingeridos (o mecanismo de cálculo existiria, só falta
 profundidade histórica real).
 
 ---
 
 ## 4. ETF
 
-| Sinal                                      | Regra proposta               | Pontos        | Aplica a | Status                                                                                        | Referência   |
-| ------------------------------------------ | ---------------------------- | ------------- | -------- | --------------------------------------------------------------------------------------------- | ------------ |
-| CAPE vs própria média histórica de 10 anos | abaixo da média              | +2            | VOO      | **Implementado (DEC-091)**                                                                    | ETF 4.1, 6.2 |
-| CAPE vs própria média histórica de 10 anos | acima da média               | -1            | VOO      | idem                                                                                          | ETF 4.1      |
-| Spread DY sobre TIPS 10 anos               | > 1 p.p.                     | +2            | VNQ      | Fonte confirmada (FRED), bloqueado por chave de API (usuário)                                 | ETF 4.2, 6.2 |
-| Spread DY sobre TIPS 10 anos               | < 0                          | -2            | VNQ      | idem                                                                                          | ETF 4.2      |
-| Prêmio/desconto sobre NAV                  | \|desvio\| > 0,5%            | -1            | Todos    | **Implementado (DEC-092)** — fonte real é o site do emissor, N-PORT confirmado sem esse campo | ETF 3.3, 6.1 |
-| —                                          | sem sinal de preço confiável | `unavailable` | VEA      | Gap de pesquisa — sem fonte de CAPE fechada                                                   | ETF 4.3, 6.2 |
+| Sinal                                      | Regra proposta               | Pontos        | Aplica a | Status                                                                                                                                         | Referência   |
+| ------------------------------------------ | ---------------------------- | ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| CAPE vs própria média histórica de 10 anos | abaixo da média              | +2            | VOO      | **Implementado (DEC-091)**                                                                                                                     | ETF 4.1, 6.2 |
+| CAPE vs própria média histórica de 10 anos | acima da média               | -1            | VOO      | idem                                                                                                                                           | ETF 4.1      |
+| Spread DY sobre TIPS 10 anos               | > 1 p.p.                     | +2            | VNQ      | Taxa TIPS resolvida (DEC-093, FRED DFII10 em produção); sinal bloqueado — depende do valor do provento (mesmo bloqueio de payout, DEC-082/091) | ETF 4.2, 6.2 |
+| Spread DY sobre TIPS 10 anos               | < 0                          | -2            | VNQ      | idem                                                                                                                                           | ETF 4.2      |
+| Prêmio/desconto sobre NAV                  | \|desvio\| > 0,5%            | -1            | Todos    | **Implementado (DEC-092)** — fonte real é o site do emissor, N-PORT confirmado sem esse campo                                                  | ETF 3.3, 6.1 |
+| —                                          | sem sinal de preço confiável | `unavailable` | VEA      | Gap de pesquisa — sem fonte de CAPE fechada                                                                                                    | ETF 4.3, 6.2 |
 
 ---
 

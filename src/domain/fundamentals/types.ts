@@ -30,6 +30,32 @@ export type BrazilianStockFundamentalFacts = {
   // (TAEE11) - ver `CvmBrazilianStockCompany.shareClass`. Insumo de LPA e
   // P/L, ainda nao calculados (Fase 5).
   issuedShares: ExactDecimalQuantity | null
+  // Insumos de dívida líquida/EBITDA (docs/reference/ACOES_BR_SETORES_E_METRICAS.md,
+  // seção 3.5), confirmados com dado real do DFP 2025 (Sprint 16, Fase 5).
+  // Null para banco (BBAS3): a linha existe no CVM sob o mesmo código de
+  // conta, mas com descrição estruturalmente diferente ("Depósitos" em vez
+  // de "Empréstimos e Financiamentos", "Caixa" em vez de "Caixa e
+  // Equivalentes de Caixa") - regime errado, não dado ausente.
+  // BPP `2.01.04`/`2.02.01` "Empréstimos e Financiamentos" (circulante e
+  // não circulante) - mantidos separados, a soma fica a cargo do motor de
+  // score, não deste contrato de fatos.
+  financialDebtCurrent: SignedMonetaryFact | null
+  financialDebtNonCurrent: SignedMonetaryFact | null
+  // BPA `1.01.01` "Caixa e Equivalentes de Caixa".
+  cashAndEquivalents: SignedMonetaryFact | null
+  // DRE `3.05` "Resultado Antes do Resultado Financeiro e dos Tributos"
+  // (EBIT) - código e descrição confirmados idênticos entre ITSA4, TAEE11,
+  // WEGE3 e PSSA3 com dado real, mesmo padrão de universalidade já
+  // confirmado para `3.11` (lucro líquido).
+  ebit: SignedMonetaryFact | null
+  // DFC (método indireto) - linha de "Depreciação, Amortização e
+  // Exaustão"/"Depreciação e Amortização"/"Depreciações" na reconciliação
+  // do lucro antes dos impostos, adicionada de volta ao caixa operacional.
+  // Código de conta varia por empresa (6.01.01.02/.03/.06) - só a
+  // descrição é estável, allowlist fechada (mesmo padrão de
+  // NET_INCOME_DESCRIPTIONS). Sempre positivo (magnitude, não sinal
+  // contábil da despesa).
+  depreciationAndAmortization: SignedMonetaryFact | null
 }
 
 export type BrazilianStockFundamentalSnapshotInput = {

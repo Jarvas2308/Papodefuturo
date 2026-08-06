@@ -3543,3 +3543,127 @@ no-improving-purchase, even with a high score on the losing asset'`).
   usuário real: rodar `npx tsx scripts/run-fundamentals-ingestion.ts
 --provider=shiller-cape --confirm` para popular o histórico em produção
   — sem isso, `capeHistory` chega vazio e o sinal fica `unavailable`.
+
+## DEC-093 — Sprint 16, Fase 4: provider FRED DFII10 (taxa TIPS de referência)
+
+- Data: 6 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: usuário pediu para resolver o bloqueio de FRED (spread de DY de
+  VNQ sobre TIPS 10 anos, `docs/reference/ETF_INTERNACIONAL_SEGMENTOS_E_METRICAS.md`
+  seção 4.2, item 6.2) fornecendo a própria chave de API.
+- Decisão: segunda série de `market_reference_rates` (`fred-dfii10`), mesmo
+  padrão global da NTN-B (`DEC-075`). `maturity_date` passou a aceitar
+  `null`, restrito por CHECK à série sem título real por trás — DFII10 é
+  rendimento sintético de maturidade constante (10-Year TIPS, Constant
+  Maturity), sem bond específico com vencimento, diferente da NTN-B
+  (sempre "o título IPCA+ de vencimento mais longo disponível", com
+  `maturity_date` real). Inventar uma data de vencimento violaria o
+  princípio de não criar dado que a fonte não fornece. `fredProvider.ts`
+  aceita valor **negativo** (rendimento real do TIPS já foi negativo
+  historicamente) — diferente de `decimalToExchangeRateScaled` (preço,
+  câmbio, NTN-B), positivo por contrato; parser dedicado (`parseFredDfii10Percent`)
+  com sinal, mesma escala de 6 casas e arredondamento half-away-from-zero.
+  Observações `"."` (dia sem publicação) ignoradas em favor da mais
+  recente disponível. Contador `updatedReferenceRates`/
+  `skippedFreshReferenceRates` do cron passou a ser compartilhado entre as
+  duas séries.
+  - **Escopo explícito: só a taxa TIPS, não o sinal de score.** O spread
+    DY de VNQ sobre TIPS continua bloqueado — DY depende do valor do
+    provento, mesmo bloqueio confirmado em `DEC-091` pra FII/ação. Este
+    ciclo só guarda a taxa como infraestrutura, mesmo padrão da Fase 2
+    (NTN-B chegou primeiro; vacância/WALE vieram depois).
+  - Migration `20260806120000` aplicada em produção via MCP Supabase.
+    Secret `FRED_API_KEY` configurado pelo usuário no painel (Project
+    Settings → Edge Functions → Secrets, sem MCP pra isso — mesmo padrão
+    do `OPENROUTER_API_KEY`, `DEC-056`). Edge Function `refresh-market-data`
+    reimplantada (versão 13). Verificado com dado real em produção:
+    `fred-dfii10` inserida com sucesso, DFII10 = 2,40% (2026-08-04) — a
+    primeira tentativa de smoke test retornou 500 (mesmo padrão
+    intermitente já presente na versão anterior da função, não
+    relacionado a esta mudança); a segunda completou em produção (~25s,
+    dentro da faixa normal de execução) e confirmou a linha inserida.
+- Verificação: `fredProvider.test.ts` novo (parsing positivo/negativo/
+  arredondamento/observação ausente, seleção da mais recente, montagem de
+  URL, propagação de erro sem vazar a chave). `core.test.ts` ganhou seção
+  "reference rate (FRED DFII10)" espelhando a cobertura de NTN-B; seção
+  NTN-B existente ajustada pro contador compartilhado. Suíte completa:
+  2505/2519 passando (14 falhas pré-existentes, migration/CRLF,
+  confirmadas em clone limpo antes da mudança). `eslint` limpo.
+- Consequências: infraestrutura de FRED pronta e operacional em produção.
+  O sinal de score em si (`etf_dy_spread_over_tips`, item 4.2 do rascunho
+  de pontuação) segue fora do motor até o valor do provento ter fonte —
+  ver `DEC-091`/`DEC-094`.
+
+## DEC-094 — Sprint 16, Fase 5: dívida líquida/EBITDA de ação implementado
+
+- Data: 6 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: usuário pediu para avançar no próximo item codável da Sprint 16. `docs/reference/ACOES_BR_SETORES_E_METRICAS.md` seção 6.3 e
+  `REGRAS_DE_PONTUACAO_RASCUNHO.md` linha do sinal diziam "requer provider
+  novo" — verificado de novo com dado real antes de assumir: a premissa
+  estava errada, os insumos vêm do mesmo `dfp_cia_aberta`/`itr_cia_aberta`
+  já consumido por `cvm-stocks`, só campos ainda não extraídos.
+- Decisão: baixado e inspecionado o DFP 2025 real (`dados.cvm.gov.br`)
+  para os 5 tickers do universo, confirmando 4 linhas novas:
+  - `BPP_con` `2.01.04`/`2.02.01` "Empréstimos e Financiamentos"
+    (circulante/não circulante) — código soma automaticamente débito +
+    debêntures + arrendamento financeiro (confirmado: valor do grupo =
+    soma dos filhos em todos os 5 tickers).
+  - `BPA_con` `1.01.01` "Caixa e Equivalentes de Caixa".
+  - `DRE_con` `3.05` "Resultado Antes do Resultado Financeiro e dos
+    Tributos" (EBIT) — código e descrição confirmados **idênticos** entre
+    ITSA4, TAEE11, WEGE3 e PSSA3, mesmo padrão de universalidade já
+    confirmado pro `3.11` (lucro líquido, Fase 1 original).
+  - `DFC_MI_con`, linha de depreciação/amortização na reconciliação do
+    lucro antes dos impostos — código de conta **varia por empresa**
+    (`6.01.01.02` WEGE3, `6.01.01.06` ITSA4, `6.01.01.03` TAEE11/PSSA3),
+    só a descrição é estável: allowlist fechada de 3 variantes reais
+    ("Depreciação, Amortização e Exaustão", "Depreciação e Amortização",
+    "Depreciações"). Confirmado que nenhum dos 5 tickers reporta por
+    `DFC_MD` (método direto, sem a linha de reconciliação) — só `DFC_MI`.
+  - **Banco (BBAS3) usa os mesmos códigos de conta pra conceitos
+    estruturalmente diferentes** — `2.01.04`/`1.01.01` existem no dado
+    real do banco, mas com descrição "Depósitos"/"Caixa", não
+    "Empréstimos e Financiamentos"/"Caixa e Equivalentes de Caixa". Os 5
+    fatos ficam `null` pra banco por regime errado, não por dado ausente
+    — `selectOptionalFact` (nova variante de `selectFact` que devolve
+    `null` em vez de lançar quando zero candidatos batem a descrição,
+    preservando a rejeição de ambiguidade) formaliza essa diferença sem
+    inventar dado nem tratar "banco" como anomalia.
+  - `computeStockNetDebtToEbitdaScaledV1` (mesma disciplina de
+    `computeStockRoeScaledV1`: `BigInt` exato, arredondamento
+    half-away-from-zero, escala `FUNDAMENTAL_RATIO_SCALE`) calcula
+    `(dívida circulante + não circulante − caixa) ÷ (EBIT + D&A)`. EBITDA
+    não positivo lança (razão de alavancagem sem sentido pra empresa
+    queimando caixa operacional) — o sinal degrada pra `unavailable` em
+    vez de propagar, mesmo espírito best-effort do resto do motor.
+    `buildBrazilianStockScoreV1` ganha o sinal `stock_net_debt_to_ebitda`,
+    regime errado só pra banco (diferente de ROE, que não se aplica a
+    holding) — cada sinal tem seu próprio regime. Faixas de pontuação
+    (`DEFAULT_STOCK_SIGNAL_RULES`): >3x −1, <1x +1, 1x-3x neutro
+    (`docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md`, seção 3.5).
+  - 5 colunas novas em `fundamental_snapshots`
+    (`financial_debt_current_minor`, `financial_debt_noncurrent_minor`,
+    `cash_and_equivalents_minor`, `ebit_minor`,
+    `depreciation_and_amortization_minor`), todas nullable — migration
+    `20260806130000` aplicada em produção via MCP Supabase, `get_advisors`
+    sem achado novo.
+- Verificação: `computeStockNetDebtToEbitdaScaledV1.test.ts` novo (7
+  testes). `buildBrazilianStockScoreV1.test.ts` reescrito — array de
+  sinais passa a ter 2 posições, cobertura de aplicado (3 faixas), regime
+  errado (banco), input ausente, EBITDA não positivo degradado e stale.
+  `provider.test.ts` ganha novo describe com dado fixture espelhando os
+  códigos/descrições reais confirmados, incluindo teste de ambiguidade
+  rejeitada. `supabaseFundamentalSnapshots.test.ts` atualizado (29 colunas
+  canônicas, antes 24). Suíte completa: 2526/2540 passando (14 falhas
+  pré-existentes, migration/CRLF, não relacionadas). `tsc -b` e `eslint`
+  limpos.
+- Consequências: Fase 5 fica com 8 de 12 sinais implementados (4 FII + 2
+  ação + 2 ETF). Backfill real dos 5 tickers não executado neste ciclo —
+  os providers extraem os fatos novos na próxima ingestão real
+  (`cvm-stocks --source=DFP`/`--source=ITR`, requer
+  `SUPABASE_SERVICE_ROLE_KEY` que não deve ser manuseada por texto puro
+  pelo agente); até lá, os 5 tickers em produção continuam com os campos
+  novos `null` e o sinal `unavailable` por `missing-input`. Único sinal
+  de ação restante sem fonte codável no momento: payout (mesmo bloqueio
+  de provento, `DEC-091`) e P/L histórico (profundidade de amostra).

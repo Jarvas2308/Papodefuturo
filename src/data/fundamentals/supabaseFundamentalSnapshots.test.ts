@@ -47,6 +47,11 @@ function createProvenance() {
       exerciseOrder: 'ÚLTIMO',
     },
     issuedShares: null,
+    financialDebtCurrent: null,
+    financialDebtNonCurrent: null,
+    cashAndEquivalents: null,
+    ebit: null,
+    depreciationAndAmortization: null,
   }
 }
 
@@ -75,6 +80,11 @@ function createRecord(): CvmBrazilianStockFundamentalRecord {
       totalEquity: { amountInMinorUnits: 50, currency: 'BRL' },
       operatingCashFlow: { amountInMinorUnits: -10, currency: 'BRL' },
       issuedShares: null,
+      financialDebtCurrent: null,
+      financialDebtNonCurrent: null,
+      cashAndEquivalents: null,
+      ebit: null,
+      depreciationAndAmortization: null,
     },
     provenance: createProvenance(),
   }
@@ -114,6 +124,11 @@ function createRow(): FundamentalSnapshotRow {
     tenant_concentration_basis_points: null,
     quarterly_net_financial_result_minor: null,
     wale_months_x100: null,
+    financial_debt_current_minor: null,
+    financial_debt_noncurrent_minor: null,
+    cash_and_equivalents_minor: null,
+    ebit_minor: null,
+    depreciation_and_amortization_minor: null,
     provenance: createProvenance(),
     created_at: '2026-07-15T12:00:00.000Z',
     updated_at: '2026-07-15T12:00:00.000Z',
@@ -159,13 +174,18 @@ describe('Supabase fundamental snapshot persistence', () => {
           issued_shares_unscaled: null,
           issued_shares_scale: null,
           shareholder_count: null,
+          financial_debt_current_minor: null,
+          financial_debt_noncurrent_minor: null,
+          cash_and_equivalents_minor: null,
+          ebit_minor: null,
+          depreciation_and_amortization_minor: null,
           provenance: createProvenance(),
         },
       ],
     })
   })
 
-  it('sends exactly the 24 canonical fundamental_snapshots columns understood by the upsert RPC', async () => {
+  it('sends exactly the 29 canonical fundamental_snapshots columns understood by the upsert RPC', async () => {
     let sentArgs: { records: [Record<string, unknown>] } | undefined
     const rpc = vi.fn(async (_functionName: string, args: unknown) => {
       sentArgs = args as { records: [Record<string, unknown>] }
@@ -202,6 +222,11 @@ describe('Supabase fundamental snapshot persistence', () => {
         'issued_shares_unscaled',
         'issued_shares_scale',
         'shareholder_count',
+        'financial_debt_current_minor',
+        'financial_debt_noncurrent_minor',
+        'cash_and_equivalents_minor',
+        'ebit_minor',
+        'depreciation_and_amortization_minor',
         'provenance',
       ].sort()
     )

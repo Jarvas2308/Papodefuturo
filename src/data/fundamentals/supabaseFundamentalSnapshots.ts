@@ -74,6 +74,12 @@ function capitalCompositionProvenanceToJson(
   }
 }
 
+function nullableFactProvenanceToJson(
+  value: CvmFactProvenance | null
+): FundamentalSnapshotJson {
+  return value === null ? null : factProvenanceToJson(value)
+}
+
 function toJson(
   value: CvmBrazilianStockFundamentalRecord['provenance']
 ): FundamentalSnapshotJson {
@@ -87,6 +93,17 @@ function toJson(
       value.issuedShares === null
         ? null
         : capitalCompositionProvenanceToJson(value.issuedShares),
+    financialDebtCurrent: nullableFactProvenanceToJson(
+      value.financialDebtCurrent
+    ),
+    financialDebtNonCurrent: nullableFactProvenanceToJson(
+      value.financialDebtNonCurrent
+    ),
+    cashAndEquivalents: nullableFactProvenanceToJson(value.cashAndEquivalents),
+    ebit: nullableFactProvenanceToJson(value.ebit),
+    depreciationAndAmortization: nullableFactProvenanceToJson(
+      value.depreciationAndAmortization
+    ),
   }
 }
 
@@ -118,6 +135,22 @@ function assertRecordProvenance(
       fact.referenceDate !== record.referenceDate ||
       fact.version !== record.filingVersion ||
       fact.exerciseOrder !== record.exerciseOrder
+    ) {
+      throw new Error('Fundamental provenance does not match filing identity')
+    }
+  }
+  for (const fact of [
+    record.provenance.financialDebtCurrent,
+    record.provenance.financialDebtNonCurrent,
+    record.provenance.cashAndEquivalents,
+    record.provenance.ebit,
+    record.provenance.depreciationAndAmortization,
+  ]) {
+    if (
+      fact !== null &&
+      (fact.referenceDate !== record.referenceDate ||
+        fact.version !== record.filingVersion ||
+        fact.exerciseOrder !== record.exerciseOrder)
     ) {
       throw new Error('Fundamental provenance does not match filing identity')
     }
@@ -154,12 +187,53 @@ function toInsertRow(
   assertBrlSafeFact(record.facts.totalAssets, 'Total assets')
   assertBrlSafeFact(record.facts.totalEquity, 'Total equity')
   assertBrlSafeFact(record.facts.operatingCashFlow, 'Operating cash flow')
+  assertBrlSafeFact(
+    record.facts.financialDebtCurrent,
+    'Financial debt (current)'
+  )
+  assertBrlSafeFact(
+    record.facts.financialDebtNonCurrent,
+    'Financial debt (non-current)'
+  )
+  assertBrlSafeFact(record.facts.cashAndEquivalents, 'Cash and equivalents')
+  assertBrlSafeFact(record.facts.ebit, 'EBIT')
+  assertBrlSafeFact(
+    record.facts.depreciationAndAmortization,
+    'Depreciation and amortization'
+  )
   assertRecordProvenance(record)
   if (
     (record.facts.issuedShares === null) !==
     (record.provenance.issuedShares === null)
   ) {
     throw new Error('Issued shares fact and provenance must agree on null')
+  }
+  for (const [fact, provenance, fieldName] of [
+    [
+      record.facts.financialDebtCurrent,
+      record.provenance.financialDebtCurrent,
+      'financialDebtCurrent',
+    ],
+    [
+      record.facts.financialDebtNonCurrent,
+      record.provenance.financialDebtNonCurrent,
+      'financialDebtNonCurrent',
+    ],
+    [
+      record.facts.cashAndEquivalents,
+      record.provenance.cashAndEquivalents,
+      'cashAndEquivalents',
+    ],
+    [record.facts.ebit, record.provenance.ebit, 'ebit'],
+    [
+      record.facts.depreciationAndAmortization,
+      record.provenance.depreciationAndAmortization,
+      'depreciationAndAmortization',
+    ],
+  ] as const) {
+    if ((fact === null) !== (provenance === null)) {
+      throw new Error(`${fieldName} fact and provenance must agree on null`)
+    }
   }
 
   return {
@@ -187,6 +261,15 @@ function toInsertRow(
     issued_shares_unscaled: record.facts.issuedShares?.unscaledValue ?? null,
     issued_shares_scale: record.facts.issuedShares?.scale ?? null,
     shareholder_count: null,
+    financial_debt_current_minor:
+      record.facts.financialDebtCurrent?.amountInMinorUnits ?? null,
+    financial_debt_noncurrent_minor:
+      record.facts.financialDebtNonCurrent?.amountInMinorUnits ?? null,
+    cash_and_equivalents_minor:
+      record.facts.cashAndEquivalents?.amountInMinorUnits ?? null,
+    ebit_minor: record.facts.ebit?.amountInMinorUnits ?? null,
+    depreciation_and_amortization_minor:
+      record.facts.depreciationAndAmortization?.amountInMinorUnits ?? null,
     provenance: toJson(record.provenance),
   }
 }
@@ -227,6 +310,11 @@ type FundamentalProvenance = {
   totalEquity: CvmFactProvenance
   operatingCashFlow: CvmFactProvenance
   issuedShares: CvmCapitalCompositionProvenance | null
+  financialDebtCurrent: CvmFactProvenance | null
+  financialDebtNonCurrent: CvmFactProvenance | null
+  cashAndEquivalents: CvmFactProvenance | null
+  ebit: CvmFactProvenance | null
+  depreciationAndAmortization: CvmFactProvenance | null
 }
 
 function isJsonRecord(
@@ -303,6 +391,15 @@ function readCapitalCompositionProvenance(
   }
 }
 
+function readNullableFactProvenance(
+  value: FundamentalSnapshotJson | undefined,
+  fieldName: string
+): CvmFactProvenance | null {
+  return value === null || value === undefined
+    ? null
+    : readFactProvenance(value, fieldName)
+}
+
 function readProvenance(value: FundamentalSnapshotJson): FundamentalProvenance {
   if (!value || Array.isArray(value) || typeof value !== 'object') {
     throw new Error('Invalid fundamental snapshot provenance')
@@ -324,6 +421,23 @@ function readProvenance(value: FundamentalSnapshotJson): FundamentalProvenance {
       value.issuedShares === null
         ? null
         : readCapitalCompositionProvenance(value.issuedShares),
+    financialDebtCurrent: readNullableFactProvenance(
+      value.financialDebtCurrent,
+      'financialDebtCurrent'
+    ),
+    financialDebtNonCurrent: readNullableFactProvenance(
+      value.financialDebtNonCurrent,
+      'financialDebtNonCurrent'
+    ),
+    cashAndEquivalents: readNullableFactProvenance(
+      value.cashAndEquivalents,
+      'cashAndEquivalents'
+    ),
+    ebit: readNullableFactProvenance(value.ebit, 'ebit'),
+    depreciationAndAmortization: readNullableFactProvenance(
+      value.depreciationAndAmortization,
+      'depreciationAndAmortization'
+    ),
   }
 }
 
@@ -368,6 +482,22 @@ export function mapFundamentalSnapshotRow(
       throw new Error('Fundamental provenance does not match filing identity')
     }
   }
+  for (const fact of [
+    provenance.financialDebtCurrent,
+    provenance.financialDebtNonCurrent,
+    provenance.cashAndEquivalents,
+    provenance.ebit,
+    provenance.depreciationAndAmortization,
+  ]) {
+    if (
+      fact !== null &&
+      (fact.referenceDate !== row.reference_date ||
+        fact.version !== row.filing_version ||
+        fact.exerciseOrder !== row.exercise_order)
+    ) {
+      throw new Error('Fundamental provenance does not match filing identity')
+    }
+  }
 
   const issuedShares = readIssuedShares(
     row.issued_shares_unscaled,
@@ -375,6 +505,33 @@ export function mapFundamentalSnapshotRow(
   )
   if ((issuedShares === null) !== (provenance.issuedShares === null)) {
     throw new Error('Issued shares fact and provenance must agree on null')
+  }
+  for (const [value, prov, fieldName] of [
+    [
+      row.financial_debt_current_minor,
+      provenance.financialDebtCurrent,
+      'financialDebtCurrent',
+    ],
+    [
+      row.financial_debt_noncurrent_minor,
+      provenance.financialDebtNonCurrent,
+      'financialDebtNonCurrent',
+    ],
+    [
+      row.cash_and_equivalents_minor,
+      provenance.cashAndEquivalents,
+      'cashAndEquivalents',
+    ],
+    [row.ebit_minor, provenance.ebit, 'ebit'],
+    [
+      row.depreciation_and_amortization_minor,
+      provenance.depreciationAndAmortization,
+      'depreciationAndAmortization',
+    ],
+  ] as const) {
+    if ((value === null) !== (prov === null)) {
+      throw new Error(`${fieldName} fact and provenance must agree on null`)
+    }
   }
 
   return {
@@ -397,6 +554,23 @@ export function mapFundamentalSnapshotRow(
         'Operating cash flow'
       ),
       issuedShares,
+      financialDebtCurrent: readNullableBrlFact(
+        row.financial_debt_current_minor,
+        'Financial debt (current)'
+      ),
+      financialDebtNonCurrent: readNullableBrlFact(
+        row.financial_debt_noncurrent_minor,
+        'Financial debt (non-current)'
+      ),
+      cashAndEquivalents: readNullableBrlFact(
+        row.cash_and_equivalents_minor,
+        'Cash and equivalents'
+      ),
+      ebit: readNullableBrlFact(row.ebit_minor, 'EBIT'),
+      depreciationAndAmortization: readNullableBrlFact(
+        row.depreciation_and_amortization_minor,
+        'Depreciation and amortization'
+      ),
     },
   }
 }

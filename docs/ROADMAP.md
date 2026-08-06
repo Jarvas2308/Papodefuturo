@@ -1030,8 +1030,22 @@ integração com o motor, editável).
      sem fonte nova, só a adição do mapeamento. Evento de ocorrência
      (data, título, link), não o valor do provento em si — extrair o
      valor exigiria ler o PDF/link, fora do escopo desta entrada.
-4. **Providers ETF** — 2 de 3 itens resolvidos (`DEC-084`, `DEC-092`), 1
-   segue bloqueado (`DEC-083` continua válido pra FRED).
+   - **Dívida financeira, caixa e EBITDA — resolvido (`DEC-094`,
+     06/08/2026).** Premissa de "precisa provider novo" derrubada:
+     insumos vêm do mesmo DFP/ITR já consumido por `cvm-stocks`, só
+     campos novos. `BPP_con` `2.01.04`/`2.02.01` "Empréstimos e
+     Financiamentos", `BPA_con` `1.01.01` "Caixa e Equivalentes de
+     Caixa", `DRE_con` `3.05` "Resultado Antes do Resultado Financeiro e
+     dos Tributos" (EBIT, confirmado universal entre ITSA4/TAEE11/WEGE3/
+     PSSA3, dado real do DFP 2025 baixado nesta sessão). D&A só por
+     descrição (allowlist de 3 variantes reais), código de conta varia
+     por empresa. Banco (BBAS3) usa os mesmos códigos pra "Depósitos"/
+     "Caixa" — os 5 fatos ficam `null`, regime errado, não dado ausente.
+     5 colunas novas em `fundamental_snapshots` (migration
+     `20260806130000`, aplicada em produção). Ver item 5 pro sinal de
+     score derivado.
+4. **Providers ETF** — 2 de 3 itens resolvidos (`DEC-084`, `DEC-092`), o
+   terceiro (FRED) parcialmente resolvido (`DEC-093`).
    - **NAV por cota / cotas em circulação — premissa errada, corrigida, e
      prêmio/desconto resolvido por fonte alternativa (`DEC-092`).**
      "Campo já existe no formulário" não era verdade: N-PORT real da VOO
@@ -1067,8 +1081,8 @@ integração com o motor, editável).
    - O item restante (FRED) segue pausado até o usuário fornecer a chave —
      não é codificável sem essa decisão externa.
 5. **Motor de score — fechado até onde o dado real permite
-   (`DEC-085`/`DEC-086`/`DEC-090`/`DEC-091`/`DEC-092`).**
-   `src/domain/fundamentals/score/` cobre, hoje, 7 dos 12 sinais do
+   (`DEC-085`/`DEC-086`/`DEC-090`/`DEC-091`/`DEC-092`/`DEC-094`).**
+   `src/domain/fundamentals/score/` cobre, hoje, 8 dos 12 sinais do
    rascunho de pontuação:
    - **FII tijolo (4/5):** vacância, WALE, concentração do maior
      inquilino, P/VP. Spread de DY sobre NTN-B bloqueado — precisa valor
@@ -1076,14 +1090,35 @@ integração com o motor, editável).
      bloqueado de verdade (`DEC-091` baixou e inspecionou os datasets
      reais da CVM: FRE, Informe Mensal e DFIN não têm o valor em nenhum
      CSV estruturado, nem para FII nem para ação).
-   - **Ação (1/4):** ROE, aplicável a todos os regimes exceto holding
-     pura. Os outros 3 ficam bloqueados por motivos diferentes: payout
-     (mesmo bloqueio de valor de provento do FII), dívida líquida/EBITDA
-     (dívida financeira e D&A não são extraídos do DFP/ITR — precisa
-     provider novo, não só o motor), P/L vs série histórica (só 1-2
-     períodos ingeridos por empresa até agora — amostra pequena demais
-     para um quartil confiável; o mecanismo existiria, falta profundidade
-     histórica real).
+   - **Ação (2/4, `DEC-094`):** ROE, aplicável a todos os regimes exceto
+     holding pura, e dívida líquida/EBITDA, aplicável a todos os regimes
+     exceto banco. Insumos confirmados baixando e inspecionando o DFP
+     2025 real dos 5 tickers: `BPP_con` códigos `2.01.04`/`2.02.01`
+     "Empréstimos e Financiamentos" (circulante/não circulante, mantidos
+     separados no contrato de fatos, soma fica a cargo do sinal), `BPA_con`
+     `1.01.01` "Caixa e Equivalentes de Caixa", `DRE_con` `3.05`
+     "Resultado Antes do Resultado Financeiro e dos Tributos" (EBIT,
+     código e descrição confirmados idênticos entre ITSA4/TAEE11/WEGE3/
+     PSSA3, mesmo padrão de universalidade do `3.11`), e a linha de
+     depreciação/amortização do DFC (método indireto) em allowlist
+     fechada de 3 descrições reais (código de conta varia por empresa,
+     só a descrição é estável). Banco (BBAS3) usa os mesmos códigos de
+     `2.01.04`/`1.01.01` para conceitos estruturalmente diferentes
+     ("Depósitos", "Caixa") — os 5 fatos ficam `null` por regime errado,
+     não por dado ausente; `selectOptionalFact` (variante de `selectFact`
+     que devolve `null` em vez de lançar quando zero candidatos batem, sem
+     afrouxar a rejeição de ambiguidade) formaliza essa diferença. EBITDA
+     não positivo degrada pra `unavailable` em vez de propagar exceção
+     (mesmo espírito best-effort do resto do motor). Payout (mesmo
+     bloqueio de valor de provento do FII) e P/L vs série histórica (só
+     1-2 períodos ingeridos por empresa até agora — amostra pequena
+     demais para um quartil confiável; o mecanismo existiria, falta
+     profundidade histórica real) seguem bloqueados. Migration
+     `20260806130000` aplicada em produção (5 colunas novas em
+     `fundamental_snapshots`, todas nullable); backfill real dos 5
+     tickers ainda não executado neste ciclo — os providers extraem os
+     fatos novos na próxima ingestão real (`cvm-stocks --source=DFP`/
+     `--source=ITR`), não fica automático para snapshots já persistidos.
    - **ETF (2/3):** CAPE de VOO vs própria média de 10 anos —
      `extractShillerCapeHistoryV1` reingere 11 anos de histórico (o
      arquivo do Shiller já contém a série completa, só não era mantida),
@@ -1098,8 +1133,12 @@ integração com o motor, editável).
      quando o desvio ultrapassa 50 basis points em módulo (prêmio ou
      desconto), 0 dentro da faixa normal de tracking. Frescor de 5 dias
      (fonte diária, mais curto que qualquer outro sinal do motor). Spread
-     de DY sobre TIPS segue bloqueado, depende de chave de API do FRED
-     (usuário).
+     de DY sobre TIPS: taxa TIPS (FRED `DFII10`) resolvida e ingerida em
+     produção em 06/08/2026 (`DEC-093`, chave de API configurada pelo usuário,
+     provider `fredProvider.ts`, série `fred-dfii10` em
+     `market_reference_rates`) — mas o sinal em si segue bloqueado, mesmo
+     motivo do payout (DY depende do valor do provento, não só ingerido
+     como evento).
    - Cada classe de ativo com sinal implementado está conectada ao fluxo
      real de aporte (não é só o motor de domínio isolado) — ver item 6.
 6. **Integração no motor — implementada e conectada ao fluxo real

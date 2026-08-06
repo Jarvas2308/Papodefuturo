@@ -187,6 +187,27 @@ function copyBrazilianStockFacts(
       facts.issuedShares === null
         ? null
         : normalizeExactDecimalQuantity(facts.issuedShares, 'Issued shares'),
+    financialDebtCurrent: copySignedMonetaryFact(
+      facts.financialDebtCurrent,
+      'BRL',
+      'Financial debt (current)'
+    ),
+    financialDebtNonCurrent: copySignedMonetaryFact(
+      facts.financialDebtNonCurrent,
+      'BRL',
+      'Financial debt (non-current)'
+    ),
+    cashAndEquivalents: copySignedMonetaryFact(
+      facts.cashAndEquivalents,
+      'BRL',
+      'Cash and equivalents'
+    ),
+    ebit: copySignedMonetaryFact(facts.ebit, 'BRL', 'EBIT'),
+    depreciationAndAmortization: copySignedMonetaryFact(
+      facts.depreciationAndAmortization,
+      'BRL',
+      'Depreciation and amortization'
+    ),
   }
 }
 
