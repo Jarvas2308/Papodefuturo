@@ -1239,20 +1239,32 @@ numeração de sprint.
 2. **Notícias editoriais** — `NO-GO` (DEC-036). Nenhum provider editorial
    aprovado.
 
-3. **4 sinais do motor de score (Sprint 16) bloqueados por dado externo,
-   não por escopo** — sem prazo, reabrem sozinhos se a fonte aparecer:
-   - Spread de DY sobre NTN-B (FII) e payout (ação) — dependem do valor
-     do provento; evento de distribuição já é ingerido (CVM IPE), mas o
-     valor em si não existe em nenhum CSV estruturado da CVM confirmado
-     até agora (FRE, Informe Mensal, DFIN — `DEC-091`). Extrair exigiria
-     ler PDF/link, fora do padrão de fonte estruturada do resto do
-     projeto.
-   - Spread de DY sobre TIPS (ETF) — mesmo bloqueio de valor de provento
-     (VNQ); a metade do sinal que não depende disso (taxa TIPS via FRED)
-     já está resolvida e em produção (`DEC-093`).
-   - P/L vs série histórica (ação) — mecanismo existiria, mas só 1-2
-     períodos estão ingeridos por empresa; precisa mais tempo/mais
-     execuções de ingestão real acumulando histórico, não mais código.
+3. **4 sinais do motor de score (Sprint 16) — dado do valor de provento
+   deixou de ser bloqueio, virou trabalho de wiring em andamento
+   (`DEC-095`, 06/08/2026)**:
+   - Spread de DY sobre NTN-B (FII), payout (ação) e spread de DY sobre
+     TIPS (ETF, `VNQ`) dependem do valor do provento. Nenhum CSV
+     estruturado da CVM tem esse valor (FRE, Informe Mensal, DFIN —
+     `DEC-091`, revalidado). Dois extratores de PDF prontos e testados:
+     prosa do Fato Relevante/Aviso aos Acionistas (`DEC-095`, frágil,
+     risco aceito) e, melhor, o formulário "Provento" estruturado da
+     própria CVM (categoria IPE `Relatório Proventos`, template fixo,
+     cross-validado com a prosa — mesmo número real por duas fontes
+     independentes). Falta: rodar o backfill oficial dessa categoria em
+     produção (comando em `DEC-095`), escrever dedup por "Protocolo
+     Provento" + Versão e a agregação trailing-12-meses (usuário já
+     confirmou: qualquer trimestre não parseável marca `unavailable` o
+     ativo inteiro, nunca soma parcial), e então conectar cada um dos 3
+     sinais.
+   - Spread de DY sobre TIPS (ETF) também já tem a taxa TIPS resolvida
+     via FRED em produção (`DEC-093`) — só falta a metade do provento,
+     mesma peça acima.
+   - P/L vs série histórica (ação) — `composicao_capital` real dos 5
+     tickers populado em produção (`DEC-095`), resolvendo uma das três
+     peças que faltavam. Ainda faltam: mais anos de DFP ingeridos por
+     empresa (amostra de 1-2 períodos é pequena demais pra um quartil
+     confiável) e preço de fechamento histórico por data de exercício
+     (via B3 COTAHIST anual, não investigado ainda).
 
 ## Fase operacional — concluída
 
