@@ -12,6 +12,7 @@
     "check:health": "node scripts/check-health.mjs",
     "audit:dead-code": "knip",
     "backfill:official-events": "npx tsx scripts/run-official-events-backfill.ts",
+    "backfill:provento-declaration-values": "npx tsx scripts/run-provento-declaration-values-backfill.ts",
     "ingest:fundamentals": "npx tsx scripts/run-fundamentals-ingestion.ts",
     "preview": "vite preview",
     "format": "prettier --write .",

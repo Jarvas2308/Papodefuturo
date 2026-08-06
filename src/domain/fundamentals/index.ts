@@ -4,6 +4,7 @@ export {
   formatExactDecimalQuantity,
   MAX_EXACT_DECIMAL_SCALE,
   normalizeExactDecimalQuantity,
+  parseExactDecimalString,
 } from './exactDecimalQuantity'
 export { FUNDAMENTAL_FACTS_V1_SCHEMA_VERSION } from './types'
 export type {
