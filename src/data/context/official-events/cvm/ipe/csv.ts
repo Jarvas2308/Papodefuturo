@@ -53,8 +53,23 @@ function parseDelimitedRows(content: string): string[][] {
         pushField()
       } else if (character === '\n') {
         pushRow()
-      } else if (character !== '\r' || content[index + 1] !== '\n') {
-        throw new Error('CVM IPE CSV has content after a closing quote')
+      } else if (character === '\r' && content[index + 1] === '\n') {
+        // no-op: the '\n' on the next iteration triggers pushRow()
+      } else {
+        // The quote we just closed on wasn't actually a field terminator -
+        // real CVM IPE exports (confirmed with ipe_cia_aberta_2024.zip)
+        // sometimes embed a literal, undoubled quote mid free-text field
+        // (e.g. citing item "1" of a corporate-act list without escaping
+        // it as ""1"" per RFC4180). Recover instead of aborting the whole
+        // archive on one malformed field: treat the quote as a literal
+        // character and fall back to unquoted-field handling for the
+        // rest of the field (matches the existing "stray quote in an
+        // unquoted field" behavior below) - a doubled-quote escape is
+        // only meaningful inside a properly quoted field, which this one
+        // no longer is once malformed.
+        field += '"'
+        afterClosingQuote = false
+        index -= 1
       }
     } else if (character === '"' && atFieldStart) {
       quoted = true
