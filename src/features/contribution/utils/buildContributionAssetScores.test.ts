@@ -11,6 +11,7 @@ import {
   toContributionAssetScores,
 } from './buildContributionAssetScores'
 import {
+  DEFAULT_ETF_SIGNAL_RULES,
   DEFAULT_FII_TIJOLO_SIGNAL_RULES,
   DEFAULT_STOCK_SIGNAL_RULES,
 } from '../../../domain/fundamentals/score'
@@ -68,11 +69,12 @@ function emptyDerived(): FundamentalDerivedFactsV1 {
 }
 
 describe('getMissingDefaultFiiSignalRules', () => {
-  it('returns every default rule (FII and stock) when the user has none', () => {
+  it('returns every default rule (FII, stock and ETF) when the user has none', () => {
     const missing = getMissingDefaultFiiSignalRules([])
     expect(missing).toEqual([
       ...DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       ...DEFAULT_STOCK_SIGNAL_RULES,
+      ...DEFAULT_ETF_SIGNAL_RULES,
     ])
   })
 
@@ -99,6 +101,7 @@ describe('getMissingDefaultFiiSignalRules', () => {
     const allDefaultKeys = [
       ...DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       ...DEFAULT_STOCK_SIGNAL_RULES,
+      ...DEFAULT_ETF_SIGNAL_RULES,
     ].map((rule) => rule.signalKey)
     const existing: SignalRule[] = [...new Set(allDefaultKeys)].map(
       (signalKey, index) => ({
@@ -135,6 +138,7 @@ describe('buildContributionAssetScoresV1', () => {
       latestPricesByAsset: new Map(),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [],
     })
 
     expect(scores).toEqual([])
@@ -150,6 +154,7 @@ describe('buildContributionAssetScoresV1', () => {
       latestPricesByAsset: new Map(),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [],
     })
 
     expect(scores).toEqual([])
@@ -194,6 +199,7 @@ describe('buildContributionAssetScoresV1', () => {
       latestPricesByAsset: new Map(),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -263,6 +269,7 @@ describe('buildContributionAssetScoresV1', () => {
       latestPricesByAsset: new Map([[asset.id, wrongCurrencyPrice]]),
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -320,6 +327,7 @@ describe('buildContributionAssetScoresV1', () => {
       latestPricesByAsset: new Map(),
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -345,12 +353,13 @@ describe('buildContributionAssetScoresV1', () => {
       latestPricesByAsset: new Map(),
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [],
     })
 
     expect(scores).toEqual([])
   })
 
-  it('skips an international-etf asset (no signal implemented yet)', () => {
+  it('scores CAPE deviation for VOO using the CAPE history, independent of fundamental_snapshots', () => {
     const asset: Asset = {
       id: 'asset-voo',
       ticker: 'VOO',
@@ -361,29 +370,59 @@ describe('buildContributionAssetScoresV1', () => {
       assetType: null,
       assetSegment: 'indice-amplo-us',
     }
-    const facts: FundamentalFactsV1 = {
-      ...emptyFacts(),
-      assets: [
-        {
-          assetId: asset.id,
-          ticker: 'VOO',
-          name: asset.name,
-          category: 'international-etf',
-          snapshots: [],
-        },
+
+    const scores = buildContributionAssetScoresV1({
+      assets: [asset],
+      facts: emptyFacts(),
+      derived: emptyDerived(),
+      latestPricesByAsset: new Map(),
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+      capeHistory: [
+        { referenceDate: '2026-06-01', valueScaled: 20_000_000 },
+        { referenceDate: '2026-07-01', valueScaled: 30_000_000 },
+        { referenceDate: '2026-08-01', valueScaled: 10_000_000 },
       ],
+    })
+
+    expect(scores).toHaveLength(1)
+    expect(scores[0]).toMatchObject({ assetId: asset.id, totalPoints: 2 })
+  })
+
+  it('marks VNQ (reit-us) as wrong-regime for the CAPE signal', () => {
+    const asset: Asset = {
+      id: 'asset-vnq',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      category: 'international-etf',
+      market: 'US',
+      status: 'active',
+      assetType: null,
+      assetSegment: 'reit-us',
     }
 
     const scores = buildContributionAssetScoresV1({
       assets: [asset],
-      facts,
+      facts: emptyFacts(),
       derived: emptyDerived(),
       latestPricesByAsset: new Map(),
-      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
+      capeHistory: [{ referenceDate: '2026-08-01', valueScaled: 30_000_000 }],
     })
 
-    expect(scores).toEqual([])
+    expect(scores).toHaveLength(1)
+    expect(scores[0]).toMatchObject({
+      assetId: asset.id,
+      totalPoints: 0,
+      signals: [
+        {
+          signalKey: 'etf_cape_vs_10y_avg',
+          status: 'unavailable',
+          reason: 'wrong-regime',
+        },
+      ],
+    })
   })
 })
 

@@ -3470,3 +3470,76 @@ no-improving-purchase, even with a high score on the losing asset'`).
   histórico com o tempo, sem trabalho novo), reingerir Shiller com
   histórico + módulo de score de ETF (fatia própria), chave FRED e nova
   fonte de NAV de ETF (decisões do usuário).
+
+## DEC-091 — Sprint 16, Fase 5: valor de provento confirmado bloqueado + CAPE de ETF implementado
+
+- Data: 5 de agosto de 2026
+- Status: Aceita e implementada
+- Contexto: usuário pediu explicitamente para extrair o valor do provento
+  (desbloquearia spread de DY de FII e payout de ação, `DEC-090`). Em vez
+  de assumir a partir da nota já registrada em `DEC-082`/`ACOES_BR_SETORES_E_METRICAS.md`,
+  seção 6.2 ("extrair o valor exigiria ler o PDF/link"), esta entrada
+  verificou de novo, com dado real baixado, se algum dataset estruturado
+  novo tinha aparecido.
+- Decisão, em duas partes:
+  1. **Valor de provento — bloqueio reconfirmado com dado real, não
+     assumido.** Uma busca inicial sugeriu um dataset CVM chamado
+     `fre_cia_aberta_distribuicao_dividendos` — baixado o ZIP real
+     (`fre_cia_aberta_2026.zip`, 34 arquivos) e conferido: esse arquivo
+     não existe; o nome real mais próximo,
+     `fre_cia_aberta_distribuicao_capital`, é estrutura societária (free
+     float, nº de acionistas PF/PJ), não valor de dividendo — a sugestão
+     da busca era imprecisa. Verificado também o Informe Mensal de FII
+     (`geral`/`complemento`/`ativo_passivo`, os 3 únicos CSVs do pacote) e
+     o DFIN de FII (`dfin_fii_2026.csv`, que é só índice de links pra
+     documentos, sem linha estruturada). Nenhum dos três tem o valor do
+     provento. Conclusão: o bloqueio documentado em `DEC-083`/`ACOES_BR_SETORES_E_METRICAS.md`
+     estava correto — segue sem fonte estruturada, tanto pra FII quanto
+     pra ação. B3 tem o dado, mas só via chamada interna não documentada
+     (mesmo tipo de fonte não-oficial já rejeitado pra notícias,
+     `DEC-036`) — não usado, mantendo o padrão de fonte regulatória
+     oficial e estruturada do resto do projeto.
+  2. **CAPE de VOO vs própria média de 10 anos — desbloqueado e
+     implementado.** Ao investigar o bloqueio de ETF documentado em
+     `DEC-090`, achado que o próprio arquivo do Shiller (`ie_data.xls`)
+     já contém a série completa desde 1871 — a ingestão da `DEC-084` só
+     descartava tudo exceto o ponto mais recente, decisão correta _para o
+     que a Fase 4 pedia então_, mas não uma limitação da fonte.
+     `extractShillerCapeHistoryV1` (`src/data/fundamentals/shiller/provider.ts`)
+     extrai 11 anos de histórico (folga de 1 ano sobre a janela de 10
+     anos usada no cálculo). `createSupabaseShillerCapeHistoryRepository`
+     (`supabaseShillerCapeSnapshots.ts`) é o primeiro repositório de
+     leitura de `market_valuation_ratios` — só `SELECT`, sob a mesma RLS
+     autenticado-only da `DEC-084`. `upsertMany` do storage de escrita
+     passou a quebrar em lotes de até 20 (limite do RPC, `DEC-084`) porque
+     11 anos mensais somam ~132 linhas. `computeEtfCapeDeviationV1`
+     calcula desvio = CAPE atual − média (`BigInt` exato, arredondamento
+     half-away-from-zero, janela de 10 anos incluindo o ponto mais
+     recente — convenção documentada, não inferida em silêncio).
+     `buildInternationalEtfScoreV1` aplica o sinal só a VOO
+     (`indice-amplo-us`) — VNQ e VEA recebem `wrong-regime`, nunca um
+     número. Frescor próprio (`SHILLER_CAPE_STALE_AFTER_DAYS = 60`,
+     Shiller publica mensalmente com pouco atraso, limiar mais apertado
+     que o trimestral da CVM). `buildContributionAssetScoresV1` roteia
+     ETF antes da checagem de `factsAsset` — CAPE não depende de
+     `fundamental_snapshots`, vem de uma fonte de mercado agregada
+     separada.
+- Verificação: 5 arquivos de teste novos (`computeEtfCapeDeviationV1.test.ts`:
+  6 testes; `buildInternationalEtfScoreV1.test.ts`: 6 testes; testes
+  adicionados em `provider.test.ts`, `ingestShillerCape.test.ts` e
+  `supabaseShillerCapeSnapshots.test.ts` para histórico, batching e
+  leitura), mais testes atualizados em `buildContributionAssetScores.test.ts`
+  e `useContributionData.test.ts` para as 3 classes de sinal seedadas.
+  Suíte completa: 166/166 arquivos, 2472/2472 testes passando. Typecheck,
+  lint e format limpos. Nenhuma escrita em produção nesta entrada (a
+  reingestão real do histórico do Shiller exige rodar o CLI com
+  `--confirm`, não executado nesta sessão).
+- Consequências: Fase 5 fica com 6 de 12 sinais implementados (4 FII + 1
+  ação + 1 ETF). Restam bloqueados: payout de ação e spread de DY de FII
+  (sem fonte estruturada, `DEC-091`), dívida/EBITDA de ação (provider
+  novo), P/L histórico de ação (profundidade de amostra), spread DY/TIPS
+  de ETF (chave FRED) e prêmio/desconto NAV de ETF (campo ausente no
+  N-PORT). Próximo passo prático antes do sinal de CAPE valer para um
+  usuário real: rodar `npx tsx scripts/run-fundamentals-ingestion.ts
+--provider=shiller-cape --confirm` para popular o histórico em produção
+  — sem isso, `capeHistory` chega vazio e o sinal fica `unavailable`.

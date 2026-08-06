@@ -32,6 +32,7 @@ import {
   createSupabaseFundamentalSnapshotRepository,
   createSupabaseRealEstateFundSnapshotRepository,
 } from '../../../data/fundamentals'
+import { createSupabaseShillerCapeHistoryRepository } from '../../../data/fundamentals/supabaseShillerCapeSnapshots'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
 import type { AssetScoreV1 } from '../../../domain/fundamentals/score'
@@ -123,9 +124,12 @@ export async function loadContributionAssetScoresBestEffort(
       createSupabaseRealEstateFundSnapshotRepository(client)
     const stockSnapshotRepository =
       createSupabaseFundamentalSnapshotRepository(client)
-    const [fiiSnapshots, stockSnapshots] = await Promise.all([
+    const capeHistoryRepository =
+      createSupabaseShillerCapeHistoryRepository(client)
+    const [fiiSnapshots, stockSnapshots, capeHistory] = await Promise.all([
       fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
       stockSnapshotRepository.listBrazilianStockSnapshots(assets),
+      capeHistoryRepository.listShillerCapeHistory(),
     ])
     const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
@@ -153,6 +157,7 @@ export async function loadContributionAssetScoresBestEffort(
         facts,
         derived,
         latestPricesByAsset,
+        capeHistory,
         rules,
         now,
       }),

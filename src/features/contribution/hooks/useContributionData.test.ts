@@ -17,6 +17,7 @@ import {
   matchRegisteredPurchasesToPlanItems,
 } from './useContributionData'
 import {
+  DEFAULT_ETF_SIGNAL_RULES,
   DEFAULT_FII_TIJOLO_SIGNAL_RULES,
   DEFAULT_STOCK_SIGNAL_RULES,
 } from '../../../domain/fundamentals/score'
@@ -610,7 +611,9 @@ describe('loadContributionAssetScoresBestEffort', () => {
     )
 
     expect(repositories.signalRules.create).toHaveBeenCalledTimes(
-      DEFAULT_FII_TIJOLO_SIGNAL_RULES.length + DEFAULT_STOCK_SIGNAL_RULES.length
+      DEFAULT_FII_TIJOLO_SIGNAL_RULES.length +
+        DEFAULT_STOCK_SIGNAL_RULES.length +
+        DEFAULT_ETF_SIGNAL_RULES.length
     )
   })
 
