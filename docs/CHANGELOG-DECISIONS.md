@@ -4020,3 +4020,47 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   `extractProventoDeclarationIdentityV1.ts` ainda não tem consumidor em
   produção (esperado — aguarda o mesmo wiring de
   `fetchProventoDocumentText.ts`/`extractProventoFormV1.ts`).
+
+## DEC-102 — Schema de armazenamento pro valor de provento extraído, aplicado em produção
+
+- Data: 6 de agosto de 2026
+- Status: Aceita
+- Contexto: `DEC-097` deixou o wiring de provento bloqueado por falta de
+  schema. `DEC-101` resolveu a pergunta de dedup. Faltava o lugar pra
+  guardar o valor extraído por evento.
+- Decisão: migration `20260806140000_create_provento_declaration_values.sql`
+  aplicada em produção (usuário confirmou explicitamente, classificador
+  de permissão bloqueou a primeira tentativa de `apply_migration`, passou
+  na segunda após reconfirmação). Tabela `provento_declaration_values`,
+  mesmo padrão de acesso de `market_etf_valuations` (`DEC-092`): global,
+  RLS com select para `authenticated`, escrita só via RPC
+  `upsert_provento_declaration_values_v1` (`security definer`, lock
+  advisory, batch até 100 registros) para `service_role`, sem DML direto
+  nem para `service_role` depois de criada a RPC.
+  - Identidade de armazenamento: `(event_id, isin)` — cada
+    `official_asset_event` é um documento só, pode ter mais de um ISIN
+    (ON/PN, units).
+  - Valor bruto por ação: `gross_value_per_share_unscaled` +
+    `gross_value_per_share_scale` (decimal exato, mesmo padrão de
+    `issued_shares_unscaled`/`issued_shares_scale`), não
+    `FUNDAMENTAL_RATIO_SCALE` (1e6) — a fonte chega com até 11 casas
+    decimais e o projeto nunca trunca precisão de fonte sem necessidade.
+  - `protocol`/`version`: o Protocolo Provento interno confirmado por
+    `DEC-101`, índice dedicado `(protocol, version desc)` pra facilitar a
+    agregação "versão mais alta vence" na leitura.
+  - FK pra `official_asset_events(event_id)` — mantém a garantia de que
+    todo valor extraído aponta pra um evento oficial real já auditado.
+- Verificação: `get_advisors` (security) sem novo achado além dos já
+  conhecidos e pré-existentes. `generate_typescript_types` rodado e
+  `src/lib/database.types.ts` regenerado por inteiro (não patch manual
+  desta vez — schema novo, não extensão de tabela existente).
+  `tsc --noEmit` limpo depois da regeneração.
+- Consequências: schema pronto. Falta ainda: código de aplicação
+  (storage adapter TypeScript espelhando `toOfficialAssetEventSupabaseRowV1`/
+  `market_etf_valuations`, ligando `extractProventoFormV1` +
+  `extractProventoDeclarationIdentityV1` + `fetchProventoDocumentText` num
+  provider único), a agregação trailing-12-meses (regra `unavailable` no
+  primeiro trimestre ilegível, confirmada com o usuário em `DEC-095`), e
+  a integração nos 3 sinais de score (spread DY de FII, payout de ação,
+  spread DY de ETF). Nenhum dado real ainda persistido nesta tabela —
+  schema existe, backfill de valores ainda não rodou.
