@@ -1288,16 +1288,30 @@ numeração de sprint.
      2025-2026) — no caminho, achado e corrigido um bug real de
      produção (`persistOfficialAssetEventsV1` não fatiava batches
      acima de 500 registros, travando qualquer job com mais de 500
-     eventos únicos). Falta ainda: extrair o valor de cada evento
-     rodando `extractProventoFormV1.ts` contra os PDFs reais, escrever
-     dedup por "Protocolo Provento" + Versão (achado em `DEC-096`/
-     `DEC-097`: a coluna `protocol_number` está `null` em produção — o
-     mapeamento do `cvm-ipe` ainda não extrai esse campo do formulário,
-     só o protocolo do URL do ENET, que já compõe a identidade do
-     evento) e a agregação trailing-12-meses (usuário já confirmou:
-     qualquer trimestre não parseável marca `unavailable` o ativo
-     inteiro, nunca soma parcial), e então conectar cada um dos 3
-     sinais.
+     eventos únicos). **Dedup resolvido em 06/08/2026 (`DEC-101`)**:
+     confirmado com 5 PDFs reais que a linha "Protocolo Provento Versão
+     Data Envio" (antes da tabela de valores, não confundir com o
+     protocolo do URL do ENET/`protocol_number`, que segue `null` —
+     campo diferente) é a identidade real da declaração; duas
+     submissões ENET distintas podem compartilhar o mesmo Protocolo
+     Provento com Versão incrementada.
+     `extractProventoDeclarationIdentityV1.ts` implementado e testado.
+     **Schema de armazenamento aplicado em produção em 06/08/2026
+     (`DEC-102`)**: tabela `provento_declaration_values`, mesmo padrão
+     de acesso de `market_etf_valuations`, valor bruto como decimal
+     exato (unscaled+scale, fonte tem até 11 casas decimais). Nenhum
+     dado real persistido nela ainda, só o schema.
+
+     **Falta pro wiring completo:** storage adapter TypeScript (mesmo
+     padrão de `toOfficialAssetEventSupabaseRowV1`) ligando
+     `fetchProventoDocumentText` + `extractProventoFormV1` +
+     `extractProventoDeclarationIdentityV1` num provider único; rodar
+     esse provider contra os 65 eventos já persistidos (`DEC-097`) pra
+     popular `provento_declaration_values`; agregação trailing-12-meses
+     por ISIN, usando "versão mais alta por Protocolo Provento vence"
+     como regra de dedup na leitura (usuário já confirmou: qualquer
+     trimestre não parseável marca `unavailable` o ativo inteiro, nunca
+     soma parcial); e então conectar cada um dos 3 sinais.
    - Spread de DY sobre TIPS (ETF) também já tem a taxa TIPS resolvida
      via FRED em produção (`DEC-093`) — só falta a metade do provento,
      mesma peça acima.

@@ -148,6 +148,36 @@ projeto está no plano Free do Supabase. Sem upgrade pago, o advisory
 não é dívida de código nem de configuração, é decisão de custo do
 usuário.
 
+Uma décima sexta atualização, em 06/08/2026, fecha o ciclo de prontidão
+pós-uso por completo. Sprint 13 fechada (`DEC-098`): único fluxo sem
+teste de interação era cancelamento de compra em `HistoryPage`,
+coberto agora (4 testes, `useHistoryData` mockado por inteiro,
+confirmação só fecha em sucesso — não em erro, achado ao escrever o
+teste). Sprint 14 fechada (`DEC-099`): `ARCHITECTURE.md` corrigido
+(dizia domínio de eventos oficiais sem persistência/runtime, falso
+desde `DEC-041`), `fetchProventoDocumentText.ts` (`DEC-095`, zero
+teste até então) ganhou 3 testes, falsos positivos do `knip`
+(`tailwindcss`, especificador `npm:` do Deno em Edge Functions)
+confirmados sem ação, ~190 reexportações de barrel reconfirmadas como
+dívida deliberada (decisão original de `DEC-073` mantida). Sprint 15
+(multiusuário) virou `NO-GO` permanente (`DEC-100`) — usuário confirmou
+não ter pretensão de segundo usuário.
+
+Na sequência, mesma sessão, avanço real no wiring de provento
+(`DEC-097`, ver `docs/ROADMAP.md` "Itens abertos sem prazo" item 3 para
+o detalhe completo, não duplicado aqui): `DEC-101` resolveu a pergunta
+de dedup deixada em aberto por `DEC-096` — confirmado com 5 PDFs reais
+que a linha "Protocolo Provento Versão Data Envio" é a identidade real
+da declaração, extrator novo e testado. `DEC-102` aplicou em produção o
+schema de armazenamento (`provento_declaration_values`, migration
+`20260806140000`, mesmo padrão de acesso de `market_etf_valuations`,
+`database.types.ts` regenerado por inteiro). Nenhum dado real
+persistido nessa tabela ainda. Falta pro wiring completo: storage
+adapter TypeScript, provider unificado, backfill dos valores contra os
+65 eventos `dividend-or-distribution` já persistidos, agregação
+trailing-12-meses, integração nos 3 sinais de score — próximo passo
+natural de uma sessão nova.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em
@@ -173,7 +203,11 @@ Estado consolidado:
 - recuperação de senha real integrada (`DEC-069`); configurações reais e
   persistidas, sem notificações (`DEC-070`); log estruturado, aviso de
   preço obsoleto e checagem de saúde do cron (`DEC-071`); testes de
-  interação iniciados para autenticação e compra (`DEC-072`);
+  interação completos para autenticação, compra e cancelamento
+  (`DEC-072`, `DEC-098`);
+- ciclo de prontidão pós-uso (Sprints 9 a 15) fechado por completo em
+  06/08/2026 — 15 (multiusuário) por `NO-GO` (`DEC-100`), não por
+  entrega;
 - modo demo preservado e sem fallback silencioso após erro de consulta real.
 
 Nenhuma ordem financeira é executada automaticamente. O plano de aporte é uma
@@ -869,30 +903,28 @@ silenciosa. Decisão nova ou reversão exige registro explícito.
 A sequência operacional original de deployment (schema, canário, ativação
 `read-only`) e o backfill amplo que ela precedia estão ambos encerrados
 (`DEC-037` a `DEC-042`, depois `DEC-058`/`DEC-059` — ver seção 13). O ciclo
-de prontidão de sete sprints (`DEC-068`) também está parcialmente concluído:
-Sprints 9 a 13 fechadas, na ordem 9 → 10 → 11 → 12 → 13 (a última reordenada
-antes da 14 e da 16 por decisão do usuário — ver a décima quinta atualização
-no topo deste documento). O que resta:
+de prontidão de sete sprints (`DEC-068`) está **fechado por completo** desde
+06/08/2026: 9 a 12 concluídas, 13 (`DEC-098`) e 14 (`DEC-099`) fechadas,
+15 fechada por `NO-GO` (`DEC-100`, sem segundo usuário). Sprint 16 (motor
+de score) também está fechada (`DEC-068`, 8 de 12 sinais implementados
+com dado real em produção). O que resta, nesta ordem de dependência real:
 
-1. **Sprint 14** — reconciliação documental (esta seção e as seções 1, 2 e
-   13 já corrigidas nesta rodada; verificar `docs/ARCHITECTURE.md` e
-   `docs/PRODUCT.md` quanto a trecho pré-persistência remanescente) e
-   limpeza de código morto;
-2. **Sprint 16** — motor evolui de determinístico puro para recomendador
-   por score (`DEC-068`), dentro do universo fechado de 12 ativos, com peso
-   definido pelo usuário e confirmação manual obrigatória antes de qualquer
-   `purchases`. Pesquisa de fonte concluída para FII, ação BR e ETF
-   internacional em `docs/reference/`; nenhum provider novo, campo de
-   schema (`asset_type`/`asset_segment`) ou integração no motor foi
-   implementado ainda;
+1. **Wiring de provento** (item aberto sem número de sprint, ver
+   `docs/ROADMAP.md` "Itens abertos sem prazo" item 3 para o detalhe
+   completo) — dedup resolvido (`DEC-101`) e schema aplicado em produção
+   (`DEC-102`), ambos 06/08/2026. Falta: storage adapter TypeScript,
+   provider unificado, backfill dos valores contra os 65 eventos
+   `dividend-or-distribution` já persistidos (`DEC-097`), agregação
+   trailing-12-meses, integração nos 3 sinais de score bloqueados
+   (spread DY de FII, payout de ação, spread DY de ETF);
+2. **P/L histórico** (ação) — precisa mais anos de DFP ingeridos e o
+   provider COTAHIST (viabilidade confirmada por `DEC-096`, não
+   implementado);
 3. habilitar `auth_leaked_password_protection` no painel do Supabase —
    **bloqueado por plano (06/08/2026): exige Supabase Pro, projeto está no
-   Free.** Não é mais pendência de passo, é decisão de custo do usuário.
+   Free.** Não é pendência de passo, é decisão de custo do usuário.
    Pendência manual reconfirmada pelo `get_advisors` do projeto após cada
-   migration desta rodada, não fechável por ciclo de código;
-4. ampliar a suíte de testes de interação (Sprint 13) além de autenticação
-   e formulário de compra — cancelamento de compra em `/historico` é o
-   próximo item natural, mesmo padrão já estabelecido.
+   migration.
 
 Qualquer drift, hash divergente, deployment parcial, grant inesperado, dado
 inesperado ou falha de backup é `NO-GO` imediato. Após existirem dados, preferir
