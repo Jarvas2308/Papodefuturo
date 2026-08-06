@@ -114,7 +114,7 @@ async function main(): Promise<void> {
     '\n--confirm recebido. Baixando documentos reais e escrevendo em producao.'
   )
 
-  const rows: ProventoDeclarationValueRowV1[] = []
+  let rows: ProventoDeclarationValueRowV1[] = []
   const skipped: { eventId: string; ticker: string; reason: string }[] = []
   const failed: { eventId: string; ticker: string; error: string }[] = []
 
@@ -155,7 +155,20 @@ async function main(): Promise<void> {
     `\nExtraidos ${rows.length} linhas de ${events.length} eventos ` +
       `(${skipped.length} pulados, ${failed.length} com falha).`
   )
-
+// Dedup por (event_id, isin) — mesmo que chave be (event_id, isin)
+// unique, upsert da RPC falha se mesma chave aparece 2x no payload
+const seenKeys = new Set<string>()
+const uniqueRows: ProventoDeclarationValueRowV1[] = []
+for (const row of rows) {
+  const key = `${row.event_id}|${row.isin}`
+  if (seenKeys.has(key)) {
+    console.log(`Skipping duplicate (event_id, isin): ${key}`)
+    continue
+  }
+  seenKeys.add(key)
+  uniqueRows.push(row)
+}
+rows = uniqueRows
   let upserted = 0
   for (let index = 0; index < rows.length; index += UPSERT_BATCH_SIZE) {
     const batch = rows.slice(index, index + UPSERT_BATCH_SIZE)
