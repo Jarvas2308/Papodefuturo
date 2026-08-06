@@ -925,7 +925,7 @@ as duas checagens são complementares, não substitutas.
     prunar agora para reconstruir depois é desperdício.
 15. Multiusuário — somente se houver segundo usuário.
 
-### Sprint 16 — Motor com recomendação por score (`DEC-068`)
+### Sprint 16 — Motor com recomendação por score (`DEC-068`) — **concluída**
 
 Planejada em 31 de julho de 2026, depois das Sprints 10 e 12 (recuperação de
 senha e observabilidade — os providers novos desta sprint precisam do log
@@ -1167,38 +1167,36 @@ peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    mesmo comportamento de antes desta fase). IA continua só explicando,
    nunca decidindo — o dossiê só expõe o que o motor já calculou, sem
    adicionar julgamento novo.
-8. **Documentação — implementada para as três fatias (`DEC-088`, revisão
-   05/08/2026).** `PRODUCT.md` e `ARCHITECTURE.md` corrigidos (revisão
-   cirúrgica, não reescrita) onde diziam que fundamentos não influenciam o
-   Motor V2 — agora apontam para o módulo separado
-   `src/domain/fundamentals/score`. `no-fundamental-score`/
-   `no-technical-plan-modification` (em
+8. **Documentação — implementada para as três fatias, ação com os 2
+   sinais (`DEC-088`, revisão 05/08/2026 e 06/08/2026).** `PRODUCT.md` e
+   `ARCHITECTURE.md` corrigidos (revisão cirúrgica, não reescrita) onde
+   diziam que fundamentos não influenciam o Motor V2 — agora apontam para
+   o módulo separado `src/domain/fundamentals/score`.
+   `no-fundamental-score`/`no-technical-plan-modification` (em
    `buildFundamentalFactsV1.ts`/`buildFundamentalDerivedFactsV1.ts`)
    reescritos para descrever exatamente o que o contrato em si ainda não
    inclui, sem esconder o que o score downstream já faz.
    `technical-ranking-not-exposed-v1` permanece válido sem alteração — o
    motor ainda não expõe o histórico de candidatos avaliados a cada
-   iteração, só o resultado priorizado. Em 05/08/2026, a seção "Motor de
-   score" de `PRODUCT.md` estava desatualizada — ainda dizia "só FII
-   tijolo, ação e ETF sem sinal" enquanto outra seção do mesmo arquivo já
-   documentava ROE de ação e CAPE/prêmio-desconto de ETF; corrigida para
-   listar as três fatias com seus sinais bloqueados. Item fechado; nova
-   fatia (spread de DY, se algum bloqueio externo for resolvido) reabre a
-   mesma revisão.
-9. **Testes — implementados para as três fatias.** FII tijolo desde
-   `DEC-089`: determinismo, trava de segurança do laço guloso e
-   priorização com scores diferentes cobertos desde `DEC-086`. Estado
-   `stale` (dado com `referenceDate` além do limiar de frescor da fonte,
-   `CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS = 180`, ponto de partida editável)
-   implementado e testado. Cenário de ativo sem sinal disponível
-   (`missing-input`/`wrong-regime`) coberto desde `DEC-085`. Ação
-   (`buildBrazilianStockScoreV1.test.ts`) e ETF
-   (`buildInternationalEtfScoreV1.test.ts`) já tinham cobertura completa e
-   equivalente desde a implementação de cada sinal (ROE em `DEC-085`/086,
-   CAPE em `DEC-090`, prêmio/desconto em `DEC-092`) — aplicado, neutro,
+   iteração, só o resultado priorizado. `DEC-094` (dívida/EBITDA de ação)
+   atualizou `PRODUCT.md`, `REGRAS_DE_PONTUACAO_RASCUNHO.md` e
+   `ACOES_BR_SETORES_E_METRICAS.md` no mesmo ciclo em que o código foi
+   implementado — item nunca ficou dessincronizado desta vez. Item
+   fechado; nova fatia (payout, spread de DY, se algum bloqueio externo
+   for resolvido) reabre a mesma revisão.
+9. **Testes — implementados para as três fatias, ação com os 2 sinais.**
+   FII tijolo desde `DEC-089`: determinismo, trava de segurança do laço
+   guloso e priorização com scores diferentes cobertos desde `DEC-086`.
+   Estado `stale` (dado com `referenceDate` além do limiar de frescor da
+   fonte, `CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS = 180`, ponto de partida
+   editável) implementado e testado. Cenário de ativo sem sinal disponível
+   (`missing-input`/`wrong-regime`) coberto desde `DEC-085`. Ação (ROE
+   desde `DEC-085`/086, dívida/EBITDA desde `DEC-094`) e ETF (CAPE em
+   `DEC-090`, prêmio/desconto em `DEC-092`) com cobertura completa e
+   equivalente desde a implementação de cada sinal — aplicado, neutro,
    abaixo/acima de faixa, indisponível por regime errado, indisponível por
    input ausente, `stale` e seleção do snapshot mais recente. Verificado
-   em 05/08/2026: 7 arquivos de teste do módulo `score`, 69/69 passando.
+   em 06/08/2026: 8 arquivos de teste do módulo `score`, 85/85 passando.
 
 Frescor por fonte, confirmado antes do planejamento (não uniforme — o teto
 é da fonte, não do sistema): preço de mercado já roda a cada hora
@@ -1214,6 +1212,24 @@ Fora de escopo, sinalizado explicitamente: notícia editorial/sentimento
 métricas de Basileia/NIM/NPL/índice combinado/RAB, contrato típico/atípico
 de FII (texto livre), cap rate exato, leasing spread, same-store.
 
+**Sprint 16 encerrada em 06/08/2026.** 8 dos 12 itens do rascunho de
+pontuação implementados, testados e com dado real em produção (4 FII +
+2 ação + 2 ETF), superando a meta original de "motor deixa de ser só
+veto" — todo sinal implementado está conectado ao fluxo real de aporte,
+exposto no dossiê e coberto por teste equivalente. Os 4 sinais
+restantes (spread DY sobre NTN-B de FII, payout e P/L histórico de
+ação, spread DY sobre TIPS de ETF) não fecham por falta de dado, não
+por falta de trabalho: três dependem do valor do provento, confirmado
+sem fonte estruturada aberta depois de inspecionar FRE, Informe Mensal
+de FII, DFIN e o próprio dataset CVM sugerido por busca (`DEC-091`); o
+quarto (P/L histórico) precisa de mais períodos acumulados por ticker
+do que os 1-2 já ingeridos — o mecanismo existe, falta profundidade
+real de série temporal, que só se resolve com o tempo, não com mais
+código. Nenhum dos quatro é decisão de escopo do usuário pendente:
+são bloqueios de dado externo já verificados com fonte real, iguais em
+espírito ao item 1 abaixo. Ficam catalogados lá em vez de reabrir a
+numeração de sprint.
+
 ## Itens abertos sem prazo
 
 1. **Backfill competências CVM anteriores a 2025** — opcional, sem prazo.
@@ -1222,6 +1238,21 @@ de FII (texto livre), cap rate exato, leasing spread, same-store.
 
 2. **Notícias editoriais** — `NO-GO` (DEC-036). Nenhum provider editorial
    aprovado.
+
+3. **4 sinais do motor de score (Sprint 16) bloqueados por dado externo,
+   não por escopo** — sem prazo, reabrem sozinhos se a fonte aparecer:
+   - Spread de DY sobre NTN-B (FII) e payout (ação) — dependem do valor
+     do provento; evento de distribuição já é ingerido (CVM IPE), mas o
+     valor em si não existe em nenhum CSV estruturado da CVM confirmado
+     até agora (FRE, Informe Mensal, DFIN — `DEC-091`). Extrair exigiria
+     ler PDF/link, fora do padrão de fonte estruturada do resto do
+     projeto.
+   - Spread de DY sobre TIPS (ETF) — mesmo bloqueio de valor de provento
+     (VNQ); a metade do sinal que não depende disso (taxa TIPS via FRED)
+     já está resolvida e em produção (`DEC-093`).
+   - P/L vs série histórica (ação) — mecanismo existiria, mas só 1-2
+     períodos estão ingeridos por empresa; precisa mais tempo/mais
+     execuções de ingestão real acumulando histórico, não mais código.
 
 ## Fase operacional — concluída
 
