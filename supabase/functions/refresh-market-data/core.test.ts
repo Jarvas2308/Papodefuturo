@@ -22,6 +22,7 @@ const now = new Date('2026-07-14T22:00:00.000Z')
 // causa dela, a menos que o proprio teste passe `referenceRates` explicito.
 const DEFAULT_REFERENCE_RATES: StoredReferenceRate[] = [
   { series: 'ntnb-longa', pricedAt: '2026-07-14' },
+  { series: 'fred-dfii10', pricedAt: '2026-07-14' },
 ]
 
 // Mesma logica: fresco por padrao pros 3 tickers no dia de `now`, pra nao
@@ -113,6 +114,15 @@ function createProviders() {
         source: 'tesouro-transparente' as const,
       }),
     },
+    fred: {
+      getDfii10Rate: vi.fn().mockResolvedValue({
+        series: 'fred-dfii10' as const,
+        rateScaled: 1_850_000,
+        rateScale: 1_000_000 as const,
+        pricedAt: '2026-07-15',
+        source: 'fred' as const,
+      }),
+    },
     vanguardEtfValuation: {
       getPremiumDiscount: vi
         .fn()
@@ -131,6 +141,7 @@ async function runRefresh(options?: {
   providers?: ReturnType<typeof createProviders>
   twelveConfigured?: boolean
   tesouroConfigured?: boolean
+  fredConfigured?: boolean
   vanguardConfigured?: boolean
   now?: Date
 }) {
@@ -145,6 +156,7 @@ async function runRefresh(options?: {
       options?.tesouroConfigured === false
         ? null
         : providers.tesouroTransparente,
+    fred: options?.fredConfigured === false ? null : providers.fred,
     vanguardEtfValuation:
       options?.vanguardConfigured === false
         ? null
@@ -449,18 +461,25 @@ describe('reference rate (NTN-B)', () => {
     expect(
       providers.tesouroTransparente.getNtnbLongaRate
     ).not.toHaveBeenCalled()
-    expect(result.skippedFreshReferenceRates).toBe(1)
+    // 2, nao 1: ntnb-longa e fred-dfii10 compartilham o mesmo contador e os
+    // dois estao frescos por padrao (DEFAULT_REFERENCE_RATES).
+    expect(result.skippedFreshReferenceRates).toBe(2)
     expect(result.updatedReferenceRates).toBe(0)
   })
 
   it('fetches and persists a new rate when the stored one is from a previous day', async () => {
     const storage = createStorage({
-      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-10' }],
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-10' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-14' },
+      ],
     })
     const { result } = await runRefresh({ storage })
 
     expect(result.updatedReferenceRates).toBe(1)
-    expect(result.skippedFreshReferenceRates).toBe(0)
+    // fred-dfii10 fica fresco nesta storage, so soma 1 no contador
+    // compartilhado (ntnb-longa e' quem busca e persiste).
+    expect(result.skippedFreshReferenceRates).toBe(1)
     expect(storage.insertedReferenceRates[0]).toMatchObject({
       series: 'ntnb-longa',
       maturity_date: '2060-08-15',
@@ -472,7 +491,9 @@ describe('reference rate (NTN-B)', () => {
   })
 
   it('fetches when there is no stored rate at all', async () => {
-    const storage = createStorage({ referenceRates: [] })
+    const storage = createStorage({
+      referenceRates: [{ series: 'fred-dfii10', pricedAt: '2026-07-14' }],
+    })
     const { result } = await runRefresh({ storage })
 
     expect(result.updatedReferenceRates).toBe(1)
@@ -480,12 +501,17 @@ describe('reference rate (NTN-B)', () => {
 
   it('warns instead of persisting when the fetched rate is not newer', async () => {
     const storage = createStorage({
-      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-20' }],
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-20' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-14' },
+      ],
     })
     const { result } = await runRefresh({ storage })
 
     expect(result.updatedReferenceRates).toBe(0)
-    expect(result.skippedFreshReferenceRates).toBe(0)
+    // fred-dfii10 fica fresco nesta storage, so soma 1 no contador
+    // compartilhado (ntnb-longa e' quem gera o warning de stale-quote).
+    expect(result.skippedFreshReferenceRates).toBe(1)
     expect(result.warnings).toContainEqual(
       expect.objectContaining({
         provider: 'tesouro-transparente',
@@ -496,7 +522,10 @@ describe('reference rate (NTN-B)', () => {
 
   it('warns without throwing when the provider fails', async () => {
     const storage = createStorage({
-      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-10' }],
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-10' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-14' },
+      ],
     })
     const providers = createProviders()
     providers.tesouroTransparente.getNtnbLongaRate = vi
@@ -516,7 +545,10 @@ describe('reference rate (NTN-B)', () => {
 
   it('warns with a configuration notice when Tesouro Transparente is not configured', async () => {
     const storage = createStorage({
-      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-10' }],
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-10' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-14' },
+      ],
     })
     const { result } = await runRefresh({ storage, tesouroConfigured: false })
 
@@ -524,6 +556,104 @@ describe('reference rate (NTN-B)', () => {
       expect.objectContaining({
         provider: 'configuration',
         kind: 'configuration',
+      })
+    )
+  })
+})
+
+describe('reference rate (FRED DFII10)', () => {
+  it('skips fetching when today already has a stored rate', async () => {
+    const { result, providers } = await runRefresh()
+
+    expect(providers.fred.getDfii10Rate).not.toHaveBeenCalled()
+    expect(result.skippedFreshReferenceRates).toBe(2)
+    expect(result.updatedReferenceRates).toBe(0)
+  })
+
+  it('fetches and persists a new rate when the stored one is from a previous day', async () => {
+    const storage = createStorage({
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-14' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-10' },
+      ],
+    })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedReferenceRates).toBe(1)
+    expect(storage.insertedReferenceRates[0]).toMatchObject({
+      series: 'fred-dfii10',
+      maturity_date: null,
+      rate_scaled: 1_850_000,
+      rate_scale: 1_000_000,
+      priced_at: '2026-07-15',
+      source: 'fred',
+    })
+  })
+
+  it('fetches when there is no stored rate at all', async () => {
+    const storage = createStorage({
+      referenceRates: [{ series: 'ntnb-longa', pricedAt: '2026-07-14' }],
+    })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedReferenceRates).toBe(1)
+  })
+
+  it('warns instead of persisting when the fetched rate is not newer', async () => {
+    const storage = createStorage({
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-14' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-20' },
+      ],
+    })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedReferenceRates).toBe(0)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'fred',
+        kind: 'stale-quote',
+      })
+    )
+  })
+
+  it('warns without throwing when the provider fails', async () => {
+    const storage = createStorage({
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-14' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-10' },
+      ],
+    })
+    const providers = createProviders()
+    providers.fred.getDfii10Rate = vi
+      .fn()
+      .mockRejectedValue(new Error('HTTP 429'))
+
+    const { result } = await runRefresh({ storage, providers })
+
+    expect(result.updatedReferenceRates).toBe(0)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'fred',
+        kind: 'provider-failed',
+      })
+    )
+  })
+
+  it('warns with a configuration notice when FRED is not configured', async () => {
+    const storage = createStorage({
+      referenceRates: [
+        { series: 'ntnb-longa', pricedAt: '2026-07-14' },
+        { series: 'fred-dfii10', pricedAt: '2026-07-10' },
+      ],
+    })
+    const { result } = await runRefresh({ storage, fredConfigured: false })
+
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'configuration',
+        kind: 'configuration',
+        message: expect.stringContaining('FRED'),
       })
     )
   })

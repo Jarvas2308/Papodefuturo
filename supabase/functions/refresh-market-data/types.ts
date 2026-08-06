@@ -2,6 +2,7 @@ export type MarketDataWarningProvider =
   | 'b3-cotahist'
   | 'twelve-data'
   | 'tesouro-transparente'
+  | 'fred'
   | 'vanguard-site'
   | 'configuration'
   | 'storage'
@@ -80,20 +81,32 @@ export type ExchangeRateInsert = {
 }
 
 // `priced_at` aqui e' data (AAAA-MM-DD), nao timestamp - o Tesouro
-// Transparente publica uma linha por dia util, nao por segundo.
+// Transparente e o FRED publicam uma linha por dia util, nao por segundo.
 export type StoredReferenceRate = {
   series: string
   pricedAt: string
 }
 
-export type ReferenceRateInsert = {
-  series: 'ntnb-longa'
-  maturity_date: string
-  rate_scaled: number
-  rate_scale: 1000000
-  priced_at: string
-  source: 'tesouro-transparente'
-}
+// `maturity_date` e' null pra `fred-dfii10`: DFII10 e' rendimento sintetico
+// de maturidade constante, sem titulo real por tras com data de vencimento
+// (diferente da NTN-B). Ver migration `20260806120000`.
+export type ReferenceRateInsert =
+  | {
+      series: 'ntnb-longa'
+      maturity_date: string
+      rate_scaled: number
+      rate_scale: 1000000
+      priced_at: string
+      source: 'tesouro-transparente'
+    }
+  | {
+      series: 'fred-dfii10'
+      maturity_date: null
+      rate_scaled: number
+      rate_scale: 1000000
+      priced_at: string
+      source: 'fred'
+    }
 
 // `pricedAt` aqui tambem e' data civil (AAAA-MM-DD, `effectiveDate` da
 // Vanguard) - o site publica no maximo uma linha por dia util por ticker,

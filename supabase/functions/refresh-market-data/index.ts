@@ -5,6 +5,7 @@ import { createB3CotahistProvider } from './b3CotahistProvider.ts'
 import { extractCotahistText } from './b3CotahistZip.ts'
 import { createTwelveDataProvider } from './twelveDataProvider.ts'
 import { createTesouroTransparenteProvider } from './tesouroTransparenteProvider.ts'
+import { createFredProvider } from './fredProvider.ts'
 import { createVanguardEtfValuationProvider } from './vanguardEtfValuationProvider.ts'
 
 declare const Deno: {
@@ -169,6 +170,7 @@ Deno.serve(async (request) => {
       },
     }
     const twelveDataKey = Deno.env.get('TWELVE_DATA_API_KEY')?.trim()
+    const fredApiKey = Deno.env.get('FRED_API_KEY')?.trim()
     const result = await refreshMarketData({
       storage,
       b3Cotahist: createB3CotahistProvider({
@@ -178,6 +180,7 @@ Deno.serve(async (request) => {
         ? createTwelveDataProvider(twelveDataKey)
         : null,
       tesouroTransparente: createTesouroTransparenteProvider(),
+      fred: fredApiKey ? createFredProvider(fredApiKey) : null,
       vanguardEtfValuation: createVanguardEtfValuationProvider(),
     })
 
