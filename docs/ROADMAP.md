@@ -1261,10 +1261,17 @@ numeração de sprint.
      mesma peça acima.
    - P/L vs série histórica (ação) — `composicao_capital` real dos 5
      tickers populado em produção (`DEC-095`), resolvendo uma das três
-     peças que faltavam. Ainda faltam: mais anos de DFP ingeridos por
-     empresa (amostra de 1-2 períodos é pequena demais pra um quartil
-     confiável) e preço de fechamento histórico por data de exercício
-     (via B3 COTAHIST anual, não investigado ainda).
+     peças que faltavam. Preço de fechamento histórico por data de
+     exercício confirmado viável (`DEC-096`): `COTAHIST_A<ano>.ZIP`
+     anual da B3 é público, real, mesmo layout de largura fixa já
+     parseado por `b3CotahistParser.ts` — testado com o arquivo de
+     2025 real, BBAS3 fecha 30/12/2025 (último pregão do ano) a
+     R$ 21,92. Ainda falta: mais anos de DFP ingeridos por empresa
+     (amostra de 1-2 períodos é pequena demais pra um quartil
+     confiável) e escrever o provider/wiring que casa preço de
+     fechamento por data de exercício com cada snapshot de DFP — só a
+     viabilidade da fonte foi confirmada nesta entrada, não
+     implementada.
 
 ## Fase operacional — concluída
 

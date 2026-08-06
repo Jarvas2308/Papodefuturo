@@ -3755,3 +3755,54 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   escritas antes de qualquer um dos 4 sinais existir de fato. Preço de
   fechamento histórico por data (peça restante do P/L) também não foi
   investigado nesta entrada.
+
+## DEC-096 — Sprint 16 pós-encerramento: backfill de eventos abandonado por custo de contexto; viabilidade de preço histórico confirmada
+
+- Data: 6 de agosto de 2026
+- Status: Aceita — duas conclusões de pesquisa, nenhuma implementação de código
+- Contexto: continuação de `DEC-095`. Usuário pediu pra seguir depois
+  do backfill de `dividend-or-distribution` não ter sido executado.
+- Decisão, em duas partes:
+  1. **Tentativa de persistir os 65 eventos via SQL direto pelo MCP —
+     abandonada, definitivamente.** Duas tentativas reais confirmaram
+     o mesmo resultado: ler/embutir um bloco de só 13 registros (dos 65) já custa ~26 mil tokens de contexto, truncando antes de
+     terminar. Provenance completa por registro repete a mesma URL da
+     CVM em até 3 campos (`event_id`, `deduplication_key`,
+     `canonical_url`, `original_url`, `document_identity_value`),
+     inflando cada registro pra ~4 KB. Decisão final: não vale o
+     custo, usar o pipeline oficial (`scripts/run-official-events-backfill.ts`,
+     comando em `DEC-095`) quando o usuário tiver as credenciais —
+     sem alternativa de bypass razoável.
+  2. **Dedup por "Protocolo Provento" + Versão não escrito — achado
+     um caso real não resolvido.** Investigando 3 filings da ITSA4 no
+     mesmo dia (09/02/2026) descobriu-se que são declarações
+     genuinamente diferentes (uma "Anual 2025" com 2 valores, outra
+     "4º Trimestre 2026" — confirmado baixando os 3 documentos reais),
+     não duplicata simples. Mas não foi confirmado se dois desses
+     documentos compartilham o mesmo "Protocolo Provento" interno (o
+     ID dentro do próprio PDF, usado como chave de versão) — escrever
+     a lógica de dedup em cima dessa suposição não confirmada
+     repetiria o erro que este projeto sempre evitou (inventar
+     comportamento sem dado real). Decisão: só escrever essa lógica
+     depois do backfill real rodar, contra dado de produção de
+     verdade, não fixture hipotética.
+  3. **Preço de fechamento histórico — viabilidade confirmada, não
+     implementada.** `COTAHIST_A<ano>.ZIP` da B3 é público, real, e
+     usa o mesmo layout de largura fixa já parseado por
+     `b3CotahistProvider.ts`/`b3CotahistParser.ts` pro preço atual —
+     baixado e conferido o arquivo real de 2025 (89 MB compactado,
+     784 MB descompactado): BBAS3 fecha o ano em 30/12/2025 (último
+     pregão) a R$ 21,92. Resolve a última peça em aberto do P/L
+     histórico (preço casado por data de exercício) — junto com
+     `composicao_capital` (`DEC-095`) e mais anos de DFP ingeridos,
+     completa os 3 insumos necessários. Nenhum provider ou wiring
+     escrito ainda, só a fonte confirmada.
+- Verificação: nenhuma mudança de código nesta entrada — só pesquisa
+  com dado real baixado e descartado (arquivos temporários limpos do
+  scratchpad ao final).
+- Consequências: dos 4 sinais pendentes, nenhum ficou mais perto de
+  existir de fato nesta entrada — mas o mapa do que falta em cada um
+  ficou mais preciso e sem suposição não verificada. Nenhum próximo
+  passo de código seguro sem: (a) usuário rodar o backfill oficial
+  (`DEC-095`), (b) usuário decidir se aceita mais anos de DFP
+  ingeridos e o custo de escrever o provider de preço histórico.
