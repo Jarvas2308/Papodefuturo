@@ -1124,27 +1124,38 @@ peso)` (`targetAllocationStrategy.ts`, `ContributionInput.assetScores` /
    mesmo comportamento de antes desta fase). IA continua só explicando,
    nunca decidindo — o dossiê só expõe o que o motor já calculou, sem
    adicionar julgamento novo.
-8. **Documentação — implementada para a fatia FII tijolo (`DEC-088`).**
-   `PRODUCT.md` e `ARCHITECTURE.md` corrigidos (revisão cirúrgica, não
-   reescrita) onde diziam que fundamentos não influenciam o Motor V2 —
-   agora apontam para o módulo separado `src/domain/fundamentals/score`.
-   `no-fundamental-score`/`no-technical-plan-modification` (em
+8. **Documentação — implementada para as três fatias (`DEC-088`, revisão
+   05/08/2026).** `PRODUCT.md` e `ARCHITECTURE.md` corrigidos (revisão
+   cirúrgica, não reescrita) onde diziam que fundamentos não influenciam o
+   Motor V2 — agora apontam para o módulo separado
+   `src/domain/fundamentals/score`. `no-fundamental-score`/
+   `no-technical-plan-modification` (em
    `buildFundamentalFactsV1.ts`/`buildFundamentalDerivedFactsV1.ts`)
    reescritos para descrever exatamente o que o contrato em si ainda não
    inclui, sem esconder o que o score downstream já faz.
    `technical-ranking-not-exposed-v1` permanece válido sem alteração — o
    motor ainda não expõe o histórico de candidatos avaliados a cada
-   iteração, só o resultado priorizado. Cada nova fatia (ação, ETF, spread
-   de DY) reabre a mesma revisão.
-9. **Testes — implementados para a fatia FII tijolo (`DEC-089`).**
-   Determinismo, trava de segurança do laço guloso e priorização com
-   scores diferentes cobertos desde `DEC-086`. Estado `stale` (dado com
-   `referenceDate` além do limiar de frescor da fonte,
+   iteração, só o resultado priorizado. Em 05/08/2026, a seção "Motor de
+   score" de `PRODUCT.md` estava desatualizada — ainda dizia "só FII
+   tijolo, ação e ETF sem sinal" enquanto outra seção do mesmo arquivo já
+   documentava ROE de ação e CAPE/prêmio-desconto de ETF; corrigida para
+   listar as três fatias com seus sinais bloqueados. Item fechado; nova
+   fatia (spread de DY, se algum bloqueio externo for resolvido) reabre a
+   mesma revisão.
+9. **Testes — implementados para as três fatias.** FII tijolo desde
+   `DEC-089`: determinismo, trava de segurança do laço guloso e
+   priorização com scores diferentes cobertos desde `DEC-086`. Estado
+   `stale` (dado com `referenceDate` além do limiar de frescor da fonte,
    `CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS = 180`, ponto de partida editável)
-   implementado e testado nesta entrada — contribui 0 pontos, expõe o
-   valor observado, nunca pontua com dado velho silenciosamente. Cenário
-   de ativo sem sinal disponível (`missing-input`/`wrong-regime`) coberto
-   desde `DEC-085`.
+   implementado e testado. Cenário de ativo sem sinal disponível
+   (`missing-input`/`wrong-regime`) coberto desde `DEC-085`. Ação
+   (`buildBrazilianStockScoreV1.test.ts`) e ETF
+   (`buildInternationalEtfScoreV1.test.ts`) já tinham cobertura completa e
+   equivalente desde a implementação de cada sinal (ROE em `DEC-085`/086,
+   CAPE em `DEC-090`, prêmio/desconto em `DEC-092`) — aplicado, neutro,
+   abaixo/acima de faixa, indisponível por regime errado, indisponível por
+   input ausente, `stale` e seleção do snapshot mais recente. Verificado
+   em 05/08/2026: 7 arquivos de teste do módulo `score`, 69/69 passando.
 
 Frescor por fonte, confirmado antes do planejamento (não uniforme — o teto
 é da fonte, não do sistema): preço de mercado já roda a cada hora
