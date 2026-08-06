@@ -3985,3 +3985,38 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   de prontidão pós-uso (Sprints 9 a 15) está, portanto, completo. Único
   trabalho aberto do projeto é o wiring de provento (`DEC-097`, spread
   DY de FII/ETF e payout de ação) e a profundidade histórica de P/L.
+
+## DEC-101 — Extrator do "Protocolo Provento" resolve a pergunta de dedup deixada em aberto por DEC-096
+
+- Data: 6 de agosto de 2026
+- Status: Aceita
+- Contexto: `DEC-096`/`DEC-097` confirmaram, com dado real, que múltiplos
+  filings ENET no mesmo dia para o mesmo ticker são declarações
+  genuinamente diferentes na maioria dos casos, mas não estava confirmado
+  se duas submissões diferentes podiam compartilhar uma identidade
+  interna de declaração — escrever dedup em cima dessa suposição não
+  verificada teria repetido o erro que o projeto sempre evitou.
+- Decisão: inspecionado o texto bruto de 5 documentos "Provento" reais
+  (ITSA4 x2 do mesmo dia com valor idêntico, BBAS3, TAEE11, WEGE3).
+  Confirmado: toda submissão traz, antes da tabela de valores, a linha
+  "Protocolo Provento Versão Data Envio" seguida de
+  `<protocolo> <versão> <data de envio>`. As duas submissões ITSA4
+  (`numProtocolo` ENET 1333427 versão 1 e 1333428 versão 2, valores
+  idênticos) compartilham o mesmo Protocolo Provento (`1332829`) — são a
+  mesma declaração da empresa, reenviada como correção, não duas
+  declarações distintas. `extractProventoDeclarationIdentityV1.ts`
+  implementado com o mesmo formato de falha fechada do resto do módulo
+  (`null` se o cabeçalho não existir ou o valor seguinte não bater no
+  formato exato).
+- Verificação: 5 testes novos com fixtures derivadas exatamente do texto
+  real capturado (não inventadas), incluindo o caso cruzado
+  ITSA4 v1/v2 provando protocolo igual e versão diferente. 22/22 testes
+  do módulo `provento` passando, `tsc --noEmit` limpo.
+- Consequências: dedup por Protocolo Provento + Versão (mesmo padrão de
+  `selectLatestFilingRows` já usado no DFP/ITR — versão mais alta vence)
+  agora pode ser escrito contra uma regra confirmada, não uma suposição.
+  Próximo passo do wiring de `DEC-097`: schema de armazenamento pro
+  valor extraído por evento, depois integração dos 3 sinais de score.
+  `extractProventoDeclarationIdentityV1.ts` ainda não tem consumidor em
+  produção (esperado — aguarda o mesmo wiring de
+  `fetchProventoDocumentText.ts`/`extractProventoFormV1.ts`).
