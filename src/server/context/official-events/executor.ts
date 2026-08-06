@@ -1,4 +1,7 @@
-import { persistOfficialAssetEventsV1 } from '../../../data/context/official-events/storage'
+import {
+  OFFICIAL_ASSET_EVENTS_UPSERT_BATCH_LIMIT_V1,
+  persistOfficialAssetEventsV1,
+} from '../../../data/context/official-events/storage'
 import { OfficialEventsSafeFetchErrorV1 } from './safeFetch'
 import type {
   OfficialEventsProviderCountersV1,
@@ -248,6 +251,7 @@ export function createOfficialEventsServerExecutorCoreV1(
           const persistenceResult = await persistOfficialAssetEventsV1({
             storage: dependencies.storage,
             events: providerResult.events,
+            maxBatchSize: OFFICIAL_ASSET_EVENTS_UPSERT_BATCH_LIMIT_V1,
           })
           const completedAt = completedTimestamp(dependencies.now, jobStartedAt)
           results.push({

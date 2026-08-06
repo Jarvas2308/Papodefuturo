@@ -599,9 +599,15 @@ A migration cria `official_event_backfill_runs` e
 `anon`, `authenticated` e `service_role`. As operações usam RPCs
 `SECURITY DEFINER`, `search_path` fixo, locks de linha e `FOR UPDATE SKIP LOCKED`,
 com execução exclusiva de `service_role`. O adapter usa somente uma porta RPC
-injetada e valida profundamente os retornos. As migrations não foram aplicadas,
-o backfill não foi executado e não existem scheduler, cron, entrypoint de
-produção ou UI. O repository posterior não executa nem controla o backfill.
+injetada e valida profundamente os retornos. As migrations estão aplicadas em
+produção e o backfill já foi executado múltiplas vezes de forma manual
+(`scripts/run-official-events-backfill.ts`, gradual, um job por invocação
+com `--confirm`) para os três providers, mais recentemente a categoria
+`dividend-or-distribution` de CVM IPE em 06/08/2026 (`DEC-097`). Não existem
+scheduler, cron, entrypoint de produção automático ou UI que disparem o
+backfill — toda execução até aqui foi manual, via CLI, com credenciais
+locais do operador. O repository posterior não executa nem controla o
+backfill.
 
 ### Repository global de leitura de eventos oficiais V1
 
@@ -623,9 +629,8 @@ O adapter Supabase usa somente as RPCs `get_official_asset_event_by_id_v1` e
 `search_path` fixo e execução revogada de `PUBLIC` e `anon`. O resultado percorre
 o mapper lossless de 58 campos e as validações de storage e domínio. A referência
 em memória compartilha filtros, ordenação e cursor para testes de conformance.
-As RPCs permanecem não aplicadas. O runtime opcional existe como módulo local,
-mas não está ativado em modo de leitura; não existe scheduler ou execução de
-backfill.
+As RPCs de leitura estão aplicadas em produção. Não existe scheduler ou
+disparo automático de backfill — segue manual via CLI (ver seção anterior).
 
 ### Runtime opcional de eventos oficiais V1
 

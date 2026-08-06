@@ -3806,3 +3806,83 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   passo de código seguro sem: (a) usuário rodar o backfill oficial
   (`DEC-095`), (b) usuário decidir se aceita mais anos de DFP
   ingeridos e o custo de escrever o provider de preço histórico.
+
+## DEC-097 — Backfill real de `dividend-or-distribution` executado; bug de chunking de persistência corrigido
+
+- Data: 6 de agosto de 2026
+- Status: Aceita — bug corrigido, 65 eventos reais persistidos em
+  produção
+- Contexto: usuário rodou o comando oficial recomendado em `DEC-096`
+  (`scripts/run-official-events-backfill.ts --provider=cvm-ipe
+  --year=2025 --confirm`). Primeira tentativa devolveu
+  `"claimedJobs": 0"` — o checkpoint (`official_event_backfill_runs`/
+  `..._jobs`) já tinha o job `cvm-ipe:2025` marcado `succeeded` desde
+  30/07/2026, antes da categoria `dividend-or-distribution` existir no
+  código. `planId`/`planHash` são determinísticos só por
+  provider+ano+failureMode+retryFailed+maxAttemptsPerJob (não pela
+  categoria mapeada no executor), então o orquestrador reconhece
+  "já feito" e devolve o snapshot antigo sem tocar rede nem
+  Supabase — confirmado consultando `official_asset_events`
+  diretamente (zero linhas da categoria). Checkpoint deletado via SQL
+  direto pelo MCP (`DELETE` em produção, aprovado explicitamente pelo
+  usuário três vezes — bloqueado duas vezes pelo classificador de
+  permissão do Claude Code antes de passar).
+- Segunda tentativa (já sem checkpoint velho): fetch real rodou (540
+  eventos brutos), mas persistência falhou 100%
+  (`persistedAttemptCount: 0`) com erro genérico
+  `persistence-failed`. Log da API do Supabase confirmou que o RPC
+  `upsert_official_asset_events_v1` nunca foi chamado. Causa raiz
+  isolada rodando localmente o provider real
+  (`fetchCvmIpeStockEvents`) contra a rede de verdade: o ano de 2025
+  produz 540 registros únicos após dedup, acima do limite duro
+  `OFFICIAL_ASSET_EVENTS_UPSERT_BATCH_LIMIT_V1 = 500`
+  (`supabaseStorage.ts`). `persistOfficialAssetEventsV1` sempre
+  mandava o batch inteiro numa RPC só — **bug real de produção**, não
+  falha de rede ou dado malformado: qualquer ano/provider que produza
+  mais de 500 eventos únicos nunca conseguiria persistir nada, mesmo
+  antes da categoria `dividend-or-distribution` existir (só não tinha
+  sido notado porque nenhum job anterior tinha passado de 500).
+- Decisão: `persistOfficialAssetEventsV1`
+  (`src/data/context/official-events/storage/persist.ts`) ganhou
+  parâmetro opcional `maxBatchSize` — fatia `uniqueRecords` em blocos
+  e chama `storage.upsertMany` uma vez por bloco, mesclando os
+  resultados por índice original. Comportamento default (sem o
+  parâmetro) inalterado, preservando os testes existentes que
+  validam atomicidade de uma chamada só para storages/fakes
+  genéricos. `executor.ts` passa
+  `maxBatchSize: OFFICIAL_ASSET_EVENTS_UPSERT_BATCH_LIMIT_V1` só na
+  execução real (Supabase). O limite de 500 por chamada RPC em si não
+  mudou — continua existindo, só deixou de ser um teto rígido pro job
+  inteiro.
+- Verificação: 215 testes do módulo `official-events` passando,
+  `tsc --noEmit` limpo. Rodado de novo o backfill 2025 (checkpoint
+  deletado outra vez, mesmo motivo): `succeededJobs: 1,
+  persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
+  código corrigido (checkpoint de uma execução anterior a 28/07, antes
+  da categoria existir, também deletado):
+  `persistedAttemptCount: 331`. Confirmado em produção via SQL:
+  `official_asset_events` tem 65 linhas `dividend-or-distribution`
+  (BBAS3 14, ITSA4 13, PSSA3 20, TAEE11 7, WEGE3 11) — bate exatamente
+  com a contagem de 65 eventos únicos, sem duplicata, que a
+  reconstrução local com o provider real já tinha confirmado em
+  `DEC-095`.
+- Achado adicional (não resolvido): consultando os eventos reais da
+  ITSA4, a coluna `protocol_number` está `null` em todas as 13 linhas
+  — o mapeamento atual do `cvm-ipe` não extrai o "Protocolo Provento"
+  interno do formulário PDF, só o `numProtocolo`/`numSequencia` do
+  URL de download do ENET (que já vira parte da identidade do
+  evento). Datas com múltiplos filings no mesmo dia continuam reais
+  (4 eventos em 10/02/2025, 3 em 09/02/2026) — a pergunta de dedup por
+  protocolo interno de `DEC-096` segue em aberto, agora com uma
+  informação a mais: a coluna que serviria pra isso nem está populada
+  ainda, então a lógica de dedup exigiria primeiro estender o parser
+  do formulário estruturado (`extractProventoFormV1.ts`, `DEC-095`)
+  pra capturar esse campo, não só consultar o que já está no banco.
+- Consequências: os 3 sinais bloqueados por valor de provento (spread
+  DY de FII, payout de ação, spread DY de ETF) agora têm dado bruto
+  real em produção pra trabalhar em cima — mas ainda faltam extrair o
+  valor por evento (rodar `extractProventoFormV1.ts` contra os PDFs
+  reais dessas 65 linhas), dedup por protocolo interno, e agregação
+  trailing-12-meses (regra de `unavailable` no primeiro trimestre
+  ilegível, confirmada com o usuário em `DEC-095`) antes de qualquer
+  sinal de score ficar `applied`.

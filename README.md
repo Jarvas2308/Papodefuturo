@@ -35,8 +35,10 @@ estado real; este README resume.
   runtime ativado em `read-only` e verificado com sessão autenticada real
   (`DEC-041`, `DEC-042`);
 - backfill amplo de eventos oficiais executado (`official_asset_events` em
-  902 linhas, CVM IPE e CVM Fund Delivery cobrindo 2025 e 2026 completos,
-  `DEC-058`) e ingestão real de fundamentos aplicada
+  975 linhas, CVM IPE e CVM Fund Delivery cobrindo 2025 e 2026 completos,
+  `DEC-058`; categoria `dividend-or-distribution` (valor de provento)
+  backfillada em 06/08/2026 com 65 eventos reais, `DEC-097`) e ingestão real
+  de fundamentos aplicada
   (`fundamental_snapshots` em 21 linhas, três providers — CVM DFP/ITR, CVM
   FII, SEC N-PORT — com dado real, `DEC-059`);
 - notícias editoriais em `NO-GO` (`DEC-036`); sentimento e score não foram

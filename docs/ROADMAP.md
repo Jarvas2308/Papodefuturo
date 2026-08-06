@@ -1250,11 +1250,21 @@ numeração de sprint.
      risco aceito) e, melhor, o formulário "Provento" estruturado da
      própria CVM (categoria IPE `Relatório Proventos`, template fixo,
      cross-validado com a prosa — mesmo número real por duas fontes
-     independentes). Falta: rodar o backfill oficial dessa categoria em
-     produção (comando em `DEC-095`), escrever dedup por "Protocolo
-     Provento" + Versão e a agregação trailing-12-meses (usuário já
-     confirmou: qualquer trimestre não parseável marca `unavailable` o
-     ativo inteiro, nunca soma parcial), e então conectar cada um dos 3
+     independentes). **Backfill real da categoria rodado em produção em
+     06/08/2026 (`DEC-097`)**: 65 eventos `dividend-or-distribution`
+     confirmados (BBAS3 14, ITSA4 13, PSSA3 20, TAEE11 7, WEGE3 11,
+     2025-2026) — no caminho, achado e corrigido um bug real de
+     produção (`persistOfficialAssetEventsV1` não fatiava batches
+     acima de 500 registros, travando qualquer job com mais de 500
+     eventos únicos). Falta ainda: extrair o valor de cada evento
+     rodando `extractProventoFormV1.ts` contra os PDFs reais, escrever
+     dedup por "Protocolo Provento" + Versão (achado em `DEC-096`/
+     `DEC-097`: a coluna `protocol_number` está `null` em produção — o
+     mapeamento do `cvm-ipe` ainda não extrai esse campo do formulário,
+     só o protocolo do URL do ENET, que já compõe a identidade do
+     evento) e a agregação trailing-12-meses (usuário já confirmou:
+     qualquer trimestre não parseável marca `unavailable` o ativo
+     inteiro, nunca soma parcial), e então conectar cada um dos 3
      sinais.
    - Spread de DY sobre TIPS (ETF) também já tem a taxa TIPS resolvida
      via FRED em produção (`DEC-093`) — só falta a metade do provento,

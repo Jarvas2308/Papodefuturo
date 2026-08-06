@@ -363,23 +363,26 @@ Itaúsa reporta ON e PN separadamente — confirma na prática a armadilha da
 seção 1. **Calcular LPA de ITSA4 exige usar o total de ações PN, não o total
 geral**, e essa distinção só aparece quando se lê a linha certa do CSV.
 
-### 6.2 O que ainda falta — dividendos
+### 6.2 O que ainda falta — dividendos (atualizado 06/08/2026, `DEC-095` a `DEC-097`)
 
-FII usa `dividend-or-distribution` como tipo de evento já capturado pelo
-`official_asset_events`. Para ação, **não encontrei fonte pública oficial
-estruturada e aberta equivalente ao Tesouro Transparente**. B3 tem os dados,
-mas o acesso é via chamada interna do site (não documentada como API aberta) —
-provedores terceiros (brapi.dev e similares) replicam isso, com a mesma
-ressalva de dependência de terceiro que descartei para NTN-B.
+Confirmado desde então: sim, o provider CVM IPE
+(`src/data/context/official-events/cvm/ipe/`) mapeia o comunicado de
+provento de companhia aberta pra `dividend-or-distribution` — categoria IPE
+"Relatório Proventos", formulário estruturado de template fixo da própria
+CVM (tabela por ISIN, valor bruto, período base, data de pagamento), sem
+depender de brapi.dev ou de acesso não documentado da B3. Backfill real
+executado em produção em 06/08/2026: 65 eventos confirmados sem duplicata
+pra BBAS3, ITSA4, PSSA3, TAEE11 e WEGE3 (2025-2026).
 
-**Caminho mais consistente com o que você já tem:** o provider CVM IPE
-(`src/data/context/official-events/cvm/ipe/`) já existe no seu código para
-capturar Fato Relevante e Comunicado ao Mercado de companhias abertas — ele
-não é específico de FII. Dividendo e JCP de companhia aberta são divulgados
-via esse mesmo canal regulatório. Não verifiquei nesta sessão se o parser
-atual já mapeia esse tipo de comunicado para `dividend-or-distribution` —
-fica como item a checar antes de assumir que dividendo de ação já flui pelo
-pipeline existente.
+O que ainda falta não é mais fonte de dado, é wiring: dois extratores de
+PDF já prontos e testados (`extractProventoValuePerShareV1.ts` pra prosa de
+Fato Relevante, `extractProventoFormV1.ts` pro formulário estruturado,
+cross-validados — mesmo número real por duas fontes independentes), mas
+nenhum dos 65 eventos teve o valor por ação extraído ainda. Falta também
+dedup por "Protocolo Provento" interno do PDF (a coluna `protocol_number`
+do schema está `null` em produção — o mapeamento atual não extrai esse
+campo, só o protocolo do URL de download do ENET) e agregação
+trailing-12-meses antes de qualquer sinal de payout ficar `applied`.
 
 ### 6.3 Quadro consolidado
 
@@ -392,7 +395,7 @@ pipeline existente.
 | **P/VP**                           | preço + patrimônio ÷ ações                          | Requer novo provider                                                                              |
 | **Margem líquida/EBITDA**          | DRE completa                                        | Requer novo provider; só aplicável a industrial                                                   |
 | **Dívida líquida/EBITDA**          | `BPP_con` + `BPA_con` + `DRE_con` + `DFC_MI_con`    | **Implementado (DEC-094)** — mesmo provider já usado pra ROE, campos novos; não aplicável a banco |
-| **Dividend Yield / Payout**        | dividendos pagos                                    | **Sem fonte aberta confirmada** — ver 6.2                                                         |
+| **Dividend Yield / Payout**        | dividendos pagos                                    | Fonte confirmada e backfillada (`DEC-097`) — falta extrair valor, dedup e agregação, ver 6.2      |
 | Basileia, NIM, NPL (banco)         | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão                                               |
 | Índice combinado (seguradora)      | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão                                               |
 | RAB, prazo de concessão (regulado) | —                                                   | Fonte provavelmente ANEEL, não pesquisada nesta sessão                                            |

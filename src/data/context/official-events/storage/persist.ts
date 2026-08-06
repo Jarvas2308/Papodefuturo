@@ -11,26 +11,39 @@ import type {
 export async function persistOfficialAssetEventsV1(input: {
   storage: OfficialAssetEventStorageV1
   events: readonly OfficialAssetEventV1[]
+  maxBatchSize?: number
 }): Promise<OfficialAssetEventStorageWriteResultV1> {
   const batch = prepareOfficialAssetEventStorageBatchV1(input.events)
   if (batch.uniqueRecords.length === 0) return buildWriteResult([])
 
-  const adapterResult = await input.storage.upsertMany(batch.uniqueRecords)
-  assertOfficialAssetEventStorageWriteResultV1(
-    adapterResult,
-    batch.uniqueRecords
-  )
+  const chunkSize = input.maxBatchSize ?? batch.uniqueRecords.length
+  if (!Number.isSafeInteger(chunkSize) || chunkSize < 1)
+    throw new Error('maxBatchSize must be a positive safe integer')
+
   const itemsByOriginalIndex = new Map<
     number,
     OfficialAssetEventStorageItemResultV1
   >()
-  adapterResult.items.forEach((item, adapterIndex) => {
-    const originalIndex = batch.uniqueInputIndexes[adapterIndex]
-    itemsByOriginalIndex.set(originalIndex, {
-      ...item,
-      inputIndex: originalIndex,
+  for (
+    let chunkStart = 0;
+    chunkStart < batch.uniqueRecords.length;
+    chunkStart += chunkSize
+  ) {
+    const chunkRecords = batch.uniqueRecords.slice(
+      chunkStart,
+      chunkStart + chunkSize
+    )
+    const adapterResult = await input.storage.upsertMany(chunkRecords)
+    assertOfficialAssetEventStorageWriteResultV1(adapterResult, chunkRecords)
+    adapterResult.items.forEach((item, chunkIndex) => {
+      const originalIndex =
+        batch.uniqueInputIndexes[chunkStart + chunkIndex]
+      itemsByOriginalIndex.set(originalIndex, {
+        ...item,
+        inputIndex: originalIndex,
+      })
     })
-  })
+  }
   batch.duplicates.forEach((duplicate) => {
     const kept = itemsByOriginalIndex.get(duplicate.duplicateOfInputIndex)
     if (!kept)
