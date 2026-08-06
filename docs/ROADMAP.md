@@ -912,22 +912,46 @@ as duas checagens são complementares, não substitutas.
     (`HistoryTable`) e cards (`HistoryCards`) renderizam os mesmos
     botões simultaneamente (responsivo só por CSS) — teste usa
     `getAllByRole(...)[0]`, não é bug de duplicata.
-14. Reconciliação documental e limpeza de código morto — **entrega
-    inicial concluída** (`DEC-073`). `README.md` e `docs/PROJECT_HANDOFF.md`
-    reconciliados com o estado real (Sprints 9-13). `knip` configurado
-    (`knip.json`, `npm run audit:dead-code`) com pontos de entrada
-    corretos do projeto (scripts, Edge Functions, `vite.config.ts`) — a
-    config padrão sem isso gerava falso positivo até em arquivo editado
-    na mesma sessão. Um export desnecessário removido
-    (`cloneTemporalValue`, usado só internamente). **Não executado, item
-    aberto e deliberado:** ~190 reexportações de barrel (`index.ts` de
-    `fundamentals`, `repositories`, `cvm/fii`, `sec/nport`,
+14. Reconciliação documental e limpeza de código morto — **fechada em
+    06/08/2026** (`DEC-073`, revisão final `DEC-099`). `README.md` e
+    `docs/PROJECT_HANDOFF.md` reconciliados com o estado real
+    (Sprints 9-13). `knip` configurado (`knip.json`,
+    `npm run audit:dead-code`) com pontos de entrada corretos do
+    projeto (scripts, Edge Functions, `vite.config.ts`). Um export
+    desnecessário removido (`cloneTemporalValue`, usado só
+    internamente).
+
+    Reconfirmado nesta revisão: `docs/ARCHITECTURE.md` tinha trecho
+    dizendo que o domínio de eventos oficiais ficava "sem persistência
+    ou runtime" — falso desde `DEC-041`/`DEC-097`, corrigido para
+    apontar às camadas irmãs (`src/data`, `src/server`,
+    `src/application`) já em produção. Achado real de cobertura:
+    `fetchProventoDocumentText.ts` (`DEC-095`, sessão anterior) tinha
+    zero teste e zero consumidor no `src` — órfão de verdade, mas
+    necessário pro wiring pendente de `DEC-097`, não código morto.
+    Teste mínimo escrito (allowlist de host, status HTTP, limite de
+    tamanho) — depois disso `knip` parou de sinalizar tanto o arquivo
+    quanto a dependência `pdf-parse` como não usados, confirmando que
+    eram falso positivo por falta de alcance, não órfão real.
+
+    **Confirmado falso positivo, sem ação:** `tailwindcss` como
+    devDependency não usada (real via `@import "tailwindcss"` em
+    `src/styles/index.css` — `knip` não escaneia `.css`, exatamente
+    como o "Configuration hint" do próprio relatório já apontava);
+    `npm` como dependência não listada nos três Edge Functions (é o
+    especificador `npm:` do runtime Deno, não um pacote npm literal).
+
+    **Reconfirmado, item aberto e deliberado (decisão original
+    mantida sem mudança):** ~190 reexportações de barrel (`index.ts`
+    de `fundamentals`, `repositories`, `cvm/fii`, `sec/nport`,
     `backfill`) sinalizadas como não consumidas via o próprio barrel —
     a função de origem geralmente é usada por import direto em outro
-    lugar. Não removidas em massa por dois motivos: risco de quebrar
-    consumidor não mapeado pela config atual do knip, e a Sprint 16 vai
-    voltar a mexer exatamente nesses módulos de fundamentos em breve —
-    prunar agora para reconstruir depois é desperdício.
+    lugar. Não removidas em massa: risco de quebrar consumidor não
+    mapeado pela config atual do `knip` continua real, e o volume (190
+    itens) excede o que cabe em uma revisão item-a-item responsável
+    dentro desta sprint. Dois arquivos de barrel ainda genuinamente sem
+    consumidor (`cvm/fii-trimestral/index.ts`, `shiller/index.ts`) —
+    mesma categoria, mesma decisão de não prunar em massa.
 15. Multiusuário — somente se houver segundo usuário.
 
 ### Sprint 16 — Motor com recomendação por score (`DEC-068`) — **concluída**

@@ -56,7 +56,10 @@ No estado atual:
   Facts V1;
 - `src/domain/context/official-events` contém o domínio puro e determinístico de
   `OfficialAssetEventV1`, com identidades, taxonomia, tempo, documentos,
-  deduplicação e revisões, ainda sem persistência ou runtime;
+  deduplicação e revisões — por design, esta camada em si permanece pura, sem
+  I/O; persistência, backfill e runtime existem nas camadas irmãs descritas
+  abaixo (`src/data`, `src/server`, `src/application`), todas aplicadas em
+  produção;
 - `src/data/context/official-events/cvm/ipe` contém o provider CVM IPE V1
   isolado para as cinco ações, com download injetado, ZIP/CSV auditados,
   identidade forte, categorias fechadas e deduplicação em memória;

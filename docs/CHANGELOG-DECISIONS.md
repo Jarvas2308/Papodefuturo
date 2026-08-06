@@ -3921,3 +3921,48 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   interação sem cobertura conhecido. Sprint 14 (reconciliação
   documental) e a integração do wiring de provento pendente
   (`DEC-097`) seguem como próximos itens.
+
+## DEC-099 — Sprint 14 fechada: auditoria final de dead code e reconciliação documental
+
+- Data: 6 de agosto de 2026
+- Status: Aceita
+- Contexto: `DEC-073` deixou a Sprint 14 com entrega inicial. Faltava uma
+  passada final de `knip` + revisão de trechos desatualizados em
+  `docs/ARCHITECTURE.md`/`docs/PRODUCT.md` mencionados como pendência no
+  próprio `docs/PROJECT_HANDOFF.md`.
+- Decisão e achados:
+  1. `docs/ARCHITECTURE.md` corrigido: afirmava que o domínio de eventos
+     oficiais ficava "sem persistência ou runtime" — falso desde
+     `DEC-041` (runtime `read-only` ativo) e reforçado por `DEC-097`
+     (backfill real recorrente). Texto agora aponta para as camadas
+     irmãs (`src/data`, `src/server`, `src/application`) já em
+     produção, preservando que a camada de domínio em si continua pura
+     por design.
+  2. Achado de cobertura real (não dead code): `fetchProventoDocumentText.ts`
+     (`DEC-095`) tinha zero teste e zero consumidor em `src`, aparecendo
+     em "Unused files" e arrastando `pdf-parse` para "Unused
+     dependencies" no `knip`. Não é código morto — é código novo ainda
+     não conectado, aguardando o wiring de `DEC-097`. Teste mínimo
+     escrito (`fetchProventoDocumentText.test.ts`, 3 casos: allowlist de
+     host `www.rad.cvm.gov.br`, status HTTP não-ok, limite defensivo de
+     10 MB). Depois do teste, `knip` parou de sinalizar tanto o arquivo
+     quanto `pdf-parse` — confirma que eram falso positivo por falta de
+     alcance a partir de um consumidor real, não órfãos de fato.
+  3. Confirmados como falso positivo do `knip`, sem ação necessária:
+     `tailwindcss` (usado via `@import "tailwindcss"` em
+     `src/styles/index.css`, extensão `.css` fora do alcance do `knip`
+     por config própria do projeto) e `npm` como dependência não
+     listada em três Edge Functions (é o especificador `npm:` do
+     runtime Deno, não um pacote chamado literalmente `npm`).
+  4. Reconfirmadas, sem mudança: as ~190 reexportações de barrel
+     sinalizadas por `DEC-073` continuam não removidas em massa (risco
+     de consumidor não mapeado, volume incompatível com revisão
+     item-a-item responsável numa sprint) — decisão original mantida,
+     não uma nova análise.
+- Verificação: `npx knip` rodado do zero e após a mudança; 3 testes
+  novos passando; suíte completa e `tsc --noEmit` sem regressão (mesma
+  baseline de 14 falhas pré-existentes).
+- Consequências: Sprint 14 fechada por completo. Não há mais trecho de
+  arquitetura conhecido contradizendo o estado real de produção nem
+  código novo desta sessão sem teste. Barrel reexports seguem como
+  dívida documentada e deliberada, não pendência esquecida.
