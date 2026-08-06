@@ -952,6 +952,7 @@ as duas checagens são complementares, não substitutas.
     dentro desta sprint. Dois arquivos de barrel ainda genuinamente sem
     consumidor (`cvm/fii-trimestral/index.ts`, `shiller/index.ts`) —
     mesma categoria, mesma decisão de não prunar em massa.
+
 15. Multiusuário — **`NO-GO` permanente (`DEC-100`, 06/08/2026).** Usuário
     confirmou não ter pretensão de segundo usuário; item retirado do
     roadmap de sprints, sem reabertura prevista.
@@ -1302,16 +1303,38 @@ numeração de sprint.
      exato (unscaled+scale, fonte tem até 11 casas decimais). Nenhum
      dado real persistido nela ainda, só o schema.
 
-     **Falta pro wiring completo:** storage adapter TypeScript (mesmo
-     padrão de `toOfficialAssetEventSupabaseRowV1`) ligando
+     **Pipeline de extração implementado em 06/08/2026 (PR #160,
+     mergeado após corrigir um bug de build pré-existente não
+     relacionado — PR #161, `HistoryPage.test.tsx` quebrava `tsc -b`,
+     bloqueando o deploy de qualquer PR)**: storage adapter
+     `toProventoDeclarationValueRowV1.ts` (decimal exato via novo
+     `parseExactDecimalString` no módulo compartilhado de fundamentals);
+     provider `buildProventoDeclarationValueRowsV1.ts` ligando
      `fetchProventoDocumentText` + `extractProventoFormV1` +
-     `extractProventoDeclarationIdentityV1` num provider único; rodar
-     esse provider contra os 65 eventos já persistidos (`DEC-097`) pra
-     popular `provento_declaration_values`; agregação trailing-12-meses
-     por ISIN, usando "versão mais alta por Protocolo Provento vence"
-     como regra de dedup na leitura (usuário já confirmou: qualquer
-     trimestre não parseável marca `unavailable` o ativo inteiro, nunca
-     soma parcial); e então conectar cada um dos 3 sinais.
+     `extractProventoDeclarationIdentityV1`; script de backfill
+     `scripts/run-provento-declaration-values-backfill.ts`
+     (`npm run backfill:provento-declaration-values`, preview/`--confirm`,
+     falha fechada por documento — um PDF ruim não aborta o job
+     inteiro). **Achado importante**: `official_asset_events.isin` fica
+     `null` pra ação (só a identidade de FII carrega ISIN — nenhum
+     mapeamento ticker→ISIN verificado existe no repo). Decisão: não
+     filtra por ISIN na extração, guarda todas as linhas do documento
+     (ON+PN) sob o mesmo `event_id` — resolver ticker→ISIN vira
+     problema de leitura, não de extração.
+
+     **Falta pro wiring completo:**
+     - Rodar `npm run backfill:provento-declaration-values --confirm`
+       contra produção (precisa `SUPABASE_SERVICE_ROLE_KEY` do usuário,
+       agente não manuseia)
+     - Resolver ticker→ISIN com fonte real (não inventada) pros 5
+       tickers — bloqueio novo descoberto nesta sessão, não estava
+       mapeado antes
+     - Agregação trailing-12-meses por ISIN, usando "versão mais alta
+       por Protocolo Provento vence" como regra de dedup na leitura
+       (usuário já confirmou: qualquer trimestre não parseável marca
+       `unavailable` o ativo inteiro, nunca soma parcial)
+     - Conectar cada um dos 3 sinais
+
    - Spread de DY sobre TIPS (ETF) também já tem a taxa TIPS resolvida
      via FRED em produção (`DEC-093`) — só falta a metade do provento,
      mesma peça acima.
