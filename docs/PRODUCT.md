@@ -359,9 +359,10 @@ apresentação autenticada existem em `src/application/context/fundamentals` e
 `src/features/fundamentals`, rota `/fundamentos`, e a composição real está
 ativa (`DEC-060`). Ainda não existe scheduler. `FundamentalFactsV1` em si
 não modifica o Motor V2 nem `TechnicalDossierV1` — mas, desde o Sprint 16
-(`DEC-085` a `DEC-087`), o motor de score (`src/domain/fundamentals/score`,
+(`DEC-085` a `DEC-092`), o motor de score (`src/domain/fundamentals/score`,
 módulo separado que consome estes mesmos fatos) modifica a priorização de
-compra e é exposto no dossiê, hoje só para FII tijolo.
+compra e é exposto no dossiê — hoje cobre FII tijolo (4 sinais), ação (ROE)
+e ETF internacional (CAPE de VOO e prêmio/desconto sobre NAV dos 3 ETFs).
 
 ## Fundamental Derived Facts V1
 

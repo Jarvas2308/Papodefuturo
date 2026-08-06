@@ -139,6 +139,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
       capeHistory: [],
+      etfValuations: [],
     })
 
     expect(scores).toEqual([])
@@ -155,6 +156,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
       capeHistory: [],
+      etfValuations: [],
     })
 
     expect(scores).toEqual([])
@@ -200,6 +202,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
       capeHistory: [],
+      etfValuations: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -270,6 +273,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
       now: NOW,
       capeHistory: [],
+      etfValuations: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -328,6 +332,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
       capeHistory: [],
+      etfValuations: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -354,6 +359,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
       capeHistory: [],
+      etfValuations: [],
     })
 
     expect(scores).toEqual([])
@@ -383,6 +389,7 @@ describe('buildContributionAssetScoresV1', () => {
         { referenceDate: '2026-07-01', valueScaled: 30_000_000 },
         { referenceDate: '2026-08-01', valueScaled: 10_000_000 },
       ],
+      etfValuations: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -409,6 +416,7 @@ describe('buildContributionAssetScoresV1', () => {
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
       capeHistory: [{ referenceDate: '2026-08-01', valueScaled: 30_000_000 }],
+      etfValuations: [],
     })
 
     expect(scores).toHaveLength(1)
@@ -420,6 +428,11 @@ describe('buildContributionAssetScoresV1', () => {
           signalKey: 'etf_cape_vs_10y_avg',
           status: 'unavailable',
           reason: 'wrong-regime',
+        },
+        {
+          signalKey: 'etf_premium_discount_vs_nav',
+          status: 'unavailable',
+          reason: 'missing-input',
         },
       ],
     })

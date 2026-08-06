@@ -2,6 +2,7 @@ export type MarketDataWarningProvider =
   | 'b3-cotahist'
   | 'twelve-data'
   | 'tesouro-transparente'
+  | 'vanguard-site'
   | 'configuration'
   | 'storage'
 
@@ -27,6 +28,8 @@ export type MarketDataRefreshResult = {
   skippedFreshExchangeRates: number
   updatedReferenceRates: number
   skippedFreshReferenceRates: number
+  updatedEtfValuations: number
+  skippedFreshEtfValuations: number
   warnings: MarketDataWarning[]
 }
 
@@ -90,4 +93,19 @@ export type ReferenceRateInsert = {
   rate_scale: 1000000
   priced_at: string
   source: 'tesouro-transparente'
+}
+
+// `pricedAt` aqui tambem e' data civil (AAAA-MM-DD, `effectiveDate` da
+// Vanguard) - o site publica no maximo uma linha por dia util por ticker,
+// mesmo padrao de frescor diario de `StoredReferenceRate`.
+export type StoredEtfValuation = {
+  ticker: string
+  pricedAt: string
+}
+
+export type EtfValuationInsert = {
+  ticker: 'VOO' | 'VNQ' | 'VEA'
+  reference_date: string
+  premium_discount_basis_points: number
+  source: 'vanguard-site'
 }

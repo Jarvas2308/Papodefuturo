@@ -5,9 +5,11 @@ import {
   type MarketDataStorage,
 } from './core.ts'
 import type {
+  EtfValuationInsert,
   ExchangeRateInsert,
   MarketPriceInsert,
   ReferenceRateInsert,
+  StoredEtfValuation,
   StoredExchangeRate,
   StoredMarketPrice,
   StoredReferenceRate,
@@ -22,20 +24,33 @@ const DEFAULT_REFERENCE_RATES: StoredReferenceRate[] = [
   { series: 'ntnb-longa', pricedAt: '2026-07-14' },
 ]
 
+// Mesma logica: fresco por padrao pros 3 tickers no dia de `now`, pra nao
+// exigir que todo teste existente conheca prêmio/desconto de ETF.
+const DEFAULT_ETF_VALUATIONS: StoredEtfValuation[] = [
+  { ticker: 'VOO', pricedAt: '2026-07-14' },
+  { ticker: 'VNQ', pricedAt: '2026-07-14' },
+  { ticker: 'VEA', pricedAt: '2026-07-14' },
+]
+
 function createStorage(input?: {
   prices?: StoredMarketPrice[]
   rates?: StoredExchangeRate[]
   referenceRates?: StoredReferenceRate[]
+  etfValuations?: StoredEtfValuation[]
 }) {
   const insertedPrices: MarketPriceInsert[][] = []
   const insertedRates: ExchangeRateInsert[] = []
   const insertedReferenceRates: ReferenceRateInsert[] = []
+  const insertedEtfValuations: EtfValuationInsert[] = []
   const storage: MarketDataStorage = {
     listMarketPrices: vi.fn().mockResolvedValue(input?.prices ?? []),
     listMarketExchangeRates: vi.fn().mockResolvedValue(input?.rates ?? []),
     listMarketReferenceRates: vi
       .fn()
       .mockResolvedValue(input?.referenceRates ?? DEFAULT_REFERENCE_RATES),
+    listMarketEtfValuations: vi
+      .fn()
+      .mockResolvedValue(input?.etfValuations ?? DEFAULT_ETF_VALUATIONS),
     insertMarketPrices: vi.fn().mockImplementation(async (rows) => {
       insertedPrices.push([...rows])
     }),
@@ -45,9 +60,18 @@ function createStorage(input?: {
     insertMarketReferenceRate: vi.fn().mockImplementation(async (row) => {
       insertedReferenceRates.push(row)
     }),
+    insertMarketEtfValuation: vi.fn().mockImplementation(async (row) => {
+      insertedEtfValuations.push(row)
+    }),
   }
 
-  return { storage, insertedPrices, insertedRates, insertedReferenceRates }
+  return {
+    storage,
+    insertedPrices,
+    insertedRates,
+    insertedReferenceRates,
+    insertedEtfValuations,
+  }
 }
 
 function createProviders() {
@@ -89,6 +113,16 @@ function createProviders() {
         source: 'tesouro-transparente' as const,
       }),
     },
+    vanguardEtfValuation: {
+      getPremiumDiscount: vi
+        .fn()
+        .mockImplementation(async (ticker: 'VOO' | 'VNQ' | 'VEA') => ({
+          ticker,
+          effectiveDate: '2026-07-15',
+          premiumDiscountBasisPoints: -2,
+          source: 'vanguard-site' as const,
+        })),
+    },
   }
 }
 
@@ -97,6 +131,7 @@ async function runRefresh(options?: {
   providers?: ReturnType<typeof createProviders>
   twelveConfigured?: boolean
   tesouroConfigured?: boolean
+  vanguardConfigured?: boolean
   now?: Date
 }) {
   const storage = options?.storage ?? createStorage()
@@ -110,6 +145,10 @@ async function runRefresh(options?: {
       options?.tesouroConfigured === false
         ? null
         : providers.tesouroTransparente,
+    vanguardEtfValuation:
+      options?.vanguardConfigured === false
+        ? null
+        : providers.vanguardEtfValuation,
     now: options?.now ?? now,
   })
 
@@ -485,6 +524,109 @@ describe('reference rate (NTN-B)', () => {
       expect.objectContaining({
         provider: 'configuration',
         kind: 'configuration',
+      })
+    )
+  })
+})
+
+describe('ETF valuation (Vanguard premium/discount)', () => {
+  it('skips fetching a ticker that already has a stored row for today', async () => {
+    const { result, providers } = await runRefresh()
+
+    expect(providers.vanguardEtfValuation.getPremiumDiscount).not.toHaveBeenCalled()
+    expect(result.skippedFreshEtfValuations).toBe(3)
+    expect(result.updatedEtfValuations).toBe(0)
+  })
+
+  it('fetches and persists all 3 tickers when nothing is stored', async () => {
+    const storage = createStorage({ etfValuations: [] })
+    const { result, storage: usedStorage } = await runRefresh({ storage })
+
+    expect(result.updatedEtfValuations).toBe(3)
+    expect(result.skippedFreshEtfValuations).toBe(0)
+    expect(usedStorage.insertedEtfValuations).toHaveLength(3)
+    expect(usedStorage.insertedEtfValuations).toContainEqual({
+      ticker: 'VOO',
+      reference_date: '2026-07-15',
+      premium_discount_basis_points: -2,
+      source: 'vanguard-site',
+    })
+  })
+
+  it('fetches only the stale tickers, one per ticker', async () => {
+    const storage = createStorage({
+      etfValuations: [
+        { ticker: 'VOO', pricedAt: '2026-07-14' },
+        { ticker: 'VNQ', pricedAt: '2026-07-10' },
+        { ticker: 'VEA', pricedAt: '2026-07-10' },
+      ],
+    })
+    const { result, providers } = await runRefresh({ storage })
+
+    expect(providers.vanguardEtfValuation.getPremiumDiscount).toHaveBeenCalledTimes(2)
+    expect(providers.vanguardEtfValuation.getPremiumDiscount).toHaveBeenCalledWith('VNQ')
+    expect(providers.vanguardEtfValuation.getPremiumDiscount).toHaveBeenCalledWith('VEA')
+    expect(result.updatedEtfValuations).toBe(2)
+    expect(result.skippedFreshEtfValuations).toBe(1)
+  })
+
+  it('warns instead of persisting when the fetched quote is not newer', async () => {
+    const storage = createStorage({
+      etfValuations: [
+        { ticker: 'VOO', pricedAt: '2026-07-20' },
+        { ticker: 'VNQ', pricedAt: '2026-07-20' },
+        { ticker: 'VEA', pricedAt: '2026-07-20' },
+      ],
+    })
+    const { result } = await runRefresh({ storage })
+
+    expect(result.updatedEtfValuations).toBe(0)
+    expect(result.skippedFreshEtfValuations).toBe(0)
+    expect(result.warnings.filter((w) => w.provider === 'vanguard-site')).toHaveLength(3)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ provider: 'vanguard-site', kind: 'stale-quote' })
+    )
+  })
+
+  it('warns per ticker without throwing when the provider fails for one', async () => {
+    const storage = createStorage({ etfValuations: [] })
+    const providers = createProviders()
+    providers.vanguardEtfValuation.getPremiumDiscount = vi
+      .fn()
+      .mockImplementation(async (ticker: 'VOO' | 'VNQ' | 'VEA') => {
+        if (ticker === 'VNQ') {
+          throw new Error('HTTP 503')
+        }
+        return {
+          ticker,
+          effectiveDate: '2026-07-15',
+          premiumDiscountBasisPoints: -2,
+          source: 'vanguard-site' as const,
+        }
+      })
+
+    const { result } = await runRefresh({ storage, providers })
+
+    expect(result.updatedEtfValuations).toBe(2)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'vanguard-site',
+        kind: 'provider-failed',
+        ticker: 'VNQ',
+      })
+    )
+  })
+
+  it('warns with a configuration notice when Vanguard is not configured', async () => {
+    const storage = createStorage({ etfValuations: [] })
+    const { result } = await runRefresh({ storage, vanguardConfigured: false })
+
+    expect(result.updatedEtfValuations).toBe(0)
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        provider: 'configuration',
+        kind: 'configuration',
+        message: expect.stringContaining('Vanguard'),
       })
     )
   })

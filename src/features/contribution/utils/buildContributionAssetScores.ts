@@ -7,6 +7,7 @@ import {
 } from '../../../domain/fundamentals/score'
 import type {
   AssetScoreV1,
+  EtfPremiumDiscountPoint,
   ShillerCapeHistoryPoint,
   SignalRuleV1,
 } from '../../../domain/fundamentals/score'
@@ -61,21 +62,25 @@ export function buildContributionAssetScoresV1(input: {
   derived: FundamentalDerivedFactsV1
   latestPricesByAsset: ReadonlyMap<string, AssetPrice>
   capeHistory: readonly ShillerCapeHistoryPoint[]
+  etfValuations: readonly EtfPremiumDiscountPoint[]
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1[] {
   const scores: AssetScoreV1[] = []
 
   for (const asset of input.assets) {
-    // ETF nao depende de fundamental_snapshots - CAPE vem de uma fonte de
-    // mercado agregada separada (market_valuation_ratios), avaliada antes
-    // do requisito de factsAsset abaixo (que nao se aplica aqui).
+    // ETF nao depende de fundamental_snapshots - CAPE e premio/desconto
+    // vem de fontes de mercado agregadas separadas (market_valuation_ratios,
+    // market_etf_valuations), avaliadas antes do requisito de factsAsset
+    // abaixo (que nao se aplica aqui).
     if (asset.category === 'international-etf') {
       scores.push(
         buildInternationalEtfScoreV1({
           assetId: asset.id,
+          ticker: asset.ticker,
           assetSegment: asset.assetSegment ?? null,
           capeHistory: input.capeHistory,
+          etfValuations: input.etfValuations,
           rules: input.rules,
           now: input.now,
         })

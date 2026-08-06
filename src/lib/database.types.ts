@@ -376,6 +376,99 @@ export type Database = {
         }
         Relationships: []
       }
+      market_asset_prices: {
+        Row: {
+          created_at: string
+          currency: string
+          id: number
+          market: string
+          price_minor: number
+          priced_at: string
+          source: string
+          ticker: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: number
+          market: string
+          price_minor: number
+          priced_at: string
+          source: string
+          ticker: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: number
+          market?: string
+          price_minor?: number
+          priced_at?: string
+          source?: string
+          ticker?: string
+        }
+        Relationships: []
+      }
+      market_etf_valuations: {
+        Row: {
+          created_at: string
+          id: number
+          premium_discount_basis_points: number
+          reference_date: string
+          source: string
+          ticker: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          premium_discount_basis_points: number
+          reference_date: string
+          source: string
+          ticker: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          premium_discount_basis_points?: number
+          reference_date?: string
+          source?: string
+          ticker?: string
+        }
+        Relationships: []
+      }
+      market_exchange_rates: {
+        Row: {
+          base_currency: string
+          created_at: string
+          id: number
+          priced_at: string
+          quote_currency: string
+          rate_scale: number
+          rate_scaled: number
+          source: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string
+          id?: number
+          priced_at: string
+          quote_currency: string
+          rate_scale?: number
+          rate_scaled: number
+          source: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          id?: number
+          priced_at?: string
+          quote_currency?: string
+          rate_scale?: number
+          rate_scaled?: number
+          source?: string
+        }
+        Relationships: []
+      }
       market_reference_rates: {
         Row: {
           created_at: string
@@ -436,72 +529,6 @@ export type Database = {
           source?: string
           value_scale?: number
           value_scaled?: number
-        }
-        Relationships: []
-      }
-      market_asset_prices: {
-        Row: {
-          created_at: string
-          currency: string
-          id: number
-          market: string
-          price_minor: number
-          priced_at: string
-          source: string
-          ticker: string
-        }
-        Insert: {
-          created_at?: string
-          currency: string
-          id?: number
-          market: string
-          price_minor: number
-          priced_at: string
-          source: string
-          ticker: string
-        }
-        Update: {
-          created_at?: string
-          currency?: string
-          id?: number
-          market?: string
-          price_minor?: number
-          priced_at?: string
-          source?: string
-          ticker?: string
-        }
-        Relationships: []
-      }
-      market_exchange_rates: {
-        Row: {
-          base_currency: string
-          created_at: string
-          id: number
-          priced_at: string
-          quote_currency: string
-          rate_scale: number
-          rate_scaled: number
-          source: string
-        }
-        Insert: {
-          base_currency: string
-          created_at?: string
-          id?: number
-          priced_at: string
-          quote_currency: string
-          rate_scale?: number
-          rate_scaled: number
-          source: string
-        }
-        Update: {
-          base_currency?: string
-          created_at?: string
-          id?: number
-          priced_at?: string
-          quote_currency?: string
-          rate_scale?: number
-          rate_scaled?: number
-          source?: string
         }
         Relationships: []
       }
@@ -1056,6 +1083,10 @@ export type Database = {
         Returns: Json
       }
       upsert_market_asset_prices_v1: { Args: { records: Json }; Returns: Json }
+      upsert_market_etf_valuations_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
       upsert_market_exchange_rates_v1: {
         Args: { records: Json }
         Returns: Json
