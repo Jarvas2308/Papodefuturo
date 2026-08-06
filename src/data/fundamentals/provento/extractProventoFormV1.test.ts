@@ -218,6 +218,33 @@ Parcelamento
     expect(extractProventoFormV1(malformed)).toEqual([])
   })
 
+  it('skips a row with the CVM sentinel payment date 31/12/9999 (real document, PSSA3)', () => {
+    // Real "Provento" form (PSSA3, numProtocolo=1226912, protocolo
+    // interno 1225424 versão 2) - a empresa não preencheu a data de
+    // pagamento real, e o formulário da CVM usa 31/12/9999 como
+    // sentinela nesse caso.
+    const document = `Código ISIN Valor Bruto
+(R$/Unidade)
+Período
+Base
+Execício
+Social
+Haverá
+Atualização
+Forma de
+Pagamento
+Data
+Pagamento
+BRPSSAACN
+OR7
+0,0935984008
+6
+Anual 2023 Não A Vista 31/12/9999
+Parcelamento
+`
+    expect(extractProventoFormV1(document)).toEqual([])
+  })
+
   it('skips a malformed row instead of guessing when the ISIN pattern is broken', () => {
     const malformed = `Código ISIN Valor Bruto
 (R$/Unidade)

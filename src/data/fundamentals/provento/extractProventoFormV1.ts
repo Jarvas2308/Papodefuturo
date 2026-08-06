@@ -66,6 +66,17 @@ function parseRow(lines: readonly string[]): ProventoFormRowV1 | null {
   const paymentDate = summaryMatch[3]!
   const fiscalYear = Number(fiscalYearRaw)
 
+  // "31/12/9999" observed for real in production (PSSA3, protocolo
+  // 1225424 versão 2, Anual 2023) - o próprio formulário "Provento" da
+  // CVM usa esse valor sentinela quando a empresa não preencheu a data
+  // de pagamento real. Sintaticamente é uma data válida (bate o padrão
+  // acima), mas nunca é uma data de pagamento real - falha fechada em
+  // vez de guardar um valor que quebraria qualquer agregação por
+  // período (trailing-12-meses).
+  if (paymentDate.endsWith('/9999')) {
+    return null
+  }
+
   return {
     isin,
     grossValuePerShareDecimal: `${valuePart1}${valuePart2}`.replace(',', '.'),
