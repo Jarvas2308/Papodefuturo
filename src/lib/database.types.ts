@@ -264,11 +264,16 @@ export type Database = {
       }
       fundamental_snapshots: {
         Row: {
+          cash_and_equivalents_minor: number | null
           category: string
           created_at: string
           currency: string
+          depreciation_and_amortization_minor: number | null
+          ebit_minor: number | null
           exercise_order: string | null
           filing_version: number | null
+          financial_debt_current_minor: number | null
+          financial_debt_noncurrent_minor: number | null
           id: number
           igpm_revenue_share_basis_points: number | null
           incc_revenue_share_basis_points: number | null
@@ -301,11 +306,16 @@ export type Database = {
           wale_months_x100: number | null
         }
         Insert: {
+          cash_and_equivalents_minor?: number | null
           category: string
           created_at?: string
           currency: string
+          depreciation_and_amortization_minor?: number | null
+          ebit_minor?: number | null
           exercise_order?: string | null
           filing_version?: number | null
+          financial_debt_current_minor?: number | null
+          financial_debt_noncurrent_minor?: number | null
           id?: number
           igpm_revenue_share_basis_points?: number | null
           incc_revenue_share_basis_points?: number | null
@@ -338,11 +348,16 @@ export type Database = {
           wale_months_x100?: number | null
         }
         Update: {
+          cash_and_equivalents_minor?: number | null
           category?: string
           created_at?: string
           currency?: string
+          depreciation_and_amortization_minor?: number | null
+          ebit_minor?: number | null
           exercise_order?: string | null
           filing_version?: number | null
+          financial_debt_current_minor?: number | null
+          financial_debt_noncurrent_minor?: number | null
           id?: number
           igpm_revenue_share_basis_points?: number | null
           incc_revenue_share_basis_points?: number | null

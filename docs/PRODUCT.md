@@ -268,22 +268,28 @@ candidatos dentro do universo fechado — nunca um recomendador irrestrito
 (usuário mantém confirmação obrigatória, item 6 da filosofia). Estado atual
 (`DEC-085` a `DEC-087`):
 
-- cobre 7 dos 12 sinais do rascunho de pontuação, em três fatias
-  (`DEC-085` a `DEC-092`):
+- cobre 8 dos 12 sinais do rascunho de pontuação, em três fatias
+  (`DEC-085` a `DEC-094`):
   - FII tijolo (KNRI11, VISC11, XPLG11, HGRU11), 4 de 5: P/VP, vacância
     financeira, WALE (substituto documentado de "receita vencendo em 24
     meses") e concentração do maior inquilino; spread de DY sobre NTN-B
     segue bloqueado (falta o valor do provento, só o evento foi ingerido);
-  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 1 de 4: ROE, aplicável a
-    todos os regimes exceto holding pura. Payout (mesmo bloqueio de valor
-    de provento), dívida líquida/EBITDA (precisa provider novo, não
-    extraído do DFP/ITR atual) e P/L vs série histórica (amostra
-    insuficiente até acumular mais períodos ingeridos) seguem bloqueados;
+  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 2 de 4: ROE (todos os
+    regimes exceto holding pura) e dívida líquida/EBITDA (todos os
+    regimes exceto banco — insumos confirmados com dado real do DFP 2025:
+    `BPP_con` `2.01.04`/`2.02.01` "Empréstimos e Financiamentos", `BPA_con`
+    `1.01.01` "Caixa e Equivalentes de Caixa", `DRE_con` `3.05` "Resultado
+    Antes do Resultado Financeiro e dos Tributos", `DFC_MI_con` linha de
+    depreciação/amortização em allowlist fechada de 3 descrições). Payout
+    (mesmo bloqueio de valor de provento) e P/L vs série histórica
+    (amostra insuficiente até acumular mais períodos ingeridos) seguem
+    bloqueados;
   - ETF internacional (VOO, VNQ, VEA), 2 de 3: CAPE de VOO vs própria
     média de 10 anos (só `indice-amplo-us`) e prêmio/desconto sobre NAV
     via site do emissor (Vanguard, aplicável aos 3 ETFs). Spread de DY
-    sobre TIPS segue bloqueado, depende de chave de API do FRED que só o
-    usuário pode fornecer;
+    sobre TIPS resolvido pela metade (taxa TIPS via FRED, DFII10,
+    ingerida em produção) — o sinal em si segue bloqueado, mesmo motivo
+    de payout (valor do provento);
 - faixas de pontuação configuráveis por usuário (`signal_rules`), semeadas
   com valores de partida na primeira simulação de aporte técnico;
 - score é best-effort: qualquer falha na leitura de fundamentos degrada

@@ -383,19 +383,19 @@ pipeline existente.
 
 ### 6.3 Quadro consolidado
 
-| Sinal                              | Insumos                                             | Situação                                               |
-| ---------------------------------- | --------------------------------------------------- | ------------------------------------------------------ |
-| **Lucro líquido**                  | DRE código `3.11`                                   | Confirmado, universal entre setores testados           |
-| **LPA**                            | lucro líquido ÷ `composicao_capital` (classe certa) | Confirmado, requer atenção à classe ON/PN              |
-| **P/L**                            | preço (`asset_prices`) + LPA                        | Requer novo provider CVM DFP/ITR                       |
-| **ROE**                            | lucro líquido ÷ patrimônio (`BPP_con`)              | Requer novo provider                                   |
-| **P/VP**                           | preço + patrimônio ÷ ações                          | Requer novo provider                                   |
-| **Margem líquida/EBITDA**          | DRE completa                                        | Requer novo provider; só aplicável a industrial        |
-| **Dívida líquida/EBITDA**          | `BPP_con` + DRE                                     | Requer novo provider; não aplicável a banco            |
-| **Dividend Yield / Payout**        | dividendos pagos                                    | **Sem fonte aberta confirmada** — ver 6.2              |
-| Basileia, NIM, NPL (banco)         | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão    |
-| Índice combinado (seguradora)      | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão    |
-| RAB, prazo de concessão (regulado) | —                                                   | Fonte provavelmente ANEEL, não pesquisada nesta sessão |
+| Sinal                              | Insumos                                             | Situação                                                                                          |
+| ---------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Lucro líquido**                  | DRE código `3.11`                                   | Confirmado, universal entre setores testados                                                      |
+| **LPA**                            | lucro líquido ÷ `composicao_capital` (classe certa) | Confirmado, requer atenção à classe ON/PN                                                         |
+| **P/L**                            | preço (`asset_prices`) + LPA                        | Requer novo provider CVM DFP/ITR                                                                  |
+| **ROE**                            | lucro líquido ÷ patrimônio (`BPP_con`)              | Requer novo provider                                                                              |
+| **P/VP**                           | preço + patrimônio ÷ ações                          | Requer novo provider                                                                              |
+| **Margem líquida/EBITDA**          | DRE completa                                        | Requer novo provider; só aplicável a industrial                                                   |
+| **Dívida líquida/EBITDA**          | `BPP_con` + `BPA_con` + `DRE_con` + `DFC_MI_con`    | **Implementado (DEC-094)** — mesmo provider já usado pra ROE, campos novos; não aplicável a banco |
+| **Dividend Yield / Payout**        | dividendos pagos                                    | **Sem fonte aberta confirmada** — ver 6.2                                                         |
+| Basileia, NIM, NPL (banco)         | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão                                               |
+| Índice combinado (seguradora)      | —                                                   | Não confirmado nos datasets CVM padrão nesta sessão                                               |
+| RAB, prazo de concessão (regulado) | —                                                   | Fonte provavelmente ANEEL, não pesquisada nesta sessão                                            |
 
 **Conclusão operacional, no mesmo padrão do FII:** antes de qualquer regra de
 veto, o schema precisa de um campo de **setor/regime** (banco, seguradora,

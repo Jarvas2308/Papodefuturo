@@ -219,6 +219,82 @@ function createRows(): FixtureRow[] {
           : 'Caixa Líquido Atividades Operacionais',
         accountValue: String(20 + index),
       },
+      // Insumos de dívida líquida/EBITDA (Sprint 16, Fase 5) - banco usa os
+      // mesmos códigos de conta pra conceitos diferentes (dado real do DFP
+      // 2025), confirmando o regime errado via descrição divergente.
+      {
+        statement: 'BPA',
+        companyName: company.officialName,
+        companyCnpj: company.cnpj,
+        cvmCode: company.cvmCode,
+        referenceDate: '2026-03-31',
+        version,
+        exerciseOrder: 'ÚLTIMO',
+        accountCode: '1.01.01',
+        accountDescription: isBank ? 'Caixa' : 'Caixa e Equivalentes de Caixa',
+        accountValue: String(1_000 + index),
+      },
+      {
+        statement: 'BPP',
+        companyName: company.officialName,
+        companyCnpj: company.cnpj,
+        cvmCode: company.cvmCode,
+        referenceDate: '2026-03-31',
+        version,
+        exerciseOrder: 'ÚLTIMO',
+        accountCode: '2.01.04',
+        accountDescription: isBank
+          ? 'Depósitos'
+          : 'Empréstimos e Financiamentos',
+        accountValue: String(600 + index),
+      },
+      {
+        statement: 'BPP',
+        companyName: company.officialName,
+        companyCnpj: company.cnpj,
+        cvmCode: company.cvmCode,
+        referenceDate: '2026-03-31',
+        version,
+        exerciseOrder: 'ÚLTIMO',
+        accountCode: '2.02.01',
+        accountDescription: isBank
+          ? 'Depósitos'
+          : 'Empréstimos e Financiamentos',
+        accountValue: String(300 + index),
+      },
+      {
+        statement: 'DRE',
+        companyName: company.officialName,
+        companyCnpj: company.cnpj,
+        cvmCode: company.cvmCode,
+        referenceDate: '2026-03-31',
+        version,
+        exerciseOrder: 'ÚLTIMO',
+        accountCode: '3.05',
+        accountDescription: isBank
+          ? 'Resultado antes dos Tributos sobre o Lucro'
+          : 'Resultado Antes do Resultado Financeiro e dos Tributos',
+        accountValue: String(700 + index),
+      },
+      // Código de conta e redação variam por empresa (dado real: WEGE3
+      // 6.01.01.02, TAEE11 6.01.01.03) - só a descrição, em allowlist
+      // fechada, é confiável.
+      {
+        statement: 'DFC_MI',
+        companyName: company.officialName,
+        companyCnpj: company.cnpj,
+        cvmCode: company.cvmCode,
+        referenceDate: '2026-03-31',
+        version,
+        exerciseOrder: 'ÚLTIMO',
+        accountCode: index % 2 === 0 ? '6.01.01.02' : '6.01.01.03',
+        accountDescription: isBank
+          ? 'Ajustes ao Lucro ou Prejuízo'
+          : index % 2 === 0
+            ? 'Depreciação, Amortização e Exaustão'
+            : 'Depreciação e Amortização',
+        accountValue: String(80 + index),
+      },
     ] satisfies FixtureRow[]
   })
 }
@@ -681,6 +757,89 @@ describe('extractCvmBrazilianStockFundamentals issued shares (composicao_capital
       unscaledValue: 1_033_497,
       scale: 0,
     })
+  })
+})
+
+describe('extractCvmBrazilianStockFundamentals net debt / EBITDA inputs (Sprint 16, Fase 5)', () => {
+  it('extracts financial debt (current/non-current), cash and EBIT for non-bank tickers', () => {
+    const records = extract()
+    const wege3 = findRecord(records, 'WEGE3')
+
+    // Fixture usa ESCALA_MOEDA "MIL" (multiplicador 100.000, mesma
+    // convenção de netIncome/totalAssets no resto deste arquivo).
+    expect(wege3.facts.financialDebtCurrent).toEqual({
+      amountInMinorUnits: 60_300_000,
+      currency: 'BRL',
+    })
+    expect(wege3.facts.financialDebtNonCurrent).toEqual({
+      amountInMinorUnits: 30_300_000,
+      currency: 'BRL',
+    })
+    expect(wege3.facts.cashAndEquivalents).toEqual({
+      amountInMinorUnits: 100_300_000,
+      currency: 'BRL',
+    })
+    expect(wege3.facts.ebit).toEqual({
+      amountInMinorUnits: 70_300_000,
+      currency: 'BRL',
+    })
+    expect(wege3.facts.depreciationAndAmortization).toEqual({
+      amountInMinorUnits: 8_300_000,
+      currency: 'BRL',
+    })
+  })
+
+  it('marks all five net debt / EBITDA inputs null for banco - wrong regime, not missing data', () => {
+    const records = extract()
+    const bbas3 = findRecord(records, 'BBAS3')
+
+    expect(bbas3.facts.financialDebtCurrent).toBeNull()
+    expect(bbas3.facts.financialDebtNonCurrent).toBeNull()
+    expect(bbas3.facts.cashAndEquivalents).toBeNull()
+    expect(bbas3.facts.ebit).toBeNull()
+    expect(bbas3.facts.depreciationAndAmortization).toBeNull()
+    expect(bbas3.provenance.financialDebtCurrent).toBeNull()
+    expect(bbas3.provenance.financialDebtNonCurrent).toBeNull()
+    expect(bbas3.provenance.cashAndEquivalents).toBeNull()
+    expect(bbas3.provenance.ebit).toBeNull()
+    expect(bbas3.provenance.depreciationAndAmortization).toBeNull()
+  })
+
+  it('accepts either real depreciation description in the closed allowlist', () => {
+    const records = extract()
+
+    expect(
+      findRecord(records, 'TAEE11').provenance.depreciationAndAmortization
+        ?.accountDescription
+    ).toBe('Depreciação, Amortização e Exaustão')
+    expect(
+      findRecord(records, 'WEGE3').provenance.depreciationAndAmortization
+        ?.accountDescription
+    ).toBe('Depreciação e Amortização')
+  })
+
+  it('does not confuse financial debt current and non-current codes', () => {
+    const records = extract()
+    const itsa4 = findRecord(records, 'ITSA4')
+
+    expect(itsa4.provenance.financialDebtCurrent?.accountCode).toBe('2.01.04')
+    expect(itsa4.provenance.financialDebtNonCurrent?.accountCode).toBe(
+      '2.02.01'
+    )
+  })
+
+  it('rejects an ambiguous financial debt candidate instead of guessing', () => {
+    const rows = createRows()
+    const debtRow = rows.find(
+      (row) =>
+        row.cvmCode === '005410' &&
+        row.statement === 'BPP' &&
+        row.accountCode === '2.01.04'
+    )!
+
+    expect(() => extract([...rows, { ...debtRow }])).toThrow(
+      'Ambiguous financialDebtCurrent'
+    )
   })
 
   it('records issued shares provenance pointing at the real CVM column', () => {

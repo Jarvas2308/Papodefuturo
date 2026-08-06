@@ -96,6 +96,14 @@ export type CvmBrazilianStockFundamentalRecord = {
     totalEquity: CvmFactProvenance
     operatingCashFlow: CvmFactProvenance
     issuedShares: CvmCapitalCompositionProvenance | null
+    // Null exatamente quando o fato correspondente é null (banco, regime
+    // errado - ver `BrazilianStockFundamentalFacts` em
+    // `src/domain/fundamentals/types.ts`).
+    financialDebtCurrent: CvmFactProvenance | null
+    financialDebtNonCurrent: CvmFactProvenance | null
+    cashAndEquivalents: CvmFactProvenance | null
+    ebit: CvmFactProvenance | null
+    depreciationAndAmortization: CvmFactProvenance | null
   }
 }
 

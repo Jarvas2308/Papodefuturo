@@ -54,6 +54,11 @@ export function createRuntimeStockSnapshot(): BrazilianStockFundamentalSnapshotI
       totalEquity: { amountInMinorUnits: 5_000_000, currency: 'BRL' },
       operatingCashFlow: { amountInMinorUnits: 150_000, currency: 'BRL' },
       issuedShares: { unscaledValue: 5_730_834_040, scale: 0 },
+      financialDebtCurrent: null,
+      financialDebtNonCurrent: null,
+      cashAndEquivalents: null,
+      ebit: null,
+      depreciationAndAmortization: null,
     },
   }
 }

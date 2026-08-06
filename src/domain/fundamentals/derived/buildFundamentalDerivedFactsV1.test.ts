@@ -47,6 +47,11 @@ function createStockSnapshot(
       totalEquity: brl(25_000),
       operatingCashFlow: brl(15_000),
       issuedShares: null,
+      financialDebtCurrent: null,
+      financialDebtNonCurrent: null,
+      cashAndEquivalents: null,
+      ebit: null,
+      depreciationAndAmortization: null,
     },
     ...overrides,
   }

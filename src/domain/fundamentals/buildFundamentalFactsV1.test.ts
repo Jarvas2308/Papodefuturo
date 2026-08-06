@@ -94,6 +94,11 @@ function createAnnualStockSnapshot(): BrazilianStockFundamentalSnapshotInput {
       totalEquity: brl(-100_000),
       operatingCashFlow: brl(-250_000),
       issuedShares: null,
+      financialDebtCurrent: null,
+      financialDebtNonCurrent: null,
+      cashAndEquivalents: null,
+      ebit: null,
+      depreciationAndAmortization: null,
     },
   }
 }
@@ -113,6 +118,11 @@ function createQuarterlyStockSnapshot(): BrazilianStockFundamentalSnapshotInput 
       totalEquity: brl(5_000_000),
       operatingCashFlow: brl(150_000),
       issuedShares: null,
+      financialDebtCurrent: null,
+      financialDebtNonCurrent: null,
+      cashAndEquivalents: null,
+      ebit: null,
+      depreciationAndAmortization: null,
     },
   }
 }
