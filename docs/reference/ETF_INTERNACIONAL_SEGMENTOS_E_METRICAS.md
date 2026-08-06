@@ -127,8 +127,21 @@ enquanto a bolsa americana negocia a cota (fuso horário), então o preço da
 cota reage a notícia nova antes do NAV (calculado sobre preço de fechamento
 de mercados fora dos EUA) atualizar.
 
-**Fonte:** NAV por cota é campo padrão do N-PORT (Parte C, informação a
-nível de fundo). Preço de mercado já está em `asset_prices`. Ver seção 6.
+**Fonte (revisada, DEC-092):** o N-PORT foi inspecionado com filing real da
+VOO (`accessionNumber 0000036405-26-000325`, `primary_doc.xml` completo,
+~90 tags XML listadas) e **não contém** NAV por cota nem cotas em
+circulação — a premissa original desta seção estava errada (ver 6.1/6.2
+para o histórico). Fonte real implementada: o próprio site do emissor
+(`investor.vanguard.com`), que a SEC obriga a publicar diariamente NAV,
+preço de mercado e prêmio/desconto (Rule 6c-11) — endpoint JSON não
+documentado por trás da página pública do fundo, sem autenticação,
+confirmado com fetch direto devolvendo o mesmo dado exibido na página.
+Diferente de CVM/SEC, sem accession number nem identidade documental
+formal — a proveniência possível é a URL do endpoint e a
+`referenceDate`/`effectiveDate` que a própria Vanguard atribui ao dado.
+Risco aceito explicitamente: endpoint interno, sem contrato público, pode
+mudar ou parar de responder sem aviso — a ingestão falha fechado (erro
+estruturado, nunca dado silenciosamente errado) se o formato mudar.
 
 ### 3.4 Liquidez e AUM (patrimônio total sob gestão)
 
@@ -228,24 +241,28 @@ para os 3 tickers, mas só extrai 3 campos:
 `totalAssets`, `totalLiabilities`, `netAssets`. Confirmado lendo o código
 (`src/data/fundamentals/sec/nport/types.ts` e `provider.ts`).
 
-O formulário N-PORT, no entanto, contém — na Parte C, informação a nível de
-fundo — campos que o parser atual não lê ainda: **NAV por cota** e **total de
-cotas em circulação**. Não abri o XML bruto de uma filing real nesta sessão
-para confirmar o nome exato do campo, mas a existência deles no formulário é
-documentada pela própria SEC. Isso é o mesmo padrão do FII: dado estruturado
-que já está na fonte ingerida, só falta o parser extrair o campo adicional —
-não é fonte nova.
+O formulário N-PORT, no entanto, foi originalmente presumido conter — na
+Parte C, informação a nível de fundo — campos que o parser atual não lê
+ainda: **NAV por cota** e **total de cotas em circulação**. **Premissa
+derrubada em DEC-092**: filing real da VOO baixado e inspecionado por
+completo (`accessionNumber 0000036405-26-000325`, ~90 tags XML) e nenhum
+campo do N-PORT corresponde a NAV por cota nem cotas em circulação
+(`totAssets`/`totLiabs`/`netAssets` no nível do fundo é tudo que existe;
+`monthlyTotReturns` é retorno percentual, não cotas). Não é o mesmo padrão
+do FII (campo estruturado esperando o parser) — é dado que genuinamente não
+está nessa fonte. Fonte real implementada: site do próprio emissor, ver 3.3
+e 6.2.
 
 ### 6.2 O que exige fonte nova
 
-| Sinal                                          | Fonte                                        | Situação                                                              |
-| ---------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
-| **Prêmio/desconto sobre NAV**                  | N-PORT, campos ainda não extraídos           | Requer expandir parser existente, não fonte nova                      |
-| **Expense ratio**                              | Não confirmado nesta sessão                  | Ver 6.3                                                               |
-| **Tracking difference**                        | Retorno do fundo (preço) + retorno do índice | Requer série do índice, não confirmada nesta sessão                   |
-| **CAPE do S&P 500 (VOO)**                      | Shiller Data, Yale                           | **Confirmado, aberto, sem chave**                                     |
-| **Spread de VNQ sobre TIPS 10 anos**           | FRED, série `DFII10`                         | **Confirmado, requer chave gratuita**                                 |
-| **CAPE de mercados desenvolvidos ex-US (VEA)** | —                                            | **Sem fonte aberta única confirmada** — pesquisa adicional necessária |
+| Sinal                                          | Fonte                                        | Situação                                                                  |
+| ---------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
+| **Prêmio/desconto sobre NAV**                  | Site do emissor (`investor.vanguard.com`)    | **Resolvido e implementado (DEC-092)** — N-PORT confirmado sem esse campo |
+| **Expense ratio**                              | Não confirmado nesta sessão                  | Ver 6.3                                                                   |
+| **Tracking difference**                        | Retorno do fundo (preço) + retorno do índice | Requer série do índice, não confirmada nesta sessão                       |
+| **CAPE do S&P 500 (VOO)**                      | Shiller Data, Yale                           | **Confirmado, aberto, sem chave**                                         |
+| **Spread de VNQ sobre TIPS 10 anos**           | FRED, série `DFII10`                         | **Confirmado, requer chave gratuita**                                     |
+| **CAPE de mercados desenvolvidos ex-US (VEA)** | —                                            | **Sem fonte aberta única confirmada** — pesquisa adicional necessária     |
 
 ### 6.3 Expense ratio — gap sinalizado, não resolvido
 
@@ -291,10 +308,11 @@ categoria, pela terceira vez, em roupagem diferente.
 
 - **Não contém recomendação de compra, venda ou ranking**, por escolha.
 - **Não sou consultor de valores mobiliários licenciado.**
-- **Campos exatos de NAV por cota e cotas em circulação no N-PORT não foram
-  confirmados contra um XML real nesta sessão** — confirmado que o formulário
-  os contém, não confirmado o nome exato do campo a extrair. Verificar antes
-  de codar.
+- **NAV por cota e cotas em circulação não existem no N-PORT** (revisado em
+  DEC-092, XML real inspecionado por completo) — a hipótese original desta
+  seção estava errada. Prêmio/desconto sobre NAV foi resolvido por fonte
+  diferente (site do próprio emissor, ver 3.3/6.2); cotas em circulação
+  isoladas seguem sem fonte confirmada.
 - **Expense ratio corrente dos três fundos não foi verificado contra fonte
   primária nesta sessão.**
 - **CAPE para mercados desenvolvidos ex-US permanece sem fonte aberta única

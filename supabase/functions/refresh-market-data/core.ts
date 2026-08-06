@@ -6,6 +6,7 @@ import {
   isStrictlyNewerTimestamp,
 } from './freshness.ts'
 import type {
+  EtfValuationInsert,
   ExchangeRateInsert,
   ExchangeRateQuote,
   MarketDataRefreshResult,
@@ -13,11 +14,16 @@ import type {
   MarketPriceInsert,
   MarketQuote,
   ReferenceRateInsert,
+  StoredEtfValuation,
   StoredExchangeRate,
   StoredMarketPrice,
   StoredReferenceRate,
 } from './types.ts'
 import type { NtnbLongaRate } from './tesouroTransparenteProvider.ts'
+import type {
+  VanguardEtfTicker,
+  VanguardPremiumDiscountQuote,
+} from './vanguardEtfValuationProvider.ts'
 
 type B3CotahistProvider = {
   getAssetQuotes(tickers: readonly string[]): Promise<MarketQuote[]>
@@ -32,13 +38,21 @@ type TesouroTransparenteProvider = {
   getNtnbLongaRate(): Promise<NtnbLongaRate>
 }
 
+type VanguardEtfValuationProvider = {
+  getPremiumDiscount(
+    ticker: VanguardEtfTicker
+  ): Promise<VanguardPremiumDiscountQuote>
+}
+
 export type MarketDataStorage = {
   listMarketPrices(): Promise<StoredMarketPrice[]>
   listMarketExchangeRates(): Promise<StoredExchangeRate[]>
   listMarketReferenceRates(): Promise<StoredReferenceRate[]>
+  listMarketEtfValuations(): Promise<StoredEtfValuation[]>
   insertMarketPrices(rows: readonly MarketPriceInsert[]): Promise<void>
   insertMarketExchangeRate(row: ExchangeRateInsert): Promise<void>
   insertMarketReferenceRate(row: ReferenceRateInsert): Promise<void>
+  insertMarketEtfValuation(row: EtfValuationInsert): Promise<void>
 }
 
 export type RefreshMarketDataInput = {
@@ -46,11 +60,20 @@ export type RefreshMarketDataInput = {
   b3Cotahist: B3CotahistProvider
   twelveData: TwelveDataProvider | null
   tesouroTransparente: TesouroTransparenteProvider | null
+  vanguardEtfValuation: VanguardEtfValuationProvider | null
   now?: Date
 }
 
+// Universo fechado dos 3 ETFs cobertos pela Vanguard (mesmos tickers de
+// `SERVER_CLOSED_ASSET_UNIVERSE` com `market === 'US'`) - lista propria em
+// vez de filtrar o universo geral porque este provider e' especifico da
+// Vanguard, nao de "todo ativo US" (se um ETF nao-Vanguard entrar no
+// universo geral no futuro, esta lista nao deve crescer sozinha).
+const VANGUARD_ETF_TICKERS: readonly VanguardEtfTicker[] = ['VOO', 'VNQ', 'VEA']
+
 function providerFailureWarning(
-  provider: 'b3-cotahist' | 'twelve-data' | 'tesouro-transparente',
+  provider:
+    'b3-cotahist' | 'twelve-data' | 'tesouro-transparente' | 'vanguard-site',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -104,7 +127,8 @@ export function sanitizeMarketPriceRows(rows: readonly MarketPriceInsert[]): {
 }
 
 function staleQuoteWarning(
-  provider: 'b3-cotahist' | 'twelve-data' | 'tesouro-transparente',
+  provider:
+    'b3-cotahist' | 'twelve-data' | 'tesouro-transparente' | 'vanguard-site',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -137,15 +161,21 @@ export async function refreshMarketData({
   b3Cotahist,
   twelveData,
   tesouroTransparente,
+  vanguardEtfValuation,
   now = new Date(),
 }: RefreshMarketDataInput): Promise<MarketDataRefreshResult> {
   const warnings: MarketDataWarning[] = []
-  const [persistedPrices, persistedRates, persistedReferenceRates] =
-    await Promise.all([
-      storage.listMarketPrices(),
-      storage.listMarketExchangeRates(),
-      storage.listMarketReferenceRates(),
-    ])
+  const [
+    persistedPrices,
+    persistedRates,
+    persistedReferenceRates,
+    persistedEtfValuations,
+  ] = await Promise.all([
+    storage.listMarketPrices(),
+    storage.listMarketExchangeRates(),
+    storage.listMarketReferenceRates(),
+    storage.listMarketEtfValuations(),
+  ])
   const latestPriceByTicker = getLatestPriceByTicker(persistedPrices)
   const latestAutomaticRate = getLatestAutomaticFact(persistedRates)
 
@@ -335,6 +365,51 @@ export async function refreshMarketData({
     })
   }
 
+  let updatedEtfValuations = 0
+  let skippedFreshEtfValuations = 0
+  const latestEtfValuationByTicker = new Map(
+    persistedEtfValuations.map((valuation) => [
+      valuation.ticker,
+      valuation.pricedAt,
+    ])
+  )
+
+  if (!vanguardEtfValuation) {
+    warnings.push({
+      provider: 'configuration',
+      kind: 'configuration',
+      message:
+        'Vanguard não está configurada para atualização automática de prêmio/desconto.',
+    })
+  } else {
+    for (const ticker of VANGUARD_ETF_TICKERS) {
+      const latestPricedAt = latestEtfValuationByTicker.get(ticker) ?? null
+
+      if (isReferenceRateFreshForToday(latestPricedAt, now)) {
+        skippedFreshEtfValuations += 1
+        continue
+      }
+
+      try {
+        const quote = await vanguardEtfValuation.getPremiumDiscount(ticker)
+
+        if (!latestPricedAt || quote.effectiveDate > latestPricedAt) {
+          await storage.insertMarketEtfValuation({
+            ticker: quote.ticker,
+            reference_date: quote.effectiveDate,
+            premium_discount_basis_points: quote.premiumDiscountBasisPoints,
+            source: 'vanguard-site',
+          })
+          updatedEtfValuations += 1
+        } else {
+          warnings.push(staleQuoteWarning('vanguard-site', ticker))
+        }
+      } catch {
+        warnings.push(providerFailureWarning('vanguard-site', ticker))
+      }
+    }
+  }
+
   return {
     refreshedAt: now.toISOString(),
     updatedPrices: persistedPriceCount,
@@ -343,6 +418,8 @@ export async function refreshMarketData({
     skippedFreshExchangeRates,
     updatedReferenceRates,
     skippedFreshReferenceRates,
+    updatedEtfValuations,
+    skippedFreshEtfValuations,
     warnings,
   }
 }

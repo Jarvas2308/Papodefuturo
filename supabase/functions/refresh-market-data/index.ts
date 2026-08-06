@@ -5,6 +5,7 @@ import { createB3CotahistProvider } from './b3CotahistProvider.ts'
 import { extractCotahistText } from './b3CotahistZip.ts'
 import { createTwelveDataProvider } from './twelveDataProvider.ts'
 import { createTesouroTransparenteProvider } from './tesouroTransparenteProvider.ts'
+import { createVanguardEtfValuationProvider } from './vanguardEtfValuationProvider.ts'
 
 declare const Deno: {
   env: { get(name: string): string | undefined }
@@ -147,6 +148,25 @@ Deno.serve(async (request) => {
         )
         if (error) throw error
       },
+      async listMarketEtfValuations() {
+        const { data, error } = await serviceClient
+          .from('market_etf_valuations')
+          .select('ticker,reference_date')
+          .eq('source', 'vanguard-site')
+
+        if (error) throw error
+        return (data ?? []).map((row) => ({
+          ticker: row.ticker,
+          pricedAt: row.reference_date,
+        }))
+      },
+      async insertMarketEtfValuation(row) {
+        const { error } = await serviceClient.rpc(
+          'upsert_market_etf_valuations_v1',
+          { records: [row] }
+        )
+        if (error) throw error
+      },
     }
     const twelveDataKey = Deno.env.get('TWELVE_DATA_API_KEY')?.trim()
     const result = await refreshMarketData({
@@ -158,6 +178,7 @@ Deno.serve(async (request) => {
         ? createTwelveDataProvider(twelveDataKey)
         : null,
       tesouroTransparente: createTesouroTransparenteProvider(),
+      vanguardEtfValuation: createVanguardEtfValuationProvider(),
     })
 
     // Sucesso sem log = cron.job_run_details mostra "succeeded" pra toda
@@ -174,6 +195,8 @@ Deno.serve(async (request) => {
         skippedFreshExchangeRates: result.skippedFreshExchangeRates,
         updatedReferenceRates: result.updatedReferenceRates,
         skippedFreshReferenceRates: result.skippedFreshReferenceRates,
+        updatedEtfValuations: result.updatedEtfValuations,
+        skippedFreshEtfValuations: result.skippedFreshEtfValuations,
         warningCount: result.warnings.length,
         warningKinds: [...new Set(result.warnings.map((w) => w.kind))],
       })

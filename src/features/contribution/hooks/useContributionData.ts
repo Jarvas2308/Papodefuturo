@@ -33,6 +33,7 @@ import {
   createSupabaseRealEstateFundSnapshotRepository,
 } from '../../../data/fundamentals'
 import { createSupabaseShillerCapeHistoryRepository } from '../../../data/fundamentals/supabaseShillerCapeSnapshots'
+import { createSupabaseEtfValuationRepository } from '../../../data/fundamentals/supabaseEtfValuationSnapshots'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
 import type { AssetScoreV1 } from '../../../domain/fundamentals/score'
@@ -126,11 +127,14 @@ export async function loadContributionAssetScoresBestEffort(
       createSupabaseFundamentalSnapshotRepository(client)
     const capeHistoryRepository =
       createSupabaseShillerCapeHistoryRepository(client)
-    const [fiiSnapshots, stockSnapshots, capeHistory] = await Promise.all([
-      fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
-      stockSnapshotRepository.listBrazilianStockSnapshots(assets),
-      capeHistoryRepository.listShillerCapeHistory(),
-    ])
+    const etfValuationRepository = createSupabaseEtfValuationRepository(client)
+    const [fiiSnapshots, stockSnapshots, capeHistory, etfValuations] =
+      await Promise.all([
+        fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
+        stockSnapshotRepository.listBrazilianStockSnapshots(assets),
+        capeHistoryRepository.listShillerCapeHistory(),
+        etfValuationRepository.listEtfValuations(),
+      ])
     const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
       generatedAt: now,
@@ -158,6 +162,7 @@ export async function loadContributionAssetScoresBestEffort(
         derived,
         latestPricesByAsset,
         capeHistory,
+        etfValuations,
         rules,
         now,
       }),

@@ -1030,17 +1030,31 @@ integração com o motor, editável).
      sem fonte nova, só a adição do mapeamento. Evento de ocorrência
      (data, título, link), não o valor do provento em si — extrair o
      valor exigiria ler o PDF/link, fora do escopo desta entrada.
-4. **Providers ETF** — 1 de 3 itens resolvido (`DEC-084`), 2 seguem
-   bloqueados (`DEC-083`).
-   - **NAV por cota / cotas em circulação — premissa errada, corrigida.**
-     "Campo já existe no formulário" não é verdade: baixado e inspecionado
-     um N-PORT real da VOO (`accessionNumber 0000036405-26-000325`,
-     `primary_doc.xml` completo) — todas as ~90 tags XML existentes foram
-     listadas e nenhuma delas é NAV por cota nem cotas em circulação
-     (`totAssets`/`totLiabs`/`netAssets` no nível do fundo é tudo que
-     existe; `monthlyTotReturns` é retorno percentual, não cotas). Esse
-     dado não está no N-PORT — precisaria de outra fonte (ex.: N-CEN,
-     site do fundo) ainda não pesquisada. **Segue bloqueado.**
+4. **Providers ETF** — 2 de 3 itens resolvidos (`DEC-084`, `DEC-092`), 1
+   segue bloqueado (`DEC-083` continua válido pra FRED).
+   - **NAV por cota / cotas em circulação — premissa errada, corrigida, e
+     prêmio/desconto resolvido por fonte alternativa (`DEC-092`).**
+     "Campo já existe no formulário" não era verdade: N-PORT real da VOO
+     inspecionado por completo (`accessionNumber 0000036405-26-000325`,
+     `primary_doc.xml`, ~90 tags XML) e nenhuma delas é NAV por cota nem
+     cotas em circulação. Pesquisa de fonte alternativa (a pedido do
+     usuário) confirmou: Rule 6c-11 da SEC obriga todo ETF a publicar
+     diariamente NAV, preço de mercado e prêmio/desconto no site do
+     próprio emissor — `investor.vanguard.com` expõe isso via endpoint
+     JSON não documentado (`vmf/api/<fundNumber>/premium-discount/CURR`),
+     confirmado com fetch real sem autenticação devolvendo série diária
+     exata (`nav`, `marketPrice`, `premiumDiscountPercentage`,
+     `effectiveDate`). Usuário aprovou explicitamente o risco (endpoint
+     interno, sem contrato público, pode quebrar sem aviso — mitigado por
+     validação estrita que falha fechado). Implementado dentro do cron
+     `refresh-market-data` (não CLI — dado diário, mesmo padrão de NTN-B):
+     `vanguardEtfValuationProvider.ts`, tabela global nova
+     `market_etf_valuations` (signed, sem `value_scaled > 0` que
+     `market_valuation_ratios` exige), RPC
+     `upsert_market_etf_valuations_v1`, migration aplicada em produção.
+     Cotas em circulação isoladas (sem o prêmio/desconto) seguem sem fonte
+     confirmada, mas deixaram de ser necessárias — o sinal em si já está
+     resolvido.
    - **Shiller/Yale CAPE — resolvido e implementado (`DEC-084`).** Provider
      completo em `src/data/fundamentals/shiller/` (download, parser `.xls`
      via dependência nova `xlsx`, extração do valor mais recente), tabela
@@ -1050,13 +1064,12 @@ integração com o motor, editável).
    - **FRED `DFII10`** — exige chave de API gratuita que só o usuário pode
      obter e fornecer; não é algo que dá para resolver de forma autônoma.
      **Segue bloqueado.**
-   - Os 2 itens restantes seguem pausados até o usuário decidir (nova fonte
-     de dado para NAV/cotas, ou fornecer a chave do FRED) — nenhum é
-     codificável sem essa decisão externa. Por aprovação explícita do
-     usuário, a sessão seguiu para a Fase 5 sem esperar por eles.
+   - O item restante (FRED) segue pausado até o usuário fornecer a chave —
+     não é codificável sem essa decisão externa.
 5. **Motor de score — fechado até onde o dado real permite
-   (`DEC-085`/`DEC-086`/`DEC-090`/`DEC-091`).** `src/domain/fundamentals/score/`
-   cobre, hoje, 6 dos 12 sinais do rascunho de pontuação:
+   (`DEC-085`/`DEC-086`/`DEC-090`/`DEC-091`/`DEC-092`).**
+   `src/domain/fundamentals/score/` cobre, hoje, 7 dos 12 sinais do
+   rascunho de pontuação:
    - **FII tijolo (4/5):** vacância, WALE, concentração do maior
      inquilino, P/VP. Spread de DY sobre NTN-B bloqueado — precisa valor
      do provento, só o evento foi ingerido (`DEC-082`), confirmado
@@ -1071,16 +1084,22 @@ integração com o motor, editável).
      períodos ingeridos por empresa até agora — amostra pequena demais
      para um quartil confiável; o mecanismo existiria, falta profundidade
      histórica real).
-   - **ETF (1/3):** CAPE de VOO vs própria média de 10 anos —
+   - **ETF (2/3):** CAPE de VOO vs própria média de 10 anos —
      `extractShillerCapeHistoryV1` reingere 11 anos de histórico (o
      arquivo do Shiller já contém a série completa, só não era mantida),
      `createSupabaseShillerCapeHistoryRepository` lê de volta, e
      `buildInternationalEtfScoreV1` computa o desvio (atual − média,
-     `BigInt` exato) e pontua. VNQ e VEA nunca recebem este sinal
-     (`wrong-regime`, só se aplica a `indice-amplo-us`). Spread de DY
-     sobre TIPS depende de chave de API do FRED (usuário). Prêmio/
-     desconto sobre NAV depende de campo que não existe no N-PORT
-     (`DEC-083`, sem fonte alternativa conhecida).
+     `BigInt` exato) e pontua. Só se aplica a `indice-amplo-us`
+     (`wrong-regime` pra VNQ/VEA). Prêmio/desconto sobre NAV
+     (`DEC-092`) resolvido por fonte alternativa (site do emissor, ver
+     item 4) e aplicável aos 3 ETFs (`indice-amplo-us`, `reit-us`,
+     `mercados-desenvolvidos-ex-us`) — `createSupabaseEtfValuationRepository`
+     lê `market_etf_valuations`, `buildInternationalEtfScoreV1` pontua -1
+     quando o desvio ultrapassa 50 basis points em módulo (prêmio ou
+     desconto), 0 dentro da faixa normal de tracking. Frescor de 5 dias
+     (fonte diária, mais curto que qualquer outro sinal do motor). Spread
+     de DY sobre TIPS segue bloqueado, depende de chave de API do FRED
+     (usuário).
    - Cada classe de ativo com sinal implementado está conectada ao fluxo
      real de aporte (não é só o motor de domínio isolado) — ver item 6.
 6. **Integração no motor — implementada e conectada ao fluxo real

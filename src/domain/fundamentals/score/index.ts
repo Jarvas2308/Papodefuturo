@@ -1,6 +1,9 @@
 export { buildFiiTijoloScoreV1 } from './buildFiiTijoloScoreV1'
 export { buildBrazilianStockScoreV1 } from './buildBrazilianStockScoreV1'
-export { buildInternationalEtfScoreV1 } from './buildInternationalEtfScoreV1'
+export {
+  buildInternationalEtfScoreV1,
+  type EtfPremiumDiscountPoint,
+} from './buildInternationalEtfScoreV1'
 export { computeFiiPvpScaledV1 } from './computeFiiPvpScaledV1'
 export { computeStockRoeScaledV1 } from './computeStockRoeScaledV1'
 export {
@@ -13,6 +16,7 @@ export { DEFAULT_ETF_SIGNAL_RULES } from './defaultEtfSignalRules'
 export {
   CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
   SHILLER_CAPE_STALE_AFTER_DAYS,
+  VANGUARD_PREMIUM_DISCOUNT_STALE_AFTER_DAYS,
   isReferenceDateStale,
 } from './staleness'
 export {
