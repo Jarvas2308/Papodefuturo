@@ -533,7 +533,9 @@ describe('ETF valuation (Vanguard premium/discount)', () => {
   it('skips fetching a ticker that already has a stored row for today', async () => {
     const { result, providers } = await runRefresh()
 
-    expect(providers.vanguardEtfValuation.getPremiumDiscount).not.toHaveBeenCalled()
+    expect(
+      providers.vanguardEtfValuation.getPremiumDiscount
+    ).not.toHaveBeenCalled()
     expect(result.skippedFreshEtfValuations).toBe(3)
     expect(result.updatedEtfValuations).toBe(0)
   })
@@ -563,9 +565,15 @@ describe('ETF valuation (Vanguard premium/discount)', () => {
     })
     const { result, providers } = await runRefresh({ storage })
 
-    expect(providers.vanguardEtfValuation.getPremiumDiscount).toHaveBeenCalledTimes(2)
-    expect(providers.vanguardEtfValuation.getPremiumDiscount).toHaveBeenCalledWith('VNQ')
-    expect(providers.vanguardEtfValuation.getPremiumDiscount).toHaveBeenCalledWith('VEA')
+    expect(
+      providers.vanguardEtfValuation.getPremiumDiscount
+    ).toHaveBeenCalledTimes(2)
+    expect(
+      providers.vanguardEtfValuation.getPremiumDiscount
+    ).toHaveBeenCalledWith('VNQ')
+    expect(
+      providers.vanguardEtfValuation.getPremiumDiscount
+    ).toHaveBeenCalledWith('VEA')
     expect(result.updatedEtfValuations).toBe(2)
     expect(result.skippedFreshEtfValuations).toBe(1)
   })
@@ -582,9 +590,14 @@ describe('ETF valuation (Vanguard premium/discount)', () => {
 
     expect(result.updatedEtfValuations).toBe(0)
     expect(result.skippedFreshEtfValuations).toBe(0)
-    expect(result.warnings.filter((w) => w.provider === 'vanguard-site')).toHaveLength(3)
+    expect(
+      result.warnings.filter((w) => w.provider === 'vanguard-site')
+    ).toHaveLength(3)
     expect(result.warnings).toContainEqual(
-      expect.objectContaining({ provider: 'vanguard-site', kind: 'stale-quote' })
+      expect.objectContaining({
+        provider: 'vanguard-site',
+        kind: 'stale-quote',
+      })
     )
   })
 

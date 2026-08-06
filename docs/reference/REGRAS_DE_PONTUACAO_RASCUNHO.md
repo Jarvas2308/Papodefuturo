@@ -107,14 +107,14 @@ profundidade histórica real).
 
 ## 4. ETF
 
-| Sinal                                      | Regra proposta               | Pontos        | Aplica a | Status                                                        | Referência   |
-| ------------------------------------------ | ---------------------------- | ------------- | -------- | ------------------------------------------------------------- | ------------ |
-| CAPE vs própria média histórica de 10 anos | abaixo da média              | +2            | VOO      | **Implementado (DEC-091)**                                    | ETF 4.1, 6.2 |
-| CAPE vs própria média histórica de 10 anos | acima da média               | -1            | VOO      | idem                                                          | ETF 4.1      |
-| Spread DY sobre TIPS 10 anos               | > 1 p.p.                     | +2            | VNQ      | Fonte confirmada (FRED), bloqueado por chave de API (usuário) | ETF 4.2, 6.2 |
-| Spread DY sobre TIPS 10 anos               | < 0                          | -2            | VNQ      | idem                                                          | ETF 4.2      |
+| Sinal                                      | Regra proposta               | Pontos        | Aplica a | Status                                                                                        | Referência   |
+| ------------------------------------------ | ---------------------------- | ------------- | -------- | --------------------------------------------------------------------------------------------- | ------------ |
+| CAPE vs própria média histórica de 10 anos | abaixo da média              | +2            | VOO      | **Implementado (DEC-091)**                                                                    | ETF 4.1, 6.2 |
+| CAPE vs própria média histórica de 10 anos | acima da média               | -1            | VOO      | idem                                                                                          | ETF 4.1      |
+| Spread DY sobre TIPS 10 anos               | > 1 p.p.                     | +2            | VNQ      | Fonte confirmada (FRED), bloqueado por chave de API (usuário)                                 | ETF 4.2, 6.2 |
+| Spread DY sobre TIPS 10 anos               | < 0                          | -2            | VNQ      | idem                                                                                          | ETF 4.2      |
 | Prêmio/desconto sobre NAV                  | \|desvio\| > 0,5%            | -1            | Todos    | **Implementado (DEC-092)** — fonte real é o site do emissor, N-PORT confirmado sem esse campo | ETF 3.3, 6.1 |
-| —                                          | sem sinal de preço confiável | `unavailable` | VEA      | Gap de pesquisa — sem fonte de CAPE fechada                   | ETF 4.3, 6.2 |
+| —                                          | sem sinal de preço confiável | `unavailable` | VEA      | Gap de pesquisa — sem fonte de CAPE fechada                                                   | ETF 4.3, 6.2 |
 
 ---
 

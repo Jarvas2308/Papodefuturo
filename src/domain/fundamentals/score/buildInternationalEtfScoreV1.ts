@@ -22,8 +22,7 @@ import type { AssetScoreSignal, AssetScoreV1, SignalRuleV1 } from './types'
 import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 
 export type InternationalEtfSignalKey =
-  | 'etf_cape_vs_10y_avg'
-  | 'etf_premium_discount_vs_nav'
+  'etf_cape_vs_10y_avg' | 'etf_premium_discount_vs_nav'
 
 // Prêmio/desconto vem por ticker (market_etf_valuations, dado global sem
 // FK pra asset_id - mesmo padrão de market_reference_rates/

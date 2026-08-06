@@ -69,18 +69,11 @@ export type RefreshMarketDataInput = {
 // vez de filtrar o universo geral porque este provider e' especifico da
 // Vanguard, nao de "todo ativo US" (se um ETF nao-Vanguard entrar no
 // universo geral no futuro, esta lista nao deve crescer sozinha).
-const VANGUARD_ETF_TICKERS: readonly VanguardEtfTicker[] = [
-  'VOO',
-  'VNQ',
-  'VEA',
-]
+const VANGUARD_ETF_TICKERS: readonly VanguardEtfTicker[] = ['VOO', 'VNQ', 'VEA']
 
 function providerFailureWarning(
   provider:
-    | 'b3-cotahist'
-    | 'twelve-data'
-    | 'tesouro-transparente'
-    | 'vanguard-site',
+    'b3-cotahist' | 'twelve-data' | 'tesouro-transparente' | 'vanguard-site',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -135,10 +128,7 @@ export function sanitizeMarketPriceRows(rows: readonly MarketPriceInsert[]): {
 
 function staleQuoteWarning(
   provider:
-    | 'b3-cotahist'
-    | 'twelve-data'
-    | 'tesouro-transparente'
-    | 'vanguard-site',
+    'b3-cotahist' | 'twelve-data' | 'tesouro-transparente' | 'vanguard-site',
   ticker: string
 ): MarketDataWarning {
   return {

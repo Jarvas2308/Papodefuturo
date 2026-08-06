@@ -255,14 +255,14 @@ e 6.2.
 
 ### 6.2 O que exige fonte nova
 
-| Sinal                                          | Fonte                                        | Situação                                                              |
-| ---------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
+| Sinal                                          | Fonte                                        | Situação                                                                  |
+| ---------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------- |
 | **Prêmio/desconto sobre NAV**                  | Site do emissor (`investor.vanguard.com`)    | **Resolvido e implementado (DEC-092)** — N-PORT confirmado sem esse campo |
-| **Expense ratio**                              | Não confirmado nesta sessão                  | Ver 6.3                                                               |
-| **Tracking difference**                        | Retorno do fundo (preço) + retorno do índice | Requer série do índice, não confirmada nesta sessão                   |
-| **CAPE do S&P 500 (VOO)**                      | Shiller Data, Yale                           | **Confirmado, aberto, sem chave**                                     |
-| **Spread de VNQ sobre TIPS 10 anos**           | FRED, série `DFII10`                         | **Confirmado, requer chave gratuita**                                 |
-| **CAPE de mercados desenvolvidos ex-US (VEA)** | —                                            | **Sem fonte aberta única confirmada** — pesquisa adicional necessária |
+| **Expense ratio**                              | Não confirmado nesta sessão                  | Ver 6.3                                                                   |
+| **Tracking difference**                        | Retorno do fundo (preço) + retorno do índice | Requer série do índice, não confirmada nesta sessão                       |
+| **CAPE do S&P 500 (VOO)**                      | Shiller Data, Yale                           | **Confirmado, aberto, sem chave**                                         |
+| **Spread de VNQ sobre TIPS 10 anos**           | FRED, série `DFII10`                         | **Confirmado, requer chave gratuita**                                     |
+| **CAPE de mercados desenvolvidos ex-US (VEA)** | —                                            | **Sem fonte aberta única confirmada** — pesquisa adicional necessária     |
 
 ### 6.3 Expense ratio — gap sinalizado, não resolvido
 

@@ -154,7 +154,11 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
       assetSegment: 'indice-amplo-us',
       capeHistory: [],
       etfValuations: [
-        { ticker: 'VOO', referenceDate: '2026-08-05', premiumDiscountBasisPoints: 30 },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-08-05',
+          premiumDiscountBasisPoints: 30,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -175,7 +179,11 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
       assetSegment: 'indice-amplo-us',
       capeHistory: [],
       etfValuations: [
-        { ticker: 'VOO', referenceDate: '2026-08-05', premiumDiscountBasisPoints: -80 },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-08-05',
+          premiumDiscountBasisPoints: -80,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -192,7 +200,11 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
       assetSegment: 'indice-amplo-us',
       capeHistory: [],
       etfValuations: [
-        { ticker: 'VOO', referenceDate: '2026-08-05', premiumDiscountBasisPoints: 80 },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-08-05',
+          premiumDiscountBasisPoints: 80,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -208,7 +220,11 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
       assetSegment: 'indice-amplo-us',
       capeHistory: [],
       etfValuations: [
-        { ticker: 'VNQ', referenceDate: '2026-08-05', premiumDiscountBasisPoints: 80 },
+        {
+          ticker: 'VNQ',
+          referenceDate: '2026-08-05',
+          premiumDiscountBasisPoints: 80,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -246,7 +262,11 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
       assetSegment: 'indice-amplo-us',
       capeHistory: [],
       etfValuations: [
-        { ticker: 'VOO', referenceDate: '2026-07-20', premiumDiscountBasisPoints: -2 },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-07-20',
+          premiumDiscountBasisPoints: -2,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -268,9 +288,21 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
       assetSegment: 'indice-amplo-us',
       capeHistory: [],
       etfValuations: [
-        { ticker: 'VOO', referenceDate: '2026-08-03', premiumDiscountBasisPoints: 80 },
-        { ticker: 'VOO', referenceDate: '2026-08-05', premiumDiscountBasisPoints: -2 },
-        { ticker: 'VOO', referenceDate: '2026-08-04', premiumDiscountBasisPoints: 80 },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-08-03',
+          premiumDiscountBasisPoints: 80,
+        },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-08-05',
+          premiumDiscountBasisPoints: -2,
+        },
+        {
+          ticker: 'VOO',
+          referenceDate: '2026-08-04',
+          premiumDiscountBasisPoints: 80,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -288,7 +320,11 @@ describe('buildInternationalEtfScoreV1 - out of ETF regime entirely', () => {
       assetSegment: 'banco',
       capeHistory: [{ referenceDate: '2026-08-01', valueScaled: 30_000_000 }],
       etfValuations: [
-        { ticker: 'BBAS3', referenceDate: '2026-08-05', premiumDiscountBasisPoints: 0 },
+        {
+          ticker: 'BBAS3',
+          referenceDate: '2026-08-05',
+          premiumDiscountBasisPoints: 0,
+        },
       ],
       rules: DEFAULT_ETF_SIGNAL_RULES,
       now: NOW,
@@ -296,7 +332,11 @@ describe('buildInternationalEtfScoreV1 - out of ETF regime entirely', () => {
 
     expect(score.totalPoints).toBe(0)
     expect(score.signals).toEqual([
-      { signalKey: 'etf_cape_vs_10y_avg', status: 'unavailable', reason: 'wrong-regime' },
+      {
+        signalKey: 'etf_cape_vs_10y_avg',
+        status: 'unavailable',
+        reason: 'wrong-regime',
+      },
       {
         signalKey: 'etf_premium_discount_vs_nav',
         status: 'unavailable',
@@ -317,7 +357,11 @@ describe('buildInternationalEtfScoreV1 - out of ETF regime entirely', () => {
     })
 
     expect(score.signals).toEqual([
-      { signalKey: 'etf_cape_vs_10y_avg', status: 'unavailable', reason: 'wrong-regime' },
+      {
+        signalKey: 'etf_cape_vs_10y_avg',
+        status: 'unavailable',
+        reason: 'wrong-regime',
+      },
       {
         signalKey: 'etf_premium_discount_vs_nav',
         status: 'unavailable',

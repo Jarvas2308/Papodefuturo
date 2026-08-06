@@ -44,8 +44,16 @@ describe('createSupabaseEtfValuationRepository', () => {
     expect(client.from).toHaveBeenCalledWith('market_etf_valuations')
     expect(query.eq).toHaveBeenCalledWith('source', 'vanguard-site')
     expect(valuations).toEqual([
-      { ticker: 'VOO', referenceDate: '2026-08-05', premiumDiscountBasisPoints: -2 },
-      { ticker: 'VNQ', referenceDate: '2026-08-05', premiumDiscountBasisPoints: 12 },
+      {
+        ticker: 'VOO',
+        referenceDate: '2026-08-05',
+        premiumDiscountBasisPoints: -2,
+      },
+      {
+        ticker: 'VNQ',
+        referenceDate: '2026-08-05',
+        premiumDiscountBasisPoints: 12,
+      },
     ])
   })
 
