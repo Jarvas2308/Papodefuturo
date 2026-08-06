@@ -268,12 +268,22 @@ candidatos dentro do universo fechado — nunca um recomendador irrestrito
 (usuário mantém confirmação obrigatória, item 6 da filosofia). Estado atual
 (`DEC-085` a `DEC-087`):
 
-- cobre só a fatia FII tijolo (KNRI11, VISC11, XPLG11, HGRU11) — ação e ETF
-  ainda não têm nenhum sinal;
-- 4 de 5 sinais do rascunho de pontuação implementados: P/VP, vacância
-  financeira, WALE (substituto documentado de "receita vencendo em 24
-  meses") e concentração do maior inquilino; spread de DY sobre NTN-B
-  segue bloqueado (falta o valor do provento, só o evento foi ingerido);
+- cobre 7 dos 12 sinais do rascunho de pontuação, em três fatias
+  (`DEC-085` a `DEC-092`):
+  - FII tijolo (KNRI11, VISC11, XPLG11, HGRU11), 4 de 5: P/VP, vacância
+    financeira, WALE (substituto documentado de "receita vencendo em 24
+    meses") e concentração do maior inquilino; spread de DY sobre NTN-B
+    segue bloqueado (falta o valor do provento, só o evento foi ingerido);
+  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 1 de 4: ROE, aplicável a
+    todos os regimes exceto holding pura. Payout (mesmo bloqueio de valor
+    de provento), dívida líquida/EBITDA (precisa provider novo, não
+    extraído do DFP/ITR atual) e P/L vs série histórica (amostra
+    insuficiente até acumular mais períodos ingeridos) seguem bloqueados;
+  - ETF internacional (VOO, VNQ, VEA), 2 de 3: CAPE de VOO vs própria
+    média de 10 anos (só `indice-amplo-us`) e prêmio/desconto sobre NAV
+    via site do emissor (Vanguard, aplicável aos 3 ETFs). Spread de DY
+    sobre TIPS segue bloqueado, depende de chave de API do FRED que só o
+    usuário pode fornecer;
 - faixas de pontuação configuráveis por usuário (`signal_rules`), semeadas
   com valores de partida na primeira simulação de aporte técnico;
 - score é best-effort: qualquer falha na leitura de fundamentos degrada
@@ -292,7 +302,8 @@ somente em memória que consolida:
 - `TargetAllocationContributionResult` e impactos produzidos pelo Motor V2;
 - cobertura dos fatos de mercado e limitações explícitas do plano;
 - desde o Sprint 16 (`DEC-087`): `signals`, o score do motor de
-  fundamentos por ativo (hoje só FII tijolo), quando calculado.
+  fundamentos por ativo (FII tijolo, ação e ETF internacional), quando
+  calculado.
 
 O dossiê não é persistido, não recalcula a carteira ou o plano, não expõe o
 histórico de candidatos avaliados a cada iteração do laço guloso (isso
