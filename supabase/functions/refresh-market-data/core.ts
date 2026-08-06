@@ -20,6 +20,7 @@ import type {
   StoredReferenceRate,
 } from './types.ts'
 import type { NtnbLongaRate } from './tesouroTransparenteProvider.ts'
+import type { FredDfii10Rate } from './fredProvider.ts'
 import type {
   VanguardEtfTicker,
   VanguardPremiumDiscountQuote,
@@ -36,6 +37,10 @@ type TwelveDataProvider = {
 
 type TesouroTransparenteProvider = {
   getNtnbLongaRate(): Promise<NtnbLongaRate>
+}
+
+type FredProvider = {
+  getDfii10Rate(): Promise<FredDfii10Rate>
 }
 
 type VanguardEtfValuationProvider = {
@@ -60,6 +65,7 @@ export type RefreshMarketDataInput = {
   b3Cotahist: B3CotahistProvider
   twelveData: TwelveDataProvider | null
   tesouroTransparente: TesouroTransparenteProvider | null
+  fred: FredProvider | null
   vanguardEtfValuation: VanguardEtfValuationProvider | null
   now?: Date
 }
@@ -73,7 +79,11 @@ const VANGUARD_ETF_TICKERS: readonly VanguardEtfTicker[] = ['VOO', 'VNQ', 'VEA']
 
 function providerFailureWarning(
   provider:
-    'b3-cotahist' | 'twelve-data' | 'tesouro-transparente' | 'vanguard-site',
+    | 'b3-cotahist'
+    | 'twelve-data'
+    | 'tesouro-transparente'
+    | 'fred'
+    | 'vanguard-site',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -128,7 +138,11 @@ export function sanitizeMarketPriceRows(rows: readonly MarketPriceInsert[]): {
 
 function staleQuoteWarning(
   provider:
-    'b3-cotahist' | 'twelve-data' | 'tesouro-transparente' | 'vanguard-site',
+    | 'b3-cotahist'
+    | 'twelve-data'
+    | 'tesouro-transparente'
+    | 'fred'
+    | 'vanguard-site',
   ticker: string
 ): MarketDataWarning {
   return {
@@ -161,6 +175,7 @@ export async function refreshMarketData({
   b3Cotahist,
   twelveData,
   tesouroTransparente,
+  fred,
   vanguardEtfValuation,
   now = new Date(),
 }: RefreshMarketDataInput): Promise<MarketDataRefreshResult> {
@@ -362,6 +377,44 @@ export async function refreshMarketData({
       kind: 'configuration',
       message:
         'Tesouro Transparente não está configurado para atualização automática.',
+    })
+  }
+
+  // fred-dfii10 soma nos mesmos contadores de updatedReferenceRates/
+  // skippedFreshReferenceRates que ntnb-longa - ambas sao "taxa de
+  // referencia", so o series/fonte muda (mesmo espirito do contador
+  // compartilhado ja usado para precos BR/US).
+  const latestFredDfii10 =
+    persistedReferenceRates.find((rate) => rate.series === 'fred-dfii10') ??
+    null
+
+  if (isReferenceRateFreshForToday(latestFredDfii10?.pricedAt ?? null, now)) {
+    skippedFreshReferenceRates += 1
+  } else if (fred) {
+    try {
+      const rate = await fred.getDfii10Rate()
+
+      if (!latestFredDfii10 || rate.pricedAt > latestFredDfii10.pricedAt) {
+        await storage.insertMarketReferenceRate({
+          series: 'fred-dfii10',
+          maturity_date: null,
+          rate_scaled: rate.rateScaled,
+          rate_scale: 1_000_000,
+          priced_at: rate.pricedAt,
+          source: 'fred',
+        })
+        updatedReferenceRates += 1
+      } else {
+        warnings.push(staleQuoteWarning('fred', 'DFII10'))
+      }
+    } catch {
+      warnings.push(providerFailureWarning('fred', 'DFII10'))
+    }
+  } else {
+    warnings.push({
+      provider: 'configuration',
+      kind: 'configuration',
+      message: 'FRED não está configurado para atualização automática.',
     })
   }
 
