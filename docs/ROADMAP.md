@@ -1115,10 +1115,14 @@ integração com o motor, editável).
      demais para um quartil confiável; o mecanismo existiria, falta
      profundidade histórica real) seguem bloqueados. Migration
      `20260806130000` aplicada em produção (5 colunas novas em
-     `fundamental_snapshots`, todas nullable); backfill real dos 5
-     tickers ainda não executado neste ciclo — os providers extraem os
-     fatos novos na próxima ingestão real (`cvm-stocks --source=DFP`/
-     `--source=ITR`), não fica automático para snapshots já persistidos.
+     `fundamental_snapshots`, todas nullable). Backfill real das 8 linhas
+     existentes (ITSA4/TAEE11/WEGE3/PSSA3 × DFP+ITR) aplicado no mesmo
+     dia via `UPDATE` direto pelo MCP Supabase — valor real extraído do
+     DFP/ITR 2025 baixados nesta sessão, reaproveitando exatamente a
+     identidade (`reference_date`/`filing_version`/`exercise_order`) de
+     cada linha já persistida. BBAS3 (banco) fica `null`, correto por
+     regime. Próxima ingestão real (`cvm-stocks --source=DFP`/
+     `--source=ITR`) populariza snapshots futuros automaticamente.
    - **ETF (2/3):** CAPE de VOO vs própria média de 10 anos —
      `extractShillerCapeHistoryV1` reingere 11 anos de histórico (o
      arquivo do Shiller já contém a série completa, só não era mantida),

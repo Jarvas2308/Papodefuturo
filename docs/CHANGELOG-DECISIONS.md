@@ -3659,11 +3659,22 @@ no-improving-purchase, even with a high score on the losing asset'`).
   pré-existentes, migration/CRLF, não relacionadas). `tsc -b` e `eslint`
   limpos.
 - Consequências: Fase 5 fica com 8 de 12 sinais implementados (4 FII + 2
-  ação + 2 ETF). Backfill real dos 5 tickers não executado neste ciclo —
-  os providers extraem os fatos novos na próxima ingestão real
-  (`cvm-stocks --source=DFP`/`--source=ITR`, requer
-  `SUPABASE_SERVICE_ROLE_KEY` que não deve ser manuseada por texto puro
-  pelo agente); até lá, os 5 tickers em produção continuam com os campos
-  novos `null` e o sinal `unavailable` por `missing-input`. Único sinal
-  de ação restante sem fonte codável no momento: payout (mesmo bloqueio
-  de provento, `DEC-091`) e P/L histórico (profundidade de amostra).
+  ação + 2 ETF). Único sinal de ação restante sem fonte codável no
+  momento: payout (mesmo bloqueio de provento, `DEC-091`) e P/L
+  histórico (profundidade de amostra).
+- **Atualização (06/08/2026, mesmo dia):** backfill real das 8 linhas de
+  ação existentes em produção (ITSA4/TAEE11/WEGE3/PSSA3 × DFP+ITR — BBAS3
+  fica `null` por regime errado, correto) aplicado via `UPDATE` SQL
+  direto pelo MCP Supabase, não pelo CLI de ingestão — o CLI exige
+  `SUPABASE_SERVICE_ROLE_KEY`, que o agente não manuseia. Valores reais
+  extraídos do DFP 2025 e do ITR 2025 (baixados e inspecionados nesta
+  sessão) reaproveitando exatamente `reference_date`/`filing_version`/
+  `exercise_order` de cada linha já persistida — provenance mesclada via
+  `provenance || jsonb_build_object(...)`, preservando os 5 campos
+  originais intactos. Confirmado com dado real plausível: WEGE3 em
+  posição de caixa líquido (dívida líquida negativa, score +1), ITSA4
+  com alavancagem moderada (~0,35x, score +1). Usuário aprovou
+  explicitamente o UPDATE direto (fora do pipeline de ingestão
+  versionado) depois do classificador de permissão bloquear a primeira
+  tentativa. `get_advisors` (security) sem achado novo depois do
+  UPDATE.
