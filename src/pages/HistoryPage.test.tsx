@@ -42,7 +42,9 @@ const MOVEMENT: HistoryMovement = {
 }
 
 function mockHistoryData(
-  overrides: Partial<ReturnType<typeof useHistoryDataModule.useHistoryData>> = {}
+  overrides: Partial<
+    ReturnType<typeof useHistoryDataModule.useHistoryData>
+  > = {}
 ) {
   const base: ReturnType<typeof useHistoryDataModule.useHistoryData> = {
     assets: [ASSET],
@@ -85,12 +87,8 @@ describe('HistoryPage — cancelamento de compra', () => {
     await waitFor(() => {
       expect(historyData.cancelPurchase).toHaveBeenCalledWith('purchase-1')
     })
-    expect(
-      screen.queryByRole('alertdialog')
-    ).not.toBeInTheDocument()
-    expect(
-      await screen.findByText(/Compra cancelada/)
-    ).toBeInTheDocument()
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(await screen.findByText(/Compra cancelada/)).toBeInTheDocument()
   })
 
   it('fecha a confirmação sem cancelar ao clicar em Voltar', async () => {
@@ -107,10 +105,12 @@ describe('HistoryPage — cancelamento de compra', () => {
   })
 
   it('mostra a mensagem de erro do repositório quando o cancelamento falha', async () => {
-    const historyData = mockHistoryData({
+    mockHistoryData({
       cancelPurchase: vi
         .fn()
-        .mockRejectedValue(new Error('Somente compras confirmadas podem ser canceladas.')),
+        .mockRejectedValue(
+          new Error('Somente compras confirmadas podem ser canceladas.')
+        ),
     })
     render(<HistoryPage />)
 
