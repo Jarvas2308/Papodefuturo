@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
-import { extractShillerCapeRecord } from './provider'
+import {
+  extractShillerCapeHistoryV1,
+  extractShillerCapeRecord,
+} from './provider'
 
 const HEADER_ROW = [
   'Date',
@@ -89,5 +92,74 @@ describe('extractShillerCapeRecord', () => {
     expect(() => extractShillerCapeRecord(buffer)).toThrow(
       'Shiller CAPE value is outside the safe integer range'
     )
+  })
+})
+
+describe('extractShillerCapeHistoryV1', () => {
+  it('keeps rows within the requested years of history and sorts chronologically', () => {
+    const buffer = buildWorkbookBuffer([
+      HEADER_ROW,
+      [2005.01, 1, 1, 1, 1, 1, 1, 1, 1, 1, 20], // too old, dropped (11y window from 2020-06)
+      [2020.06, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30],
+      [2015.01, 1, 1, 1, 1, 1, 1, 1, 1, 1, 25],
+    ])
+
+    const records = extractShillerCapeHistoryV1(buffer, 11)
+
+    expect(records.map((record) => record.referenceDate)).toEqual([
+      '2015-01-01',
+      '2020-06-01',
+    ])
+  })
+
+  it('defaults to 11 years of history', () => {
+    const buffer = buildWorkbookBuffer([
+      HEADER_ROW,
+      [2008.12, 1, 1, 1, 1, 1, 1, 1, 1, 1, 20], // > 11y before 2020-06, dropped
+      [2020.06, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30],
+    ])
+
+    const records = extractShillerCapeHistoryV1(buffer)
+
+    expect(records).toHaveLength(1)
+    expect(records[0]?.referenceDate).toBe('2020-06-01')
+  })
+
+  it('keeps the cutoff-year row when its month is at or after the latest month', () => {
+    const buffer = buildWorkbookBuffer([
+      HEADER_ROW,
+      [2020.06, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30], // latest
+      [2009.06, 1, 1, 1, 1, 1, 1, 1, 1, 1, 18], // cutoff year (2020-11=2009), same month -> kept
+      [2009.01, 1, 1, 1, 1, 1, 1, 1, 1, 1, 17], // cutoff year, earlier month -> dropped
+    ])
+
+    const records = extractShillerCapeHistoryV1(buffer, 11)
+
+    expect(records.map((record) => record.referenceDate)).toEqual([
+      '2009-06-01',
+      '2020-06-01',
+    ])
+  })
+
+  it('throws when the workbook has no usable data rows', () => {
+    const buffer = buildWorkbookBuffer([HEADER_ROW])
+
+    expect(() => extractShillerCapeHistoryV1(buffer)).toThrow(
+      'Shiller CAPE workbook has no usable data rows'
+    )
+  })
+
+  it('scales every returned record independently', () => {
+    const buffer = buildWorkbookBuffer([
+      HEADER_ROW,
+      [2020.01, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30.123456],
+      [2020.02, 1, 1, 1, 1, 1, 1, 1, 1, 1, 31.654321],
+    ])
+
+    const records = extractShillerCapeHistoryV1(buffer, 11)
+
+    expect(records.map((record) => record.valueScaled)).toEqual([
+      30_123_456, 31_654_321,
+    ])
   })
 })

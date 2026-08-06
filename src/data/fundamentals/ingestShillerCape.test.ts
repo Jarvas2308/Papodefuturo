@@ -29,7 +29,7 @@ function buildArchiveBuffer(): ArrayBuffer {
 }
 
 describe('ingestShillerCapeFundamentals', () => {
-  it('downloads, extracts, persists and returns the single latest CAPE record', async () => {
+  it('downloads, extracts, persists and returns the full history window', async () => {
     const buffer = buildArchiveBuffer()
     const fetcher: ShillerCapeFetcher = vi.fn().mockResolvedValue({
       ok: true,
@@ -49,6 +49,34 @@ describe('ingestShillerCapeFundamentals', () => {
       valueScaled: 30_123_456,
     })
     expect(upsertMany).toHaveBeenCalledWith(records)
+  })
+
+  it('returns every row within the history window, not just the latest', async () => {
+    const workbook = XLSX.utils.book_new()
+    const sheet = XLSX.utils.aoa_to_sheet([
+      HEADER_ROW,
+      [2019.06, 1, 1, 1, 1, 1, 1, 1, 1, 1, 28.5],
+      [2020.01, 1, 1, 1, 1, 1, 1, 1, 1, 1, 30.123456],
+    ])
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Data')
+    const buffer = XLSX.write(workbook, {
+      type: 'array',
+      bookType: 'xls',
+    }) as ArrayBuffer
+    const fetcher: ShillerCapeFetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => buffer,
+    })
+    const upsertMany = vi.fn().mockResolvedValue(undefined)
+    const storage: ShillerCapeSnapshotStorage = { upsertMany }
+
+    const records = await ingestShillerCapeFundamentals({ storage, fetcher })
+
+    expect(records.map((record) => record.referenceDate)).toEqual([
+      '2019-06-01',
+      '2020-01-01',
+    ])
   })
 
   it('propagates a download failure without calling storage', async () => {

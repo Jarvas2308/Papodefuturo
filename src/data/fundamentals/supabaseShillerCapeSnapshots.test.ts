@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  createSupabaseShillerCapeHistoryRepository,
   createSupabaseShillerCapeSnapshotStorage,
   UPSERT_MARKET_VALUATION_RATIOS_RPC_V1,
   type MarketValuationRatiosRpcClientV1,
+  type ShillerCapeHistorySupabaseClient,
 } from './supabaseShillerCapeSnapshots'
 import type { ShillerCapeRecord } from './shiller/types'
 
@@ -101,5 +103,88 @@ describe('createSupabaseShillerCapeSnapshotStorage', () => {
       storage.upsertMany([buildRecord({ valueScale: 1000 })])
     ).rejects.toThrow(RangeError)
     expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('splits more than 20 records into sequential batches of at most 20', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: null })
+    const client: MarketValuationRatiosRpcClientV1 = { rpc }
+    const storage = createSupabaseShillerCapeSnapshotStorage(client)
+    const records = Array.from({ length: 25 }, (_, index) =>
+      buildRecord({
+        referenceDate: `2020-${String((index % 12) + 1).padStart(2, '0')}-01`,
+      })
+    )
+
+    await storage.upsertMany(records)
+
+    expect(rpc).toHaveBeenCalledTimes(2)
+    expect(rpc.mock.calls[0]?.[1].records).toHaveLength(20)
+    expect(rpc.mock.calls[1]?.[1].records).toHaveLength(5)
+  })
+})
+
+describe('createSupabaseShillerCapeHistoryRepository', () => {
+  function fakeClient(
+    rows: { reference_date: string; value_scaled: number }[]
+  ) {
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      order: vi.fn(async () => ({ data: rows, error: null })),
+    }
+    query.select.mockReturnValue(query)
+    query.eq.mockReturnValue(query)
+    return {
+      query,
+      client: {
+        from: vi.fn(() => query),
+      } as unknown as ShillerCapeHistorySupabaseClient,
+    }
+  }
+
+  it('queries the shiller-cape-sp500 series ordered by reference date', async () => {
+    const { query, client } = fakeClient([
+      { reference_date: '2020-01-01', value_scaled: 10_000_000 },
+      { reference_date: '2020-02-01', value_scaled: 11_000_000 },
+    ])
+    const repository = createSupabaseShillerCapeHistoryRepository(client)
+
+    const history = await repository.listShillerCapeHistory()
+
+    expect(query.eq).toHaveBeenCalledWith('series', 'shiller-cape-sp500')
+    expect(query.order).toHaveBeenCalledWith('reference_date', {
+      ascending: true,
+    })
+    expect(history).toEqual([
+      { referenceDate: '2020-01-01', valueScaled: 10_000_000 },
+      { referenceDate: '2020-02-01', valueScaled: 11_000_000 },
+    ])
+  })
+
+  it('returns an empty array when there is no data yet', async () => {
+    const { client } = fakeClient([])
+    const repository = createSupabaseShillerCapeHistoryRepository(client)
+
+    await expect(repository.listShillerCapeHistory()).resolves.toEqual([])
+  })
+
+  it('wraps a query error with a descriptive message', async () => {
+    const query = {
+      select: vi.fn(),
+      eq: vi.fn(),
+      order: vi
+        .fn()
+        .mockResolvedValue({ data: null, error: { message: 'boom' } }),
+    }
+    query.select.mockReturnValue(query)
+    query.eq.mockReturnValue(query)
+    const client = {
+      from: vi.fn(() => query),
+    } as unknown as ShillerCapeHistorySupabaseClient
+    const repository = createSupabaseShillerCapeHistoryRepository(client)
+
+    await expect(repository.listShillerCapeHistory()).rejects.toThrow(
+      'Failed to load Shiller CAPE history: boom'
+    )
   })
 })

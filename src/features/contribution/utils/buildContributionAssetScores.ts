@@ -3,9 +3,11 @@
 import {
   buildBrazilianStockScoreV1,
   buildFiiTijoloScoreV1,
+  buildInternationalEtfScoreV1,
 } from '../../../domain/fundamentals/score'
 import type {
   AssetScoreV1,
+  ShillerCapeHistoryPoint,
   SignalRuleV1,
 } from '../../../domain/fundamentals/score'
 import type {
@@ -18,6 +20,7 @@ import type {
   CreateSignalRuleInput,
 } from '../../../data/repositories/contracts'
 import {
+  DEFAULT_ETF_SIGNAL_RULES,
   DEFAULT_FII_TIJOLO_SIGNAL_RULES,
   DEFAULT_STOCK_SIGNAL_RULES,
 } from '../../../domain/fundamentals/score'
@@ -26,6 +29,7 @@ import type { ContributionAssetScore } from '../types'
 const DEFAULT_SIGNAL_RULES: readonly SignalRuleV1[] = [
   ...DEFAULT_FII_TIJOLO_SIGNAL_RULES,
   ...DEFAULT_STOCK_SIGNAL_RULES,
+  ...DEFAULT_ETF_SIGNAL_RULES,
 ]
 
 // Semeia as faixas de partida (docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md)
@@ -56,12 +60,29 @@ export function buildContributionAssetScoresV1(input: {
   facts: FundamentalFactsV1
   derived: FundamentalDerivedFactsV1
   latestPricesByAsset: ReadonlyMap<string, AssetPrice>
+  capeHistory: readonly ShillerCapeHistoryPoint[]
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1[] {
   const scores: AssetScoreV1[] = []
 
   for (const asset of input.assets) {
+    // ETF nao depende de fundamental_snapshots - CAPE vem de uma fonte de
+    // mercado agregada separada (market_valuation_ratios), avaliada antes
+    // do requisito de factsAsset abaixo (que nao se aplica aqui).
+    if (asset.category === 'international-etf') {
+      scores.push(
+        buildInternationalEtfScoreV1({
+          assetId: asset.id,
+          assetSegment: asset.assetSegment ?? null,
+          capeHistory: input.capeHistory,
+          rules: input.rules,
+          now: input.now,
+        })
+      )
+      continue
+    }
+
     const factsAsset = input.facts.assets.find(
       (candidate) => candidate.assetId === asset.id
     )

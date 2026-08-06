@@ -1055,11 +1055,14 @@ integração com o motor, editável).
      codificável sem essa decisão externa. Por aprovação explícita do
      usuário, a sessão seguiu para a Fase 5 sem esperar por eles.
 5. **Motor de score — fechado até onde o dado real permite
-   (`DEC-085`/`DEC-086`/`DEC-090`).** `src/domain/fundamentals/score/`
-   cobre, hoje, 5 dos 12 sinais do rascunho de pontuação:
+   (`DEC-085`/`DEC-086`/`DEC-090`/`DEC-091`).** `src/domain/fundamentals/score/`
+   cobre, hoje, 6 dos 12 sinais do rascunho de pontuação:
    - **FII tijolo (4/5):** vacância, WALE, concentração do maior
      inquilino, P/VP. Spread de DY sobre NTN-B bloqueado — precisa valor
-     do provento, só o evento foi ingerido (`DEC-082`).
+     do provento, só o evento foi ingerido (`DEC-082`), confirmado
+     bloqueado de verdade (`DEC-091` baixou e inspecionou os datasets
+     reais da CVM: FRE, Informe Mensal e DFIN não têm o valor em nenhum
+     CSV estruturado, nem para FII nem para ação).
    - **Ação (1/4):** ROE, aplicável a todos os regimes exceto holding
      pura. Os outros 3 ficam bloqueados por motivos diferentes: payout
      (mesmo bloqueio de valor de provento do FII), dívida líquida/EBITDA
@@ -1068,11 +1071,14 @@ integração com o motor, editável).
      períodos ingeridos por empresa até agora — amostra pequena demais
      para um quartil confiável; o mecanismo existiria, falta profundidade
      histórica real).
-   - **ETF (0/3):** todos bloqueados. CAPE vs média de 10 anos exige
-     reingestão do Shiller (a ingestão atual, `DEC-084`, guarda só o
-     ponto mais recente e descarta o histórico que já vem no mesmo
-     arquivo) mais um módulo de score de ETF que ainda não existe. Spread
-     de DY sobre TIPS depende de chave de API do FRED (usuário). Prêmio/
+   - **ETF (1/3):** CAPE de VOO vs própria média de 10 anos —
+     `extractShillerCapeHistoryV1` reingere 11 anos de histórico (o
+     arquivo do Shiller já contém a série completa, só não era mantida),
+     `createSupabaseShillerCapeHistoryRepository` lê de volta, e
+     `buildInternationalEtfScoreV1` computa o desvio (atual − média,
+     `BigInt` exato) e pontua. VNQ e VEA nunca recebem este sinal
+     (`wrong-regime`, só se aplica a `indice-amplo-us`). Spread de DY
+     sobre TIPS depende de chave de API do FRED (usuário). Prêmio/
      desconto sobre NAV depende de campo que não existe no N-PORT
      (`DEC-083`, sem fonte alternativa conhecida).
    - Cada classe de ativo com sinal implementado está conectada ao fluxo

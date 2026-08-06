@@ -9,6 +9,11 @@
 // historico real de frescor por fonte.
 export const CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS = 180
 
+// Shiller/Yale publica mensalmente e com pouco atraso - limiar bem mais
+// apertado que o trimestral da CVM (2 meses cobre 1 ciclo de publicacao
+// normal mais 1 de folga, mesmo raciocinio de CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS).
+export const SHILLER_CAPE_STALE_AFTER_DAYS = 60
+
 const MILLISECONDS_PER_DAY = 86_400_000
 
 export function isReferenceDateStale(
