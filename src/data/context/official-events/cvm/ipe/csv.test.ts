@@ -124,14 +124,18 @@ describe('parseOfficialCvmIpeCsv', () => {
     ).toThrow(/unterminated/)
   })
 
-  it('rejects content after a closing quote', () => {
+  it('recovers a literal undoubled quote mid-field instead of aborting the file', () => {
+    // Real defect confirmed in ipe_cia_aberta_2024.zip: a free-text field
+    // starting with a quote (so the parser opens quoted mode) sometimes
+    // embeds a second, literal quote later (e.g. citing item "1" of a
+    // corporate-act list) without doubling it per RFC4180 - the field
+    // just continues as plain text afterwards, with no delimiter next.
     const values = Object.values(createFixtureRow())
     values[7] = '"closed"invalid'
-    expect(() =>
-      parseOfficialCvmIpeCsv(
-        `${CVM_IPE_HEADERS.join(';')}\n${values.join(';')}`
-      )
-    ).toThrow(/after a closing quote/)
+    const parsed = parseOfficialCvmIpeCsv(
+      `${CVM_IPE_HEADERS.join(';')}\n${values.join(';')}`
+    )
+    expect(parsed[0].subject).toBe('closed"invalid')
   })
 
   it('rejects NUL anywhere in the CSV', () => {
