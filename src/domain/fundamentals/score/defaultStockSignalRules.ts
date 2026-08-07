@@ -72,4 +72,19 @@ export const DEFAULT_STOCK_SIGNAL_RULES: readonly SignalRuleV1[] = [
     points: 0,
     enabled: true,
   },
+  // P/L vs própria série histórica (docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md,
+  // seção 3): "abaixo do próprio quartil inferior" pontua +1. observedValue
+  // já vem como desvio (P/L atual − quartil inferior da própria série,
+  // escala FUNDAMENTAL_RATIO_SCALE) em buildBrazilianStockScoreV1.ts -
+  // mesmo truque de computeEtfCapeDeviationV1: limiar fixo em zero
+  // representa "abaixo do próprio marco histórico" mesmo o marco sendo
+  // dinâmico por ativo. Igual ao quartil (desvio = 0) não pontua - só
+  // estritamente abaixo.
+  {
+    signalKey: 'stock_pl_vs_history',
+    minValue: null,
+    maxValue: 0,
+    points: 1,
+    enabled: true,
+  },
 ]

@@ -187,13 +187,30 @@ não tem nenhum evento de `VOO`/`VNQ`/`VEA` em produção (as 1.511 linhas
 são todas de CVM), e o número vem direto da tabela "Financial Highlights"
 do N-CSR anual da SEC. Migration
 `20260807130000_create_etf_distribution_values.sql` **versionada e não
-aplicada em produção**; `src/lib/database.types.ts` recebeu a entrada
-correspondente junto com a migration (mesmo procedimento da PR #167) e
-deve ser **regenerado pelo mecanismo oficial** depois que a migration for
-aplicada de verdade. Nenhuma linha escrita: o backfill
+aplicada em produção**. `src/lib/database.types.ts` chegou a receber a
+entrada correspondente por engano nesta sessão — corrigido pela PR #169
+(`fix/etf-distribution-values-database-types-fabrication`) antes do
+merge: o arquivo gerado permanece **intocado** até a migration ser
+aplicada de verdade, e o repository (`supabaseEtfDistributionValues.ts`)
+usa tipo de linha local + `SupabaseClient` genérico em vez do `Database`
+tipado, mesma disciplina de qualquer tabela versionada-não-aplicada
+deste projeto (AGENTS.md seção 11). Nenhuma linha escrita: o backfill
 (`scripts/run-etf-distribution-values-backfill.ts`) roda em preview por
 padrão e exige `--confirm` mais `SEC_USER_AGENT` e a service_role key.
 Até isso acontecer, o sinal fica `unavailable`.
+
+Última atualização, 07/08/2026: `DEC-104` fecha o mecanismo de cálculo
+do 12º e último sinal do rascunho de pontuação, P/L vs própria série
+histórica de ação — ver `docs/ROADMAP.md` "Itens abertos sem prazo" item
+3 e `docs/CHANGELOG-DECISIONS.md` `DEC-104` para o detalhe completo, não
+duplicado aqui. Resumo: código completo e testado (fórmula, quartil
+"nearest-rank", wiring até o dossiê), migration
+`20260807140000_create_stock_historical_close_prices.sql`
+**versionada e não aplicada em produção** (mesma disciplina de
+`database.types.ts` intocado da tabela acima), nenhum backfill real
+rodado, e mesmo depois de aplicada o sinal continuaria `unavailable`
+porque só há 2 exercícios de DFP ingeridos por empresa hoje contra o
+mínimo de 5 exigido pelo quartil (SQL somente leitura, 07/08/2026).
 
 ## 1. Resumo executivo
 

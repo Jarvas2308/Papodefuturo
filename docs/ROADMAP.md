@@ -1414,19 +1414,48 @@ numeração de sprint.
      repositório; a tabela ainda não existe em produção e nenhuma linha
      foi escrita. Até o backfill rodar, o sinal fica `unavailable`
      (comportamento esperado, não bug).
-   - P/L vs série histórica (ação) — `composicao_capital` real dos 5
-     tickers populado em produção (`DEC-095`), resolvendo uma das três
-     peças que faltavam. Preço de fechamento histórico por data de
-     exercício confirmado viável (`DEC-096`): `COTAHIST_A<ano>.ZIP`
-     anual da B3 é público, real, mesmo layout de largura fixa já
-     parseado por `b3CotahistParser.ts` — testado com o arquivo de
-     2025 real, BBAS3 fecha 30/12/2025 (último pregão do ano) a
-     R$ 21,92. Ainda falta: mais anos de DFP ingeridos por empresa
-     (amostra de 1-2 períodos é pequena demais pra um quartil
-     confiável) e escrever o provider/wiring que casa preço de
-     fechamento por data de exercício com cada snapshot de DFP — só a
-     viabilidade da fonte foi confirmada nesta entrada, não
-     implementada.
+   - **P/L vs série histórica (ação) INTEGRADO em 07/08/2026 (`DEC-104`),
+     aguardando aplicação da migration, backfill real de preço E mais
+     anos de DFP ingeridos.** Fecha o item 3 aberto do `DEC-068`. P/L =
+     preço de fechamento B3 no último pregão do exercício ÷ LPA do
+     mesmo exercício (`computeStockPriceToEarningsScaledV1.ts`),
+     comparado contra o quartil inferior da própria série histórica de
+     P/L via "nearest-rank" (`computeStockPlQuartilePositionV1.ts`) —
+     BigInt exato, arredondamento half-away-from-zero, mesma disciplina
+     do resto do motor. Amostra mínima decidida e documentada no código:
+     5 exercícios anuais casados (referenceDate exata entre DFP e preço
+     histórico) — com menos que isso o quartil degenera (rank aponta
+     quase sempre pro próprio valor mais baixo, não é sinal real de
+     barateamento). Wired em `buildBrazilianStockScoreV1.ts` (não se
+     aplica a banco/seguradora, igual à regra do rascunho),
+     `defaultStockSignalRules.ts` (limiar estático em zero sobre o
+     desvio atual − quartil inferior, mesmo truque de
+     `computeEtfCapeDeviationV1.ts` pra reaproveitar `SignalRuleV1` com
+     um marco dinâmico por ativo) e `useContributionData.ts` até o
+     dossiê.
+     Provider de preço histórico: parser COTAHIST anual próprio em
+     `src/data/fundamentals/b3/` (`b3CotahistAnnualCloseSeriesV1.ts` +
+     `selectFiscalYearEndCloseV1.ts`), análogo mas não importado de
+     `supabase/functions/refresh-market-data/b3CotahistParser.ts`
+     (runtimes diferentes, Deno vs Node/Vite — duplicação deliberada,
+     documentada no código). Viabilidade da fonte já confirmada com
+     dado real em `DEC-096` (BBAS3 fecha 30/12/2025, último pregão do
+     ano, a R$ 21,92).
+     **Versionado, não aplicado**: migration
+     `20260807140000_create_stock_historical_close_prices.sql` e o
+     script `scripts/run-stock-close-price-history-backfill.ts` existem
+     no repositório; a tabela ainda não existe em produção e nenhuma
+     linha foi escrita.
+     **Mesmo com a tabela aplicada e o backfill rodado, o sinal
+     continuaria `unavailable`**: SQL somente leitura em 07/08/2026
+     confirmou só 2 exercícios anuais de DFP ingeridos por empresa
+     (2024-12-31 e 2025-12-31, via `cvm-dfp`) contra o mínimo de 5
+     exigido pelo quartil — a mesma limitação de profundidade histórica
+     já registrada no encerramento do Sprint 16, agora com o mecanismo
+     de cálculo completo esperando o dado, não o inverso. Aprofundar
+     exige rodar `run-fundamentals-ingestion.ts --provider=cvm-stocks
+--source=DFP --year=<2019..2023>` pra cada ano adicional, mesmo
+     comando já usado pra 2024/2025.
 
 ## Fase operacional — concluída
 

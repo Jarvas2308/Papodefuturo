@@ -39,9 +39,11 @@ import { BRAZILIAN_STOCK_TICKER_ISIN_V1 } from '../../../data/fundamentals/prove
 import { createSupabaseFiiMonthlyDividendYieldRepository } from '../../../data/fundamentals/supabaseFiiMonthlyDividendYield'
 import { createSupabaseMarketReferenceRateRepository } from '../../../data/fundamentals/supabaseMarketReferenceRates'
 import { createSupabaseEtfDistributionValueRepository } from '../../../data/fundamentals/supabaseEtfDistributionValues'
+import { createSupabaseStockHistoricalClosePriceRepository } from '../../../data/fundamentals/supabaseStockHistoricalClosePrices'
 import type {
   FiiMonthlyDividendYieldPointV1,
   ProventoDeclarationPointV1,
+  StockClosePriceHistoryPointV1,
 } from '../../../domain/fundamentals/score'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
@@ -145,6 +147,8 @@ export async function loadContributionAssetScoresBestEffort(
       createSupabaseMarketReferenceRateRepository(client)
     const etfDistributionValueRepository =
       createSupabaseEtfDistributionValueRepository(client)
+    const stockHistoricalClosePriceRepository =
+      createSupabaseStockHistoricalClosePriceRepository(client)
 
     const fiiTijoloTickers = assets
       .filter(
@@ -166,6 +170,10 @@ export async function loadContributionAssetScoresBestEffort(
           entry.isin !== undefined
       )
 
+    const stockTickers = assets
+      .filter((asset) => asset.category === 'brazilian-stock')
+      .map((asset) => asset.ticker)
+
     const [
       fiiSnapshots,
       stockSnapshots,
@@ -176,6 +184,7 @@ export async function loadContributionAssetScoresBestEffort(
       ntnbRatePoint,
       etfDistributionValues,
       tipsRatePoint,
+      closePriceHistoryEntries,
     ] = await Promise.all([
       fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
       stockSnapshotRepository.listBrazilianStockSnapshots(assets),
@@ -208,6 +217,21 @@ export async function loadContributionAssetScoresBestEffort(
       // Série `fred-dfii10`: TIPS de 10 anos (DEC-093), já ingerida em
       // produção pela Edge Function refresh-market-data.
       marketReferenceRateRepository.getLatestMarketReferenceRate('fred-dfii10'),
+      // P/L vs própria série histórica (DEC-104): fechamento B3 por
+      // exercício, tabela `stock_historical_close_prices` (ainda não
+      // aplicada em produção - lista vazia até lá, sinal fica
+      // `unavailable`).
+      Promise.all(
+        stockTickers.map(
+          async (ticker) =>
+            [
+              ticker,
+              await stockHistoricalClosePriceRepository.listStockHistoricalClosePricesByTicker(
+                ticker
+              ),
+            ] as const
+        )
+      ),
     ])
     const proventoDeclarationsByTicker = new Map<
       string,
@@ -217,6 +241,10 @@ export async function loadContributionAssetScoresBestEffort(
       string,
       readonly FiiMonthlyDividendYieldPointV1[]
     >(monthlyDividendYieldEntries)
+    const closePriceHistoryByTicker = new Map<
+      string,
+      readonly StockClosePriceHistoryPointV1[]
+    >(closePriceHistoryEntries)
     const ntnbRate =
       ntnbRatePoint === null
         ? null
@@ -262,6 +290,7 @@ export async function loadContributionAssetScoresBestEffort(
         capeHistory,
         etfValuations,
         proventoDeclarationsByTicker,
+        closePriceHistoryByTicker,
         monthlyDividendYieldsByTicker,
         ntnbRate,
         etfDistributionValues,

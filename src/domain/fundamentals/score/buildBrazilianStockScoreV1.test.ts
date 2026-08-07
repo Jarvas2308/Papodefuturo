@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { ExactDecimalQuantity, FundamentalFactsAsset } from '../types'
-import { buildBrazilianStockScoreV1 } from './buildBrazilianStockScoreV1'
+import {
+  buildBrazilianStockScoreV1,
+  type StockClosePriceHistoryPointV1,
+} from './buildBrazilianStockScoreV1'
 import type { ProventoDeclarationPointV1 } from './computeProventoTrailingTwelveMonthValueV1'
 import { DEFAULT_STOCK_SIGNAL_RULES } from './defaultStockSignalRules'
 
@@ -657,6 +660,243 @@ describe('buildBrazilianStockScoreV1 - payout YoY', () => {
       signalKey: 'stock_payout_yoy_change',
       status: 'unavailable',
       reason: 'missing-input',
+    })
+  })
+})
+
+describe('buildBrazilianStockScoreV1 - P/L vs própria série histórica', () => {
+  // 5 exercícios anuais, lucro líquido e ações emitidas constantes -
+  // varia só o preço de fechamento, do mais caro (2021) pro mais barato
+  // (2025, exercício mais recente): P/L cai de 100x pra 30x. Quartil
+  // inferior (rank 2 de 5) = 70x -> exercício mais recente (30x) fica
+  // estritamente abaixo -> +1.
+  // Exercício mais recente em 2026-06-30 (dentro do limiar de frescor de
+  // 180 dias contado de NOW = 2026-08-06, mesmo padrão dos demais testes
+  // "applied" deste arquivo).
+  function fiveYearAnnualFacts(): FundamentalFactsAsset['snapshots'] {
+    const issuedShares: ExactDecimalQuantity = { unscaledValue: 1000, scale: 0 }
+    return [
+      stockSnapshot('2022-06-30', { netIncome: money(200_000), issuedShares }),
+      stockSnapshot('2023-06-30', { netIncome: money(200_000), issuedShares }),
+      stockSnapshot('2024-06-30', { netIncome: money(200_000), issuedShares }),
+      stockSnapshot('2025-06-30', { netIncome: money(200_000), issuedShares }),
+      stockSnapshot('2026-06-30', { netIncome: money(200_000), issuedShares }),
+    ]
+  }
+
+  function fiveYearClosePriceHistory(): StockClosePriceHistoryPointV1[] {
+    return [
+      { referenceDate: '2022-06-30', closePriceInMinorUnits: 20_000 }, // PL 100x
+      { referenceDate: '2023-06-30', closePriceInMinorUnits: 18_000 }, // PL 90x
+      { referenceDate: '2024-06-30', closePriceInMinorUnits: 16_000 }, // PL 80x
+      { referenceDate: '2025-06-30', closePriceInMinorUnits: 14_000 }, // PL 70x
+      { referenceDate: '2026-06-30', closePriceInMinorUnits: 6_000 }, // PL 30x
+    ]
+  }
+
+  it('scores +1 when the most recent P/L sits below the own lower quartile', () => {
+    const asset = buildAsset(fiveYearAnnualFacts())
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      closePriceHistory: fiveYearClosePriceHistory(),
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'applied',
+      observedValue: -40_000_000,
+      points: 1,
+    })
+  })
+
+  it('scores 0 when the most recent P/L sits at or above the own lower quartile', () => {
+    const asset = buildAsset(fiveYearAnnualFacts())
+    // Inverte a ordem dos preços: exercício mais recente vira o mais caro.
+    const invertedPrices = [...fiveYearClosePriceHistory()].reverse()
+    const closePriceHistory = fiveYearAnnualFacts().map((snapshot, index) => ({
+      referenceDate: snapshot.referenceDate,
+      closePriceInMinorUnits: invertedPrices[index]!.closePriceInMinorUnits,
+    }))
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      closePriceHistory,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toMatchObject({
+      signalKey: 'stock_pl_vs_history',
+      status: 'applied',
+      points: 0,
+    })
+  })
+
+  it('is unavailable for banco regardless of inputs (wrong-regime)', () => {
+    const asset = buildAsset(fiveYearAnnualFacts())
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'banco',
+      proventoDeclarations: null,
+      closePriceHistory: fiveYearClosePriceHistory(),
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'unavailable',
+      reason: 'wrong-regime',
+    })
+  })
+
+  it('is unavailable for seguradora regardless of inputs (wrong-regime)', () => {
+    const asset = buildAsset(fiveYearAnnualFacts())
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'seguradora',
+      proventoDeclarations: null,
+      closePriceHistory: fiveYearClosePriceHistory(),
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'unavailable',
+      reason: 'wrong-regime',
+    })
+  })
+
+  it('is unavailable when no close price history was resolved', () => {
+    const asset = buildAsset(fiveYearAnnualFacts())
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      closePriceHistory: null,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('is unavailable with fewer than the minimum sample size — production reality today (only 2 DFP years ingested)', () => {
+    const asset = buildAsset([
+      stockSnapshot('2025-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2026-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+    ])
+    const closePriceHistory: StockClosePriceHistoryPointV1[] = [
+      { referenceDate: '2025-06-30', closePriceInMinorUnits: 14_000 },
+      { referenceDate: '2026-06-30', closePriceInMinorUnits: 6_000 },
+    ]
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      closePriceHistory,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('drops a fiscal year with no matching close price and still degrades to unavailable below the minimum', () => {
+    const asset = buildAsset(fiveYearAnnualFacts())
+    // Falta o preço de 2022 - só 4 exercícios casados, abaixo do mínimo.
+    const closePriceHistory = fiveYearClosePriceHistory().filter(
+      (point) => point.referenceDate !== '2022-06-30'
+    )
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      closePriceHistory,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('marks stale when the most recent matched fiscal year is past the threshold', () => {
+    const asset = buildAsset([
+      stockSnapshot('2020-12-31', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2021-12-31', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2022-12-31', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2023-12-31', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2024-01-01', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+    ])
+    const closePriceHistory: StockClosePriceHistoryPointV1[] = [
+      { referenceDate: '2020-12-31', closePriceInMinorUnits: 20_000 },
+      { referenceDate: '2021-12-31', closePriceInMinorUnits: 18_000 },
+      { referenceDate: '2022-12-31', closePriceInMinorUnits: 16_000 },
+      { referenceDate: '2023-12-31', closePriceInMinorUnits: 14_000 },
+      { referenceDate: '2024-01-01', closePriceInMinorUnits: 6_000 },
+    ]
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      closePriceHistory,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[3]).toEqual({
+      signalKey: 'stock_pl_vs_history',
+      status: 'stale',
+      observedValue: -40_000_000,
+      referenceDate: '2024-01-01',
+      staleAfterDays: 180,
     })
   })
 })
