@@ -1364,16 +1364,28 @@ numeração de sprint.
      regressão de fato — mas achou 1 call site real faltando o campo
      novo, only surfaced pelo comando certo.
 
-   - **Ainda bloqueados (fonte de dado, não wiring)**: spread de DY
-     sobre NTN-B (FII) e spread de DY sobre TIPS (ETF, `VNQ`) —
+   - **Spread de DY sobre NTN-B (FII) FECHADO em 07/08/2026.** Fonte
+     real achada: `Percentual_Dividend_Yield_Mes` no documento
+     "complemento" do Informe Mensal Estruturado da CVM — mesmo arquivo
+     já baixado pelo pipeline de `fundamental_snapshots`, nunca extraído
+     (aquele pipeline só guarda o mês mais recente por fundo, descarta
+     histórico). Tabela nova `fii_monthly_dividend_yield` guarda todos
+     os meses. Taxa NTN-B já estava pronta e em produção
+     (`tesouroTransparenteProvider.ts`, `DEC-075`) — só faltava a metade
+     do DY. Sinal `fii_dy_ntnb_spread` implementado, testado e conectado
+     em `buildFiiTijoloScoreV1.ts`. Backfill real rodado em produção
+     (07/08/2026, inserção direta via MCP Supabase, sem precisar da
+     service_role key do usuário): **72 linhas reais**, 18 meses por
+     fundo (jan/2025–jun/2026) para os 4 FIIs tijolo rastreados. Sinal
+     fica `unavailable` até a CVM publicar jul/2026 (defasagem normal de
+     1-2 meses de divulgação) — 11 meses no momento, precisa de 12,
+     comportamento esperado, não bug.
+   - **Ainda bloqueado**: spread de DY sobre TIPS (ETF, `VNQ`) —
      `official_asset_events` nunca teve evento `dividend-or-distribution`
-     ingerido pra FII nem pra `VNQ` (confirmado via SQL em produção,
-     06/08/2026): FII precisa de documento CVM diferente do IPE
-     "Relatório Proventos" (provavelmente Informe Mensal ou fato
-     relevante próprio, não confirmado), `VNQ` vem de SEC EDGAR (outro
-     regulador, outro formato) — nenhum dos dois é so rodar o mesmo
-     backfill de novo, é pipeline de ingestão novo. Taxa TIPS (ETF) já
-     resolvida via FRED (`DEC-093`), só falta essa metade.
+     ingerido pra `VNQ` (confirmado via SQL em produção, 06/08/2026).
+     Vem de SEC EDGAR (regulador americano, formato totalmente
+     diferente) — pipeline de ingestão novo, não pesquisado ainda. Taxa
+     TIPS (ETF) já resolvida via FRED (`DEC-093`), só falta essa metade.
    - P/L vs série histórica (ação) — `composicao_capital` real dos 5
      tickers populado em produção (`DEC-095`), resolvendo uma das três
      peças que faltavam. Preço de fechamento histórico por data de
