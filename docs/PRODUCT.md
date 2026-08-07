@@ -268,28 +268,37 @@ candidatos dentro do universo fechado — nunca um recomendador irrestrito
 (usuário mantém confirmação obrigatória, item 6 da filosofia). Estado atual
 (`DEC-085` a `DEC-087`):
 
-- cobre 8 dos 12 sinais do rascunho de pontuação, em três fatias
-  (`DEC-085` a `DEC-094`):
-  - FII tijolo (KNRI11, VISC11, XPLG11, HGRU11), 4 de 5: P/VP, vacância
+- cobre 11 dos 12 sinais do rascunho de pontuação, em três fatias
+  (`DEC-085` a `DEC-103`):
+  - FII tijolo (KNRI11, VISC11, XPLG11, HGRU11), 5 de 5: P/VP, vacância
     financeira, WALE (substituto documentado de "receita vencendo em 24
-    meses") e concentração do maior inquilino; spread de DY sobre NTN-B
-    segue bloqueado (falta o valor do provento, só o evento foi ingerido);
-  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 2 de 4: ROE (todos os
+    meses"), concentração do maior inquilino e spread de DY sobre NTN-B
+    (`DEC-097`, fechado em 07/08/2026: o DY mensal vem da coluna
+    `Percentual_Dividend_Yield_Mes` do complemento do Informe Mensal da
+    CVM, somado em janela de 12 meses; 72 linhas reais em produção);
+  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 3 de 4: ROE (todos os
     regimes exceto holding pura) e dívida líquida/EBITDA (todos os
     regimes exceto banco — insumos confirmados com dado real do DFP 2025:
     `BPP_con` `2.01.04`/`2.02.01` "Empréstimos e Financiamentos", `BPA_con`
     `1.01.01` "Caixa e Equivalentes de Caixa", `DRE_con` `3.05` "Resultado
     Antes do Resultado Financeiro e dos Tributos", `DFC_MI_con` linha de
-    depreciação/amortização em allowlist fechada de 3 descrições). Payout
-    (mesmo bloqueio de valor de provento) e P/L vs série histórica
-    (amostra insuficiente até acumular mais períodos ingeridos) seguem
-    bloqueados;
-  - ETF internacional (VOO, VNQ, VEA), 2 de 3: CAPE de VOO vs própria
-    média de 10 anos (só `indice-amplo-us`) e prêmio/desconto sobre NAV
-    via site do emissor (Vanguard, aplicável aos 3 ETFs). Spread de DY
-    sobre TIPS resolvido pela metade (taxa TIPS via FRED, DFII10,
-    ingerida em produção) — o sinal em si segue bloqueado, mesmo motivo
-    de payout (valor do provento);
+    depreciação/amortização em allowlist fechada de 3 descrições) e
+    payout (`DEC-097`, fechado em 06/08/2026 pelo extrator do formulário
+    "Provento" da CVM). P/L vs série histórica segue bloqueado — amostra
+    insuficiente até acumular mais períodos ingeridos, e é o único dos
+    12 sinais ainda sem implementação;
+  - ETF internacional (VOO, VNQ, VEA), 3 de 3: CAPE de VOO vs própria
+    média de 10 anos (só `indice-amplo-us`), prêmio/desconto sobre NAV
+    via site do emissor (Vanguard, aplicável aos 3 ETFs) e spread de DY
+    sobre a TIPS de 10 anos (`DEC-103`, só `reit-us`/VNQ). As duas
+    pontas do spread vêm de fonte oficial: a taxa TIPS do FRED
+    (`DFII10`, `DEC-093`, já em produção) e o dividend yield do próprio
+    N-CSR anual da SEC — "Total Distributions" dividido por "Net Asset
+    Value, End of Period" da tabela "Financial Highlights" da classe
+    ETF do fundo, numerador e denominador do mesmo documento e da mesma
+    data de referência. A tabela `etf_distribution_values` está
+    versionada mas ainda **não aplicada em produção**, e nenhum backfill
+    real rodou — até lá o sinal aparece como `unavailable`;
 - faixas de pontuação configuráveis por usuário (`signal_rules`), semeadas
   com valores de partida na primeira simulação de aporte técnico;
 - score é best-effort: qualquer falha na leitura de fundamentos degrada

@@ -38,6 +38,7 @@ import { createSupabaseProventoDeclarationValueRepository } from '../../../data/
 import { BRAZILIAN_STOCK_TICKER_ISIN_V1 } from '../../../data/fundamentals/provento/brazilianStockTickerIsinV1'
 import { createSupabaseFiiMonthlyDividendYieldRepository } from '../../../data/fundamentals/supabaseFiiMonthlyDividendYield'
 import { createSupabaseMarketReferenceRateRepository } from '../../../data/fundamentals/supabaseMarketReferenceRates'
+import { createSupabaseEtfDistributionValueRepository } from '../../../data/fundamentals/supabaseEtfDistributionValues'
 import type {
   FiiMonthlyDividendYieldPointV1,
   ProventoDeclarationPointV1,
@@ -142,6 +143,8 @@ export async function loadContributionAssetScoresBestEffort(
       createSupabaseFiiMonthlyDividendYieldRepository(client)
     const marketReferenceRateRepository =
       createSupabaseMarketReferenceRateRepository(client)
+    const etfDistributionValueRepository =
+      createSupabaseEtfDistributionValueRepository(client)
 
     const fiiTijoloTickers = assets
       .filter(
@@ -171,6 +174,8 @@ export async function loadContributionAssetScoresBestEffort(
       proventoEntries,
       monthlyDividendYieldEntries,
       ntnbRatePoint,
+      etfDistributionValues,
+      tipsRatePoint,
     ] = await Promise.all([
       fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
       stockSnapshotRepository.listBrazilianStockSnapshots(assets),
@@ -199,6 +204,10 @@ export async function loadContributionAssetScoresBestEffort(
         )
       ),
       marketReferenceRateRepository.getLatestMarketReferenceRate('ntnb-longa'),
+      etfDistributionValueRepository.listEtfDistributionValues(),
+      // Série `fred-dfii10`: TIPS de 10 anos (DEC-093), já ingerida em
+      // produção pela Edge Function refresh-market-data.
+      marketReferenceRateRepository.getLatestMarketReferenceRate('fred-dfii10'),
     ])
     const proventoDeclarationsByTicker = new Map<
       string,
@@ -215,6 +224,14 @@ export async function loadContributionAssetScoresBestEffort(
             rateScaled: ntnbRatePoint.rateScaled,
             rateScale: ntnbRatePoint.rateScale,
             pricedAt: ntnbRatePoint.pricedAt,
+          }
+    const tipsRate =
+      tipsRatePoint === null
+        ? null
+        : {
+            rateScaled: tipsRatePoint.rateScaled,
+            rateScale: tipsRatePoint.rateScale,
+            pricedAt: tipsRatePoint.pricedAt,
           }
     const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
@@ -247,6 +264,8 @@ export async function loadContributionAssetScoresBestEffort(
         proventoDeclarationsByTicker,
         monthlyDividendYieldsByTicker,
         ntnbRate,
+        etfDistributionValues,
+        tipsRate,
         rules,
         now,
       }),

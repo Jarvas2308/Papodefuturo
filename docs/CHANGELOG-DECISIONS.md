@@ -4064,3 +4064,85 @@ persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
   a integração nos 3 sinais de score (spread DY de FII, payout de ação,
   spread DY de ETF). Nenhum dado real ainda persistido nesta tabela —
   schema existe, backfill de valores ainda não rodou.
+
+## DEC-103 — Dividend yield de ETF vem do N-CSR anual da SEC, não de evento de provento
+
+- Data: 7 de agosto de 2026
+- Status: Aceita
+- Contexto: `etf_dy_tips_spread` (VNQ) era o último sinal bloqueado do
+  motor de score. A taxa TIPS já estava resolvida (`DEC-093`, FRED
+  `DFII10`, em produção). A metade que faltava — o dividend yield do
+  próprio ETF — vinha sendo tratada como "mesmo bloqueio de payout":
+  dependeria do valor do provento, a partir de um evento
+  `dividend-or-distribution` em `official_asset_events`. Duas
+  verificações com dado real derrubaram essa premissa:
+  1. `official_asset_events` tem 1.511 linhas em produção, todas de CVM
+     (5 ações + 4 FIIs). Zero eventos para `VOO`, `VNQ` ou `VEA` — o
+     pipeline SEC EDGAR nunca rodou em produção. Não havia evento a
+     enriquecer (SQL somente leitura, 07/08/2026).
+  2. O número não precisa de evento nenhum. O N-CSR anual (relatório
+     anual auditado) que o trust protocola na SEC publica, na tabela
+     "Financial Highlights" da classe ETF de cada fundo, "Total
+     Distributions" e "Net Asset Value, End of Period" por cota. Filing
+     real baixado e inspecionado: VNQ, CIK `0000734383`, accession
+     `0001104659-26-036013`, exercício encerrado em 31/01/2026,
+     distribuições 3,472 e NAV 90,81.
+- Decisão:
+  - **Fonte**: N-CSR (form já na taxonomia fechada do provider SEC
+    EDGAR). `N-CSRS` é semestral e é deliberadamente ignorado — meio
+    exercício não é comparável com um exercício inteiro.
+  - **Denominador do DY**: o NAV de fim de exercício do próprio filing,
+    não a cotação de mercado. Numerador e denominador ficam com a mesma
+    data de referência e a mesma fonte auditável — mesmo espírito do DY
+    de FII, que vem pronto do Informe Mensal da CVM. As duas colunas são
+    persistidas separadamente, então trocar o denominador depois não
+    exige reextrair nada.
+  - **Granularidade anual, sem agregação**: o documento já publica o
+    total do exercício. Não existe trailing-12-meses a somar (ao
+    contrário de FII e de ação), então a chave é
+    `(ticker, fiscal_year_end_date)`, sem coluna de versão.
+  - **Identidade documental por (nome do fundo, rótulo da classe ETF)**,
+    versionada em `etfNcsrFundIdentityV1.ts`. Um N-CSR é o relatório do
+    TRUST e empacota vários fundos, cada um com várias classes — pegar
+    "a primeira tabela de Financial Highlights" traria outro fundo. O
+    rótulo é dado do registry e não constante global porque `VEA` usa
+    "FTSE Developed Markets ETF Shares", não "ETF Shares". O cabeçalho
+    do bloco precisa vir precedido do número da página impressa
+    (invariante confirmado nos três filings reais de 2026), senão
+    "Real Estate Index Fund" casaria dentro de "Vanguard Real Estate
+    Index Fund". Falha fechada (`null`) em tudo: zero ou mais de uma
+    ocorrência, cabeçalho de período parcial, célula fora de formato.
+  - **Armazenamento**: tabela global nova `etf_distribution_values`,
+    mesmo padrão de acesso de `market_etf_valuations` (`DEC-092`) e
+    `provento_declaration_values` (`DEC-102`) — RLS, select para
+    `authenticated`, escrita só por `service_role` via
+    `upsert_etf_distribution_values_v1`. **Sem FK para
+    `official_asset_events`** (diferente de `provento_declaration_values`):
+    amarrar o valor a um evento que não existe em produção bloquearia o
+    sinal por uma dependência que não é dele. A identidade documental
+    (CIK, accession, URL do arquivo) fica na própria linha.
+  - **Escopo do sinal**: só `reit-us` (VNQ), como o rascunho de
+    pontuação define. `VOO` e `VEA` recebem `wrong-regime`, não
+    `missing-input` — o extrator cobre os três (com fixture real), mas
+    índice amplo e mercados desenvolvidos não são instrumentos de renda
+    comparáveis a uma TIPS. Faixas: > 1 p.p. → +2, < 0 → −2, entre 0 e 1
+    → neutro (nenhuma regra bate, 0 ponto), exatamente o rascunho.
+  - **Frescor**: `SEC_N_CSR_STALE_AFTER_DAYS = 450` (um exercício ~365
+    dias mais ~55 de defasagem de protocolo observada no filing real,
+    mais folga) e `FRED_DFII10_STALE_AFTER_DAYS = 5` (série diária de dia
+    útil, mesmo limiar do prêmio/desconto da Vanguard). A ponta mais
+    velha manda; o sinal vira `stale` e pontua 0 sem esconder o valor.
+- Verificação: aritmética em `BigInt` com escala de 1e6, sem ponto
+  flutuante em razão financeira; fixtures reais recortadas dos três
+  filings de 2026 (URLs e accessions citados em `testFixtures.ts`),
+  nenhum caractere inventado. Com o dado real: DY de 3,823367% contra
+  TIPS de 2,41% (valor real em `market_reference_rates`, 05/08/2026) →
+  spread de 1,413367 p.p. → +2 pontos.
+- Consequências: 11 dos 12 sinais do rascunho estão implementados; só
+  P/L vs série histórica de ação continua aberto, por profundidade de
+  série temporal, não por fonte. A migration
+  `20260807130000_create_etf_distribution_values.sql` está **versionada e
+  não aplicada em produção**; nenhuma linha foi escrita e o backfill
+  (`scripts/run-etf-distribution-values-backfill.ts`, preview por padrão,
+  `--confirm` para escrita real) não rodou. Até lá o sinal fica
+  `unavailable`, nunca zero silencioso.

@@ -23,6 +23,21 @@ export const SHILLER_CAPE_STALE_AFTER_DAYS = 60
 // score.
 export const VANGUARD_PREMIUM_DISCOUNT_STALE_AFTER_DAYS = 5
 
+// N-CSR (relatório ANUAL auditado de fundo registrado na SEC) é a fonte
+// mais lenta do motor: um documento por exercício. Observado com filing
+// real de VNQ (accession 0001104659-26-036013): exercício encerrado em
+// 31/01/2026, protocolado em 27/03/2026 — ~55 dias de defasagem. Da data
+// de referência de um exercício até a publicação do seguinte passam
+// ~365 + ~55 = ~420 dias; 450 cobre esse ciclo normal com ~1 mês de
+// folga, mesmo raciocínio das demais constantes (1 ciclo de publicação +
+// folga), não uma medição formal.
+export const SEC_N_CSR_STALE_AFTER_DAYS = 450
+
+// FRED DFII10 (DEC-093) é série diária de dia útil, igual em ritmo ao
+// prêmio/desconto da Vanguard — mesmo limiar e mesma justificativa
+// (1 ciclo normal, 1 dia útil, mais folga pra fim de semana longo).
+export const FRED_DFII10_STALE_AFTER_DAYS = 5
+
 const MILLISECONDS_PER_DAY = 86_400_000
 
 export function isReferenceDateStale(

@@ -555,3 +555,27 @@ Estado real, com detalhe em `docs/PROJECT_HANDOFF.md`:
   rejeição e confirmação em `src/features/contribution`. `ContributionPlanItem.plannedPurchase`
   é resolvido via `purchase_id`, ligando cada item à `Purchase` real quando o
   plano é confirmado.
+
+### Tabelas globais de apoio ao motor de score
+
+Além das acima, o motor de score (`DEC-085` a `DEC-103`) usa tabelas
+globais, sem `user_id`, todas com o mesmo padrão de acesso: RLS ligada,
+`select` para `authenticated`, escrita exclusivamente por `service_role`
+através de uma RPC `security definer` dedicada (sem DML direto, revogado
+depois da criação da RPC).
+
+Aplicadas em produção: `signal_rules` (esta é por usuário),
+`market_reference_rates`, `market_valuation_ratios`,
+`market_etf_valuations`, `provento_declaration_values` (`DEC-102`) e
+`fii_monthly_dividend_yield`.
+
+**Versionada e ainda NÃO aplicada em produção**:
+`etf_distribution_values` (migration
+`20260807130000_create_etf_distribution_values.sql`, `DEC-103`) — valor
+anual de distribuição por cota e NAV de fim de exercício dos ETFs,
+extraídos do N-CSR da SEC. Identidade `(ticker, fiscal_year_end_date)`,
+sem coluna de versão (o documento publica um número por exercício) e sem
+FK para `official_asset_events` (não existe evento SEC EDGAR em produção;
+a identidade documental — CIK, accession e URL — fica na própria linha).
+RPC de escrita: `upsert_etf_distribution_values_v1`. Nenhuma linha
+escrita até agora.

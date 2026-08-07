@@ -447,7 +447,58 @@ describe('buildContributionAssetScoresV1', () => {
           status: 'unavailable',
           reason: 'missing-input',
         },
+        {
+          signalKey: 'etf_dy_tips_spread',
+          status: 'unavailable',
+          reason: 'missing-input',
+        },
       ],
+    })
+  })
+
+  it('reaches VNQ with the real N-CSR distribution value and the real TIPS rate', () => {
+    const asset: Asset = {
+      id: 'asset-vnq',
+      ticker: 'VNQ',
+      name: 'Vanguard Real Estate ETF',
+      category: 'international-etf',
+      market: 'US',
+      status: 'active',
+      assetType: null,
+      assetSegment: 'reit-us',
+    }
+
+    const scores = buildContributionAssetScoresV1({
+      assets: [asset],
+      facts: emptyFacts(),
+      derived: emptyDerived(),
+      latestPricesByAsset: new Map(),
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+      capeHistory: [],
+      etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
+      // N-CSR real de VNQ, exercício encerrado em 31/01/2026
+      // (accession 0001104659-26-036013).
+      etfDistributionValues: [
+        {
+          ticker: 'VNQ',
+          fiscalYearEndDate: '2026-01-31',
+          totalDistributionsPerShare: { unscaledValue: 3472, scale: 3 },
+          netAssetValueEndOfPeriod: { unscaledValue: 9081, scale: 2 },
+        },
+      ],
+      tipsRate: {
+        rateScaled: 2_410_000,
+        rateScale: 1_000_000,
+        pricedAt: '2026-08-05',
+      },
+    })
+
+    expect(scores[0].signals[2]).toMatchObject({
+      signalKey: 'etf_dy_tips_spread',
+      status: 'applied',
+      points: 2,
     })
   })
 })
