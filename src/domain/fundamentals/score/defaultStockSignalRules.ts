@@ -51,4 +51,25 @@ export const DEFAULT_STOCK_SIGNAL_RULES: readonly SignalRuleV1[] = [
     points: -1,
     enabled: true,
   },
+  // Payout, variação ano contra ano, em pontos percentuais (observedValue
+  // já vem dividido por PERCENTAGE_POINT_SCALE_DIVISOR em
+  // buildBrazilianStockScoreV1.ts). Faixas do rascunho, seção 3/3.7:
+  // queda > 10 p.p. penaliza, dentro de ±5 p.p. do próprio regime é
+  // neutro. Deliberadamente sem faixa pra zona ambígua entre -10 e -5 ou
+  // acima de +5 - nenhum limiar fixo de nível, só de variação (TAEE11
+  // 90-100% normal, WEGE3 baixo normal quebrariam régua de nível única).
+  {
+    signalKey: 'stock_payout_yoy_change',
+    minValue: null,
+    maxValue: -10,
+    points: -2,
+    enabled: true,
+  },
+  {
+    signalKey: 'stock_payout_yoy_change',
+    minValue: -5,
+    maxValue: 5,
+    points: 0,
+    enabled: true,
+  },
 ]

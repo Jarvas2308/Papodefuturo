@@ -8,6 +8,7 @@ import {
 import type {
   AssetScoreV1,
   EtfPremiumDiscountPoint,
+  ProventoDeclarationPointV1,
   ShillerCapeHistoryPoint,
   SignalRuleV1,
 } from '../../../domain/fundamentals/score'
@@ -63,6 +64,10 @@ export function buildContributionAssetScoresV1(input: {
   latestPricesByAsset: ReadonlyMap<string, AssetPrice>
   capeHistory: readonly ShillerCapeHistoryPoint[]
   etfValuations: readonly EtfPremiumDiscountPoint[]
+  proventoDeclarationsByTicker: ReadonlyMap<
+    string,
+    readonly ProventoDeclarationPointV1[]
+  >
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1[] {
@@ -123,6 +128,8 @@ export function buildContributionAssetScoresV1(input: {
         buildBrazilianStockScoreV1({
           asset: factsAsset,
           assetSegment: asset.assetSegment ?? null,
+          proventoDeclarations:
+            input.proventoDeclarationsByTicker.get(asset.ticker) ?? null,
           rules: input.rules,
           now: input.now,
         })

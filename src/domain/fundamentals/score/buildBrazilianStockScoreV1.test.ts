@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { FundamentalFactsAsset } from '../types'
+import type { ExactDecimalQuantity, FundamentalFactsAsset } from '../types'
 import { buildBrazilianStockScoreV1 } from './buildBrazilianStockScoreV1'
+import type { ProventoDeclarationPointV1 } from './computeProventoTrailingTwelveMonthValueV1'
 import { DEFAULT_STOCK_SIGNAL_RULES } from './defaultStockSignalRules'
 
 const NOW = '2026-08-06T00:00:00.000Z'
@@ -17,14 +18,17 @@ function stockSnapshot(
     cashAndEquivalents?: Money
     ebit?: Money
     depreciationAndAmortization?: Money
+    issuedShares?: ExactDecimalQuantity | null
+    period?: 'annual' | 'quarterly'
   } = {}
 ): FundamentalFactsAsset['snapshots'][number] {
+  const period = facts.period ?? 'annual'
   return {
     assetId: 'asset-bbas3',
     kind: 'brazilian-stock',
     referenceDate,
-    period: 'annual',
-    source: 'cvm-dfp',
+    period,
+    source: period === 'annual' ? 'cvm-dfp' : 'cvm-itr',
     sourceDocumentId: `cvm-dfp-bbas3-${referenceDate}`,
     facts: {
       totalRevenue: null,
@@ -32,7 +36,7 @@ function stockSnapshot(
       totalAssets: null,
       totalEquity: facts.totalEquity ?? null,
       operatingCashFlow: null,
-      issuedShares: null,
+      issuedShares: facts.issuedShares ?? null,
       financialDebtCurrent: facts.financialDebtCurrent ?? null,
       financialDebtNonCurrent: facts.financialDebtNonCurrent ?? null,
       cashAndEquivalents: facts.cashAndEquivalents ?? null,
@@ -85,6 +89,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -115,6 +120,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -133,6 +139,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'seguradora',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -152,6 +159,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'holding',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -176,6 +184,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -195,6 +204,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -213,6 +223,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -231,6 +242,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -259,6 +271,7 @@ describe('buildBrazilianStockScoreV1 - ROE', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -279,6 +292,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -307,6 +321,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -332,6 +347,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'seguradora',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -357,6 +373,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -376,6 +393,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'banco',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -401,6 +419,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -418,6 +437,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -443,6 +463,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -462,6 +483,7 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
     const score = buildBrazilianStockScoreV1({
       asset,
       assetSegment: 'industrial',
+      proventoDeclarations: null,
       rules: DEFAULT_STOCK_SIGNAL_RULES,
       now: NOW,
     })
@@ -472,6 +494,169 @@ describe('buildBrazilianStockScoreV1 - net debt / EBITDA', () => {
       observedValue: 500_000,
       referenceDate: '2025-01-01',
       staleAfterDays: 180,
+    })
+  })
+})
+
+describe('buildBrazilianStockScoreV1 - payout YoY', () => {
+  const declaration = (
+    protocol: string,
+    grossValuePerShare: ExactDecimalQuantity,
+    paymentDate: string
+  ): ProventoDeclarationPointV1 => ({
+    protocol,
+    version: 1,
+    grossValuePerShare,
+    paymentDate,
+  })
+
+  it('scores a >10pp payout drop as -2 (applied)', () => {
+    const asset = buildAsset([
+      stockSnapshot('2025-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2026-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+    ])
+    const proventoDeclarations: ProventoDeclarationPointV1[] = [
+      // Prior 12m (window ending 2025-06-30): R$1.00/share x 1000 = R$1,000 -> payout 50%
+      declaration('p-prior', { unscaledValue: 100, scale: 2 }, '2025-01-15'),
+      // Current 12m (window ending 2026-06-30): R$0.50/share x 1000 = R$500 -> payout 25%
+      declaration('p-current', { unscaledValue: 50, scale: 2 }, '2026-01-15'),
+    ]
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toEqual({
+      signalKey: 'stock_payout_yoy_change',
+      status: 'applied',
+      observedValue: -25,
+      points: -2,
+    })
+  })
+
+  it('scores a payout increase outside both bands as applied with 0 points', () => {
+    const asset = buildAsset([
+      stockSnapshot('2025-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2026-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+    ])
+    const proventoDeclarations: ProventoDeclarationPointV1[] = [
+      declaration('p-prior', { unscaledValue: 100, scale: 2 }, '2025-01-15'),
+      declaration('p-current', { unscaledValue: 150, scale: 2 }, '2026-01-15'),
+    ]
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toEqual({
+      signalKey: 'stock_payout_yoy_change',
+      status: 'applied',
+      observedValue: 25,
+      points: 0,
+    })
+  })
+
+  it('is unavailable when no provento data was resolved for this ticker', () => {
+    const asset = buildAsset([
+      stockSnapshot('2025-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2026-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+    ])
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: null,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toEqual({
+      signalKey: 'stock_payout_yoy_change',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('is unavailable with only one annual snapshot (no prior year to compare)', () => {
+    const asset = buildAsset([
+      stockSnapshot('2026-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+    ])
+    const proventoDeclarations: ProventoDeclarationPointV1[] = [
+      declaration('p-current', { unscaledValue: 150, scale: 2 }, '2026-01-15'),
+    ]
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations,
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toEqual({
+      signalKey: 'stock_payout_yoy_change',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('ignores quarterly (ITR) snapshots for the year-over-year comparison', () => {
+    const asset = buildAsset([
+      stockSnapshot('2025-06-30', {
+        netIncome: money(200_000),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+      }),
+      stockSnapshot('2026-03-31', {
+        netIncome: money(9_999_999),
+        issuedShares: { unscaledValue: 1000, scale: 0 },
+        period: 'quarterly',
+      }),
+    ])
+
+    const score = buildBrazilianStockScoreV1({
+      asset,
+      assetSegment: 'industrial',
+      proventoDeclarations: [
+        declaration('p-prior', { unscaledValue: 100, scale: 2 }, '2025-01-15'),
+      ],
+      rules: DEFAULT_STOCK_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    // Only 1 real annual snapshot after filtering out the quarterly one.
+    expect(score.signals[2]).toEqual({
+      signalKey: 'stock_payout_yoy_change',
+      status: 'unavailable',
+      reason: 'missing-input',
     })
   })
 })

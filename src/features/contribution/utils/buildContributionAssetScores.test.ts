@@ -140,6 +140,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toEqual([])
@@ -157,6 +158,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toEqual([])
@@ -203,6 +205,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toHaveLength(1)
@@ -274,6 +277,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toHaveLength(1)
@@ -338,6 +342,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toHaveLength(1)
@@ -365,6 +370,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toEqual([])
@@ -395,6 +401,7 @@ describe('buildContributionAssetScoresV1', () => {
         { referenceDate: '2026-08-01', valueScaled: 10_000_000 },
       ],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toHaveLength(1)
@@ -422,6 +429,7 @@ describe('buildContributionAssetScoresV1', () => {
       now: NOW,
       capeHistory: [{ referenceDate: '2026-08-01', valueScaled: 30_000_000 }],
       etfValuations: [],
+      proventoDeclarationsByTicker: new Map(),
     })
 
     expect(scores).toHaveLength(1)

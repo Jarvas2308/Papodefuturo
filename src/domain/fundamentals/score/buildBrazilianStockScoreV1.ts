@@ -1,27 +1,44 @@
 // Motor de score, ação BR - Sprint 16, Fase 5 (DEC-090, dívida/EBITDA
-// nesta entrada).
+// nesta entrada; payout, DEC-097, nesta entrada).
 //
-// Cobre 2 dos 4 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
-// (secao 3): ROE e dívida líquida/EBITDA. Payout (precisa valor de
-// provento, mesmo bloqueio de FII - DEC-082) e P/L vs serie historica
-// (precisa serie de precos historicos por periodo, nao so o mais recente)
-// ficam para as proximas fatias. ROE nao se aplica a holding pura
-// (ITSA4); dívida/EBITDA nao se aplica a banco (BBAS3, índice de Basileia
-// e' a metrica de alavancagem correta la, nao esta) - cada sinal tem seu
-// proprio regime, regime errado sempre gera 'wrong-regime', nunca um
-// numero.
+// Cobre 3 dos 4 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
+// (secao 3): ROE, dívida líquida/EBITDA e payout (variação ano contra
+// ano). P/L vs serie historica (precisa serie de precos historicos por
+// periodo, nao so o mais recente) fica para a proxima fatia. ROE nao se
+// aplica a holding pura (ITSA4); dívida/EBITDA nao se aplica a banco
+// (BBAS3, índice de Basileia e' a metrica de alavancagem correta la, nao
+// esta) - cada sinal tem seu proprio regime, regime errado sempre gera
+// 'wrong-regime', nunca um numero. Payout se aplica a "Todos" por
+// definicao do rascunho - sem restricao de regime.
 import { computeStockRoeScaledV1 } from './computeStockRoeScaledV1'
 import { computeStockNetDebtToEbitdaScaledV1 } from './computeStockNetDebtToEbitdaScaledV1'
+import { computeStockPayoutRatioScaledV1 } from './computeStockPayoutRatioScaledV1'
+import {
+  computeProventoTrailingTwelveMonthValueV1,
+  type ProventoDeclarationPointV1,
+} from './computeProventoTrailingTwelveMonthValueV1'
 import {
   CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
   isReferenceDateStale,
 } from './staleness'
 import type { AssetSegment } from '../../models/asset'
-import type { FundamentalFactsAsset, SignedMonetaryFact } from '../types'
+import type {
+  ExactDecimalQuantity,
+  FundamentalFactsAsset,
+  SignedMonetaryFact,
+} from '../types'
 import type { AssetScoreSignal, AssetScoreV1, SignalRuleV1 } from './types'
 import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 
-export type BrazilianStockSignalKey = 'stock_roe' | 'stock_net_debt_to_ebitda'
+export type BrazilianStockSignalKey =
+  'stock_roe' | 'stock_net_debt_to_ebitda' | 'stock_payout_yoy_change'
+
+// 1 ponto percentual = 0.01 em razão, ou 10_000 em unidades escaladas por
+// FUNDAMENTAL_RATIO_SCALE (1e6) - divide o delta escalado por esse valor
+// pra expressar o sinal (e as regras em signal_rules) diretamente em
+// pontos percentuais, mais legível pra quem edita os limiares do que a
+// unidade escalada crua.
+const PERCENTAGE_POINT_SCALE_DIVISOR = 10_000
 
 function extractLatestStockFacts(asset: FundamentalFactsAsset): {
   netIncome: SignedMonetaryFact | null
@@ -71,6 +88,34 @@ function extractLatestStockFacts(asset: FundamentalFactsAsset): {
   }
 }
 
+type AnnualStockFacts = {
+  netIncome: SignedMonetaryFact | null
+  issuedShares: ExactDecimalQuantity | null
+  referenceDate: string
+}
+
+// As 2 demonstrações anuais mais recentes (DFP), mais novas primeiro -
+// insumo pra variação ano contra ano do payout. Trimestrais (ITR) fora
+// de proposito: o rascunho compara ano contra ano, nao trimestre contra
+// trimestre, e ITR nao tem sempre o mesmo `issuedShares` da classe
+// negociada preenchido.
+function extractAnnualStockFacts(
+  asset: FundamentalFactsAsset
+): AnnualStockFacts[] {
+  const facts: AnnualStockFacts[] = []
+  for (const snapshot of asset.snapshots) {
+    if (snapshot.kind !== 'brazilian-stock' || snapshot.period !== 'annual') {
+      continue
+    }
+    facts.push({
+      netIncome: snapshot.facts.netIncome,
+      issuedShares: snapshot.facts.issuedShares,
+      referenceDate: snapshot.referenceDate,
+    })
+  }
+  return facts.sort((a, b) => (a.referenceDate < b.referenceDate ? 1 : -1))
+}
+
 function findMatchingRule(
   rules: readonly SignalRuleV1[],
   signalKey: string,
@@ -85,6 +130,90 @@ function findMatchingRule(
         (rule.maxValue === null || value < rule.maxValue)
     ) ?? null
   )
+}
+
+// Payout, variação ano contra ano (docs/reference/ACOES_BR_SETORES_E_METRICAS.md,
+// seção 3.6/3.7): compara o payout das 2 demonstrações anuais mais
+// recentes - deliberadamente sem limiar fixo de nível (TAEE11 90-100%
+// normal, WEGE3 baixo normal, régua única quebraria os dois). Aplica a
+// "Todos" - sem restrição de regime, diferente de ROE/dívida-EBITDA.
+function scorePayoutYoyChangeSignal(
+  annualFacts: readonly AnnualStockFacts[],
+  proventoDeclarations: readonly ProventoDeclarationPointV1[] | null,
+  rules: readonly SignalRuleV1[],
+  now: string
+): AssetScoreSignal {
+  const signalKey = 'stock_payout_yoy_change'
+
+  if (proventoDeclarations === null || annualFacts.length < 2) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const [current, prior] = annualFacts as [AnnualStockFacts, AnnualStockFacts]
+  if (
+    current.netIncome === null ||
+    current.issuedShares === null ||
+    prior.netIncome === null ||
+    prior.issuedShares === null
+  ) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const currentDividend = computeProventoTrailingTwelveMonthValueV1({
+    declarations: proventoDeclarations,
+    windowEndDate: current.referenceDate,
+  })
+  const priorDividend = computeProventoTrailingTwelveMonthValueV1({
+    declarations: proventoDeclarations,
+    windowEndDate: prior.referenceDate,
+  })
+  if (currentDividend === null || priorDividend === null) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  let currentPayoutScaled: number
+  let priorPayoutScaled: number
+  try {
+    currentPayoutScaled = computeStockPayoutRatioScaledV1({
+      trailingTwelveMonthDividendPerShare: currentDividend,
+      issuedShares: current.issuedShares,
+      netIncome: current.netIncome,
+    })
+    priorPayoutScaled = computeStockPayoutRatioScaledV1({
+      trailingTwelveMonthDividendPerShare: priorDividend,
+      issuedShares: prior.issuedShares,
+      netIncome: prior.netIncome,
+    })
+  } catch {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const deltaInPercentagePoints =
+    (currentPayoutScaled - priorPayoutScaled) / PERCENTAGE_POINT_SCALE_DIVISOR
+
+  if (
+    isReferenceDateStale(
+      current.referenceDate,
+      now,
+      CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS
+    )
+  ) {
+    return {
+      signalKey,
+      status: 'stale',
+      observedValue: deltaInPercentagePoints,
+      referenceDate: current.referenceDate,
+      staleAfterDays: CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
+    }
+  }
+
+  const rule = findMatchingRule(rules, signalKey, deltaInPercentagePoints)
+  return {
+    signalKey,
+    status: 'applied',
+    observedValue: deltaInPercentagePoints,
+    points: rule?.points ?? 0,
+  }
 }
 
 function scoreRoeSignal(
@@ -221,10 +350,12 @@ function scoreNetDebtToEbitdaSignal(
 export function buildBrazilianStockScoreV1(input: {
   asset: FundamentalFactsAsset
   assetSegment: AssetSegment | null
+  proventoDeclarations: readonly ProventoDeclarationPointV1[] | null
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1 {
   const facts = extractLatestStockFacts(input.asset)
+  const annualFacts = extractAnnualStockFacts(input.asset)
 
   if (input.assetSegment === 'holding') {
     const signals: AssetScoreSignal[] = [
@@ -236,6 +367,12 @@ export function buildBrazilianStockScoreV1(input: {
       scoreNetDebtToEbitdaSignal(
         input.assetSegment,
         facts,
+        input.rules,
+        input.now
+      ),
+      scorePayoutYoyChangeSignal(
+        annualFacts,
+        input.proventoDeclarations,
         input.rules,
         input.now
       ),
@@ -264,6 +401,12 @@ export function buildBrazilianStockScoreV1(input: {
     scoreNetDebtToEbitdaSignal(
       input.assetSegment,
       facts,
+      input.rules,
+      input.now
+    ),
+    scorePayoutYoyChangeSignal(
+      annualFacts,
+      input.proventoDeclarations,
       input.rules,
       input.now
     ),

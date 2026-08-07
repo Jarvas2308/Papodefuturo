@@ -7,6 +7,11 @@ export {
 export { computeFiiPvpScaledV1 } from './computeFiiPvpScaledV1'
 export { computeStockRoeScaledV1 } from './computeStockRoeScaledV1'
 export {
+  computeProventoTrailingTwelveMonthValueV1,
+  type ProventoDeclarationPointV1,
+} from './computeProventoTrailingTwelveMonthValueV1'
+export type { BrazilianStockSignalKey } from './buildBrazilianStockScoreV1'
+export {
   computeEtfCapeDeviationV1,
   type ShillerCapeHistoryPoint,
 } from './computeEtfCapeDeviationV1'
