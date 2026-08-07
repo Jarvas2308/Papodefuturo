@@ -226,54 +226,6 @@ export type Database = {
         }
         Relationships: []
       }
-      etf_distribution_values: {
-        Row: {
-          accession_number: string
-          extracted_at: string
-          fiscal_year_end_date: string
-          fund_name: string
-          id: number
-          net_asset_value_end_of_period_scale: number
-          net_asset_value_end_of_period_unscaled: number
-          registrant_cik: string
-          share_class_label: string
-          source_document_url: string
-          ticker: string
-          total_distributions_per_share_scale: number
-          total_distributions_per_share_unscaled: number
-        }
-        Insert: {
-          accession_number: string
-          extracted_at?: string
-          fiscal_year_end_date: string
-          fund_name: string
-          id?: number
-          net_asset_value_end_of_period_scale: number
-          net_asset_value_end_of_period_unscaled: number
-          registrant_cik: string
-          share_class_label: string
-          source_document_url: string
-          ticker: string
-          total_distributions_per_share_scale: number
-          total_distributions_per_share_unscaled: number
-        }
-        Update: {
-          accession_number?: string
-          extracted_at?: string
-          fiscal_year_end_date?: string
-          fund_name?: string
-          id?: number
-          net_asset_value_end_of_period_scale?: number
-          net_asset_value_end_of_period_unscaled?: number
-          registrant_cik?: string
-          share_class_label?: string
-          source_document_url?: string
-          ticker?: string
-          total_distributions_per_share_scale?: number
-          total_distributions_per_share_unscaled?: number
-        }
-        Relationships: []
-      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -1232,10 +1184,6 @@ export type Database = {
       replace_allocation_targets: {
         Args: { targets: Json }
         Returns: undefined
-      }
-      upsert_etf_distribution_values_v1: {
-        Args: { records: Json }
-        Returns: Json
       }
       upsert_fii_monthly_dividend_yield_v1: {
         Args: { records: Json }
