@@ -55,7 +55,9 @@ describe('extractProventoDeclarationIdentityV1', () => {
   })
 
   it('falha fechado quando a linha de cabeçalho não existe', () => {
-    expect(extractProventoDeclarationIdentityV1('documento sem a tabela')).toBeNull()
+    expect(
+      extractProventoDeclarationIdentityV1('documento sem a tabela')
+    ).toBeNull()
   })
 
   it('falha fechado quando a linha de valor não bate no formato esperado', () => {

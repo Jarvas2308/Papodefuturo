@@ -3814,7 +3814,7 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
   produção
 - Contexto: usuário rodou o comando oficial recomendado em `DEC-096`
   (`scripts/run-official-events-backfill.ts --provider=cvm-ipe
-  --year=2025 --confirm`). Primeira tentativa devolveu
+--year=2025 --confirm`). Primeira tentativa devolveu
   `"claimedJobs": 0"` — o checkpoint (`official_event_backfill_runs`/
   `..._jobs`) já tinha o job `cvm-ipe:2025` marcado `succeeded` desde
   30/07/2026, antes da categoria `dividend-or-distribution` existir no
@@ -3857,7 +3857,7 @@ scripts/run-official-events-backfill.ts --provider=cvm-ipe
 - Verificação: 215 testes do módulo `official-events` passando,
   `tsc --noEmit` limpo. Rodado de novo o backfill 2025 (checkpoint
   deletado outra vez, mesmo motivo): `succeededJobs: 1,
-  persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
+persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
   código corrigido (checkpoint de uma execução anterior a 28/07, antes
   da categoria existir, também deletado):
   `persistedAttemptCount: 331`. Confirmado em produção via SQL:
