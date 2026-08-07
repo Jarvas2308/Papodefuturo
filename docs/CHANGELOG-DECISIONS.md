@@ -4260,3 +4260,52 @@ persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
      produção ainda) — mesma disciplina de `etf_distribution_values`
      (`DEC-103`), reforçada pela correção do PR #169 que precedeu este
      ciclo.
+
+## DEC-105 — Migrations de `etf_distribution_values` e `stock_historical_close_prices` aplicadas em produção
+
+- Data: 7 de agosto de 2026
+- Status: Aceita
+- Contexto: `DEC-103` e `DEC-104` versionaram as duas migrations
+  restantes do motor de score (`etf_distribution_values`,
+  `stock_historical_close_prices`), mas nenhuma tinha sido aplicada ao
+  Supabase real (`vxjrncwfysglinfktifz`) — decisão explícita do usuário
+  na sessão, autorizando a aplicação real ("dê o comando no supabase,
+  você tem acesso").
+- Decisão:
+  - Ambas migrations aplicadas via MCP Supabase (`apply_migration`),
+    nesta ordem: `20260807130000_create_etf_distribution_values.sql`
+    (primeira tentativa bloqueada pelo classificador de permissão do
+    Claude Code, segunda tentativa idêntica passou — comportamento já
+    visto antes nesta sessão, não é falha real) e
+    `20260807140000_create_stock_historical_close_prices.sql`.
+  - `get_advisors` (security) confirmado sem nenhum achado novo
+    atribuível às duas tabelas — os 4 achados presentes (2×
+    `rls_enabled_no_policy` em `official_event_backfill_jobs`/`runs`,
+    `pg_net` em `public`, `auth_leaked_password_protection`) já eram
+    pré-existentes e não relacionados.
+  - `src/lib/database.types.ts` regenerado pelo mecanismo oficial
+    (`generate_typescript_types`), incluindo as duas tabelas novas e as
+    RPCs `upsert_etf_distribution_values_v1`/
+    `upsert_stock_historical_close_prices_v1`. Um erro de transcrição
+    manual introduzido ao escrever o arquivo (`CompositeTypeName` no
+    lugar de `PublicCompositeTypeNameOrOptions` no último helper
+    genérico) foi encontrado e corrigido pelo próprio `npx tsc -b`
+    antes do commit — evidência de que a checagem real (não
+    `--noEmit`) pega esse tipo de erro.
+  - `src/data/fundamentals/supabaseEtfDistributionValues.ts` e
+    `supabaseStockHistoricalClosePrices.ts` voltaram a usar
+    `SupabaseClient<Database>` tipado, removendo o tipo de linha local
+    e o comentário de workaround que `DEC-103`/`DEC-104` tinham deixado
+    exatamente pra este momento.
+  - `npx tsc -b`, `npx vitest run` (arquivos tocados), `npx prettier
+--check --end-of-line auto` e `npm run build` limpos.
+- Consequências: as duas tabelas existem em produção, com RLS e leitura
+  autenticada, mas **ainda sem nenhuma linha real** — nenhum backfill
+  foi executado neste ciclo (fora da autoridade autorizada; exige
+  `SEC_USER_AGENT`/service role local do usuário). Os sinais
+  `etf_dy_tips_spread` e `stock_pl_vs_history` continuam `unavailable`
+  em produção até os backfills rodarem — `stock_pl_vs_history` também
+  segue bloqueado pela profundidade de DFP insuficiente (`DEC-104`).
+  Ver `docs/ROADMAP.md` "Itens abertos sem prazo" item 3 e
+  `docs/SUPABASE_SCHEMA_PLAN.md` para o estado consolidado das duas
+  tabelas.

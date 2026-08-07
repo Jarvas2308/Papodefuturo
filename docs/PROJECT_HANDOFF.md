@@ -186,15 +186,16 @@ premissa antiga estava errada nos dois sentidos — `official_asset_events`
 não tem nenhum evento de `VOO`/`VNQ`/`VEA` em produção (as 1.511 linhas
 são todas de CVM), e o número vem direto da tabela "Financial Highlights"
 do N-CSR anual da SEC. Migration
-`20260807130000_create_etf_distribution_values.sql` **versionada e não
-aplicada em produção**. `src/lib/database.types.ts` chegou a receber a
-entrada correspondente por engano nesta sessão — corrigido pela PR #169
+`20260807130000_create_etf_distribution_values.sql` versionada.
+`src/lib/database.types.ts` chegou a receber a entrada correspondente
+por engano nesta sessão — corrigido pela PR #169
 (`fix/etf-distribution-values-database-types-fabrication`) antes do
-merge: o arquivo gerado permanece **intocado** até a migration ser
-aplicada de verdade, e o repository (`supabaseEtfDistributionValues.ts`)
-usa tipo de linha local + `SupabaseClient` genérico em vez do `Database`
-tipado, mesma disciplina de qualquer tabela versionada-não-aplicada
-deste projeto (AGENTS.md seção 11). Nenhuma linha escrita: o backfill
+merge, revertendo o arquivo gerado até a aplicação real. **Migration
+aplicada em produção em 07/08/2026** (mesmo dia, sessão seguinte),
+`get_advisors` sem achado novo, `database.types.ts` regenerado pelo
+mecanismo oficial (`generate_typescript_types`) e o repository
+(`supabaseEtfDistributionValues.ts`) já usa `SupabaseClient<Database>`
+tipado de novo. Nenhuma linha escrita ainda: o backfill
 (`scripts/run-etf-distribution-values-backfill.ts`) roda em preview por
 padrão e exige `--confirm` mais `SEC_USER_AGENT` e a service_role key.
 Até isso acontecer, o sinal fica `unavailable`.
@@ -206,11 +207,12 @@ histórica de ação — ver `docs/ROADMAP.md` "Itens abertos sem prazo" item
 duplicado aqui. Resumo: código completo e testado (fórmula, quartil
 "nearest-rank", wiring até o dossiê), migration
 `20260807140000_create_stock_historical_close_prices.sql`
-**versionada e não aplicada em produção** (mesma disciplina de
-`database.types.ts` intocado da tabela acima), nenhum backfill real
-rodado, e mesmo depois de aplicada o sinal continuaria `unavailable`
-porque só há 2 exercícios de DFP ingeridos por empresa hoje contra o
-mínimo de 5 exigido pelo quartil (SQL somente leitura, 07/08/2026).
+**aplicada em produção em 07/08/2026** (mesma sessão da aplicação
+acima, `get_advisors` sem achado novo, `database.types.ts` regenerado),
+nenhum backfill real rodado ainda, e mesmo depois de aplicado o sinal
+continuaria `unavailable` porque só há 2 exercícios de DFP ingeridos
+por empresa hoje contra o mínimo de 5 exigido pelo quartil (SQL
+somente leitura, 07/08/2026).
 
 ## 1. Resumo executivo
 
