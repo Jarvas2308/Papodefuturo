@@ -4309,3 +4309,52 @@ persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
   Ver `docs/ROADMAP.md` "Itens abertos sem prazo" item 3 e
   `docs/SUPABASE_SCHEMA_PLAN.md` para o estado consolidado das duas
   tabelas.
+
+## DEC-106 — Bug real: arquivo anual COTAHIST estoura o limite de string do V8
+
+- Data: 7 de agosto de 2026
+- Status: Aceita
+- Contexto: usuário rodou `scripts/run-stock-close-price-history-backfill.ts`
+  contra os arquivos reais `COTAHIST_A2024.ZIP`/`COTAHIST_A2025.ZIP` (o
+  próximo passo natural depois de `DEC-105`) e ambos falharam com
+  `Error: Cannot create a string longer than 0x1fffffe8 characters`
+  (`ERR_STRING_TOO_LONG`) dentro de `TextDecoder.decode`. Causa real: o
+  arquivo anual COTAHIST cobre TODOS os instrumentos negociados na B3
+  no ano — ações, opções, termos, índices —, não só as 5 ações do
+  universo fechado; descomprimido, ultrapassa o limite de string do V8
+  (~536 milhões de caracteres). `DEC-096` só tinha validado a
+  viabilidade da fonte com um script de exploração pontual, nunca
+  contra o volume real do arquivo inteiro processado de ponta a ponta.
+- Decisão:
+  - Nova função `extractCotahistLinesForTickers` em
+    `b3CotahistAnnualCloseSeriesV1.ts`: percorre o `Uint8Array`
+    descomprimido byte a byte procurando quebras de linha, decodifica
+    só os 12 bytes do campo CODNEG (ticker) de cada linha de tamanho
+    fixo correto pra checar contra a lista solicitada, e só decodifica
+    a linha inteira quando o ticker bate — o arquivo inteiro nunca vira
+    uma string única. `extractCotahistText` no script passou a chamar
+    essa função em vez de `TextDecoder.decode` direto sobre o buffer
+    inteiro.
+  - `parseCotahistAnnualCloseSeriesV1` (o parser puro já existente,
+    testado) não mudou — continua recebendo texto já filtrado e
+    reaplicando a mesma validação de tipo de registro/mercado/BDI de
+    sempre, sem duplicar lógica.
+  - 6 testes novos (`extractCotahistLinesForTickers.test.ts` dentro do
+    arquivo de teste existente): filtragem por ticker, CRLF, arquivo
+    sem quebra de linha final, linha de largura errada, nenhum match,
+    e um teste específico simulando arquivo dominado por instrumentos
+    fora do universo (o cenário real do bug).
+  - **Correção verificada contra a fonte real, não só fixture**: rodado
+    de novo em modo preview contra `COTAHIST_A2024.ZIP` e
+    `COTAHIST_A2025.ZIP` reais (rede real, sem `--confirm`). As 5 ações
+    do universo extraídas com sucesso nos dois anos; BBAS3 2025-12-30 =
+    R$ 21,92, batendo exatamente com o valor já confirmado em `DEC-096`.
+  - `npx tsc -b`, `npm test` (arquivo tocado), `npm run lint` e
+    `npm run build` limpos.
+- Consequências: `scripts/run-stock-close-price-history-backfill.ts`
+  agora funciona de verdade contra os arquivos COTAHIST reais — o
+  usuário pode rodar o backfill real (`--confirm`) sem essa falha. Não
+  resolve a segunda limitação já documentada em `DEC-104`/`DEC-105`
+  (só 2 dos 5 exercícios mínimos de DFP existem hoje); o sinal
+  `stock_pl_vs_history` continua `unavailable` até essa profundidade
+  ser ingerida, independentemente deste fix.
