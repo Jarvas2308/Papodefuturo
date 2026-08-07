@@ -1322,22 +1322,58 @@ numeração de sprint.
      (ON+PN) sob o mesmo `event_id` — resolver ticker→ISIN vira
      problema de leitura, não de extração.
 
-     **Falta pro wiring completo:**
-     - Rodar `npm run backfill:provento-declaration-values --confirm`
-       contra produção (precisa `SUPABASE_SERVICE_ROLE_KEY` do usuário,
-       agente não manuseia)
-     - Resolver ticker→ISIN com fonte real (não inventada) pros 5
-       tickers — bloqueio novo descoberto nesta sessão, não estava
-       mapeado antes
-     - Agregação trailing-12-meses por ISIN, usando "versão mais alta
-       por Protocolo Provento vence" como regra de dedup na leitura
-       (usuário já confirmou: qualquer trimestre não parseável marca
-       `unavailable` o ativo inteiro, nunca soma parcial)
-     - Conectar cada um dos 3 sinais
+     **Backfill real rodado em produção em 06/08/2026**: 182 linhas em
+     `provento_declaration_values` (65 eventos de 2025-2026 + 105
+     eventos de 2024, esse ano só existia depois de rodar
+     `run-official-events-backfill.ts --provider=cvm-ipe --year=2024`
+     — arquivo real confirmado, nunca puxado antes). No caminho, 2 bugs
+     reais de produção achados e corrigidos: parser CSV do CVM IPE
+     abortava o arquivo inteiro numa aspas malformada (confirmado com
+     `ipe_cia_aberta_2024.zip`, uma citação tipo `"1"` não escapada
+     `""1""`), e `upsert_fundamental_snapshots_v1` travada em 24 chaves
+     desde 28/07 enquanto 6 migrations depois adicionavam 13 colunas —
+     todo campo de FII/dívida-EBITDA desde então só entrava via SQL
+     direto, nunca pela ingestão real. Achada também uma anomalia de
+     dado real: PDF da CVM usa `31/12/9999` como data-sentinela quando a
+     empresa não preenche a data de pagamento (PSSA3, protocolo 1225424) — parser rejeita a linha agora.
 
-   - Spread de DY sobre TIPS (ETF) também já tem a taxa TIPS resolvida
-     via FRED em produção (`DEC-093`) — só falta a metade do provento,
-     mesma peça acima.
+     **Ticker→ISIN resolvido em 06/08/2026** (`brazilianStockTickerIsinV1.ts`):
+     cross-validado contra o próprio dado real extraído dos PDFs +
+     fontes externas (statusinvest, divvydiary, meusdividendos, B3).
+
+     **Sinal de payout (ação) fechado em 06/08/2026 (PR #164/#166)**:
+     `computeProventoTrailingTwelveMonthValueV1` (agregação trailing-12-
+     meses, dedup por "versão mais alta por Protocolo Provento vence",
+     `unavailable` se nada cai na janela) + `computeStockPayoutRatioScaledV1`
+     (BigInt exato) ligados em `buildBrazilianStockScoreV1.ts` como
+     `stock_payout_yoy_change`, comparando as 2 demonstrações anuais
+     mais recentes. Sem limiar fixo de nível, só variação (rascunho,
+     seção 3.7). Precisou de FY2024 de lucro líquido além do FY2025 já
+     existente — rodado `run-fundamentals-ingestion.ts --provider=cvm-stocks
+--source=DFP --year=2024` (nomenclatura do arquivo CVM é ano do
+     exercício, não ano de filing — `--year=2025` já ingerido antes era
+     o mesmo FY2025 de novo). Testado (23 casos), verificado em browser
+     (fluxo de aporte real, sem erro de console).
+
+     **Achado de processo nesta sessão**: `npx tsc --noEmit` sem
+     argumento usa o `tsconfig.json` raiz (`files: []`, só referencia
+     projetos compostos) — não checa nada, sempre "limpo" mesmo com erro
+     real. O comando certo é `npx tsc -b` (o que `npm run build` roda de
+     fato). Toda alegação de "tsc limpo" nesta sessão antes desse
+     achado só rodou um no-op; re-verificado com o comando real, sem
+     regressão de fato — mas achou 1 call site real faltando o campo
+     novo, only surfaced pelo comando certo.
+
+   - **Ainda bloqueados (fonte de dado, não wiring)**: spread de DY
+     sobre NTN-B (FII) e spread de DY sobre TIPS (ETF, `VNQ`) —
+     `official_asset_events` nunca teve evento `dividend-or-distribution`
+     ingerido pra FII nem pra `VNQ` (confirmado via SQL em produção,
+     06/08/2026): FII precisa de documento CVM diferente do IPE
+     "Relatório Proventos" (provavelmente Informe Mensal ou fato
+     relevante próprio, não confirmado), `VNQ` vem de SEC EDGAR (outro
+     regulador, outro formato) — nenhum dos dois é so rodar o mesmo
+     backfill de novo, é pipeline de ingestão novo. Taxa TIPS (ETF) já
+     resolvida via FRED (`DEC-093`), só falta essa metade.
    - P/L vs série histórica (ação) — `composicao_capital` real dos 5
      tickers populado em produção (`DEC-095`), resolvendo uma das três
      peças que faltavam. Preço de fechamento histórico por data de
