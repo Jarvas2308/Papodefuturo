@@ -13,6 +13,7 @@
     "audit:dead-code": "knip",
     "backfill:official-events": "npx tsx scripts/run-official-events-backfill.ts",
     "backfill:provento-declaration-values": "npx tsx scripts/run-provento-declaration-values-backfill.ts",
+    "backfill:fii-dividend-yield": "npx tsx scripts/run-fii-monthly-dividend-yield-backfill.ts",
     "ingest:fundamentals": "npx tsx scripts/run-fundamentals-ingestion.ts",
     "preview": "vite preview",
     "format": "prettier --write .",

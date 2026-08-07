@@ -1,17 +1,25 @@
-// Motor de score, fatia 1 (FII tijolo) - Sprint 16, Fase 5 (DEC-085/DEC-086/DEC-089).
+// Motor de score, fatia 1 (FII tijolo) - Sprint 16, Fase 5 (DEC-085/DEC-086/DEC-089;
+// spread DY-NTNB, DEC-097, nesta entrada).
 //
-// Cobre 4 dos 6 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
+// Cobre 5 dos 6 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
 // (secao 1): vacancia financeira, concentracao do maior inquilino, WALE
 // (usado como substituto documentado de "receita vencendo em 24 meses" -
-// ver defaultFiiSignalRules.ts) e P/VP (preco de mercado / VP por cota
-// derivado, DEC-086). Spread de DY sobre NTN-B (precisa valor de provento,
-// ainda nao extraido - DEC-082) fica para a proxima fatia. FII papel e FOF
-// nao existem no universo fechado hoje - regime errado sempre gera
-// 'wrong-regime', nunca um numero. Dado com referenceDate mais velha que o
-// limiar de frescor da fonte vira 'stale' (DEC-089), nunca 'applied' com
-// numero desatualizado silenciosamente.
+// ver defaultFiiSignalRules.ts), P/VP (preco de mercado / VP por cota
+// derivado, DEC-086) e spread de DY sobre NTN-B longa (DY trailing-12-meses
+// do Percentual_Dividend_Yield_Mes do Informe Mensal complemento da CVM,
+// nunca extraido ate agora - menos a taxa NTN-B ja em producao via Tesouro
+// Transparente, DEC-075). FII papel e FOF nao existem no universo fechado
+// hoje - regime errado sempre gera 'wrong-regime', nunca um numero. Dado
+// com referenceDate mais velha que o limiar de frescor da fonte vira
+// 'stale' (DEC-089), nunca 'applied' com numero desatualizado
+// silenciosamente.
 import type { FiiAssetType } from '../../models/asset'
 import { computeFiiPvpScaledV1 } from './computeFiiPvpScaledV1'
+import { computeFiiDyNtnbSpreadV1 } from './computeFiiDyNtnbSpreadV1'
+import {
+  computeFiiTrailingTwelveMonthDividendYieldV1,
+  type FiiMonthlyDividendYieldPointV1,
+} from './computeFiiTrailingTwelveMonthDividendYieldV1'
 import {
   CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
   isReferenceDateStale,
@@ -25,7 +33,11 @@ import type { AssetScoreSignal, AssetScoreV1, SignalRuleV1 } from './types'
 import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 
 export type FiiTijoloSignalKey =
-  'fii_vacancy' | 'fii_tenant_concentration' | 'fii_wale_months' | 'fii_pvp'
+  | 'fii_vacancy'
+  | 'fii_tenant_concentration'
+  | 'fii_wale_months'
+  | 'fii_pvp'
+  | 'fii_dy_ntnb_spread'
 
 type DatedValue = { value: number; referenceDate: string } | null
 
@@ -202,11 +214,64 @@ function scorePvpSignal(
   }
 }
 
+function scoreFiiDyNtnbSpreadSignal(
+  monthlyDividendYields: readonly FiiMonthlyDividendYieldPointV1[] | null,
+  ntnbRate: { rateScaled: number; rateScale: number; pricedAt: string } | null,
+  rules: readonly SignalRuleV1[],
+  now: string
+): AssetScoreSignal {
+  const signalKey = 'fii_dy_ntnb_spread'
+
+  if (monthlyDividendYields === null || ntnbRate === null) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const trailingDividendYield = computeFiiTrailingTwelveMonthDividendYieldV1({
+    monthlyPoints: monthlyDividendYields,
+    windowEndDate: now.slice(0, 10),
+  })
+  if (trailingDividendYield === null) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const spread = computeFiiDyNtnbSpreadV1({
+    trailingTwelveMonthDividendYield: trailingDividendYield,
+    ntnbRateScaled: ntnbRate.rateScaled,
+    ntnbRateScale: ntnbRate.rateScale,
+  })
+
+  if (
+    isReferenceDateStale(
+      ntnbRate.pricedAt,
+      now,
+      CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS
+    )
+  ) {
+    return {
+      signalKey,
+      status: 'stale',
+      observedValue: spread,
+      referenceDate: ntnbRate.pricedAt,
+      staleAfterDays: CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
+    }
+  }
+
+  const rule = findMatchingRule(rules, signalKey, spread)
+  return {
+    signalKey,
+    status: 'applied',
+    observedValue: spread,
+    points: rule?.points ?? 0,
+  }
+}
+
 export function buildFiiTijoloScoreV1(input: {
   asset: FundamentalFactsAsset
   derivedAsset?: FundamentalDerivedFactsAsset
   latestMarketPriceInMinorUnits?: number | null
   assetType: FiiAssetType | null
+  monthlyDividendYields?: readonly FiiMonthlyDividendYieldPointV1[] | null
+  ntnbRate?: { rateScaled: number; rateScale: number; pricedAt: string } | null
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1 {
@@ -215,6 +280,7 @@ export function buildFiiTijoloScoreV1(input: {
     'fii_tenant_concentration',
     'fii_wale_months',
     'fii_pvp',
+    'fii_dy_ntnb_spread',
   ]
 
   if (input.assetType !== 'tijolo') {
@@ -255,6 +321,12 @@ export function buildFiiTijoloScoreV1(input: {
     scorePvpSignal(
       navPerShare,
       input.latestMarketPriceInMinorUnits ?? null,
+      input.rules,
+      input.now
+    ),
+    scoreFiiDyNtnbSpreadSignal(
+      input.monthlyDividendYields ?? null,
+      input.ntnbRate ?? null,
       input.rules,
       input.now
     ),

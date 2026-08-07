@@ -99,4 +99,29 @@ export const DEFAULT_FII_TIJOLO_SIGNAL_RULES: readonly SignalRuleV1[] = [
     points: 1,
     enabled: true,
   },
+
+  // Spread de DY sobre NTN-B longa, em pontos percentuais (observedValue
+  // já vem em pp direto de computeFiiDyNtnbSpreadV1, não escalado por
+  // FUNDAMENTAL_RATIO_SCALE - diferente dos outros sinais desta lista).
+  {
+    signalKey: 'fii_dy_ntnb_spread',
+    minValue: null,
+    maxValue: 0,
+    points: -2,
+    enabled: true,
+  },
+  {
+    signalKey: 'fii_dy_ntnb_spread',
+    minValue: 0,
+    maxValue: 1.5,
+    points: 0,
+    enabled: true,
+  },
+  {
+    signalKey: 'fii_dy_ntnb_spread',
+    minValue: 1.5,
+    maxValue: null,
+    points: 2,
+    enabled: true,
+  },
 ]

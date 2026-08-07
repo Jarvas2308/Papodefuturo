@@ -262,6 +262,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fii_monthly_dividend_yield: {
+        Row: {
+          cnpj: string
+          dividend_yield_scale: number
+          dividend_yield_unscaled: number
+          extracted_at: string
+          id: number
+          reference_date: string
+          source_archive: string
+          ticker: string
+          version: number
+        }
+        Insert: {
+          cnpj: string
+          dividend_yield_scale: number
+          dividend_yield_unscaled: number
+          extracted_at?: string
+          id?: number
+          reference_date: string
+          source_archive: string
+          ticker: string
+          version: number
+        }
+        Update: {
+          cnpj?: string
+          dividend_yield_scale?: number
+          dividend_yield_unscaled?: number
+          extracted_at?: string
+          id?: number
+          reference_date?: string
+          source_archive?: string
+          ticker?: string
+          version?: number
+        }
+        Relationships: []
+      }
       fundamental_snapshots: {
         Row: {
           cash_and_equivalents_minor: number | null
@@ -1148,6 +1184,10 @@ export type Database = {
       replace_allocation_targets: {
         Args: { targets: Json }
         Returns: undefined
+      }
+      upsert_fii_monthly_dividend_yield_v1: {
+        Args: { records: Json }
+        Returns: Json
       }
       upsert_fundamental_snapshots_v1: {
         Args: { records: Json }

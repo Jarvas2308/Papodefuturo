@@ -8,6 +8,7 @@ import {
 import type {
   AssetScoreV1,
   EtfPremiumDiscountPoint,
+  FiiMonthlyDividendYieldPointV1,
   ProventoDeclarationPointV1,
   ShillerCapeHistoryPoint,
   SignalRuleV1,
@@ -68,6 +69,11 @@ export function buildContributionAssetScoresV1(input: {
     string,
     readonly ProventoDeclarationPointV1[]
   >
+  monthlyDividendYieldsByTicker?: ReadonlyMap<
+    string,
+    readonly FiiMonthlyDividendYieldPointV1[]
+  >
+  ntnbRate?: { rateScaled: number; rateScale: number; pricedAt: string } | null
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1[] {
@@ -116,6 +122,9 @@ export function buildContributionAssetScoresV1(input: {
           derivedAsset,
           latestMarketPriceInMinorUnits,
           assetType: asset.assetType,
+          monthlyDividendYields:
+            input.monthlyDividendYieldsByTicker?.get(asset.ticker) ?? null,
+          ntnbRate: input.ntnbRate ?? null,
           rules: input.rules,
           now: input.now,
         })
