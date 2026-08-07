@@ -38,9 +38,7 @@ export function extractProventoDeclarationIdentityV1(
     return null
   }
 
-  const valueLine = lines
-    .slice(headerIndex + 1)
-    .find((line) => line !== '')
+  const valueLine = lines.slice(headerIndex + 1).find((line) => line !== '')
   if (!valueLine) {
     return null
   }

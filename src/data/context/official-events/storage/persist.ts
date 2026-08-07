@@ -36,8 +36,7 @@ export async function persistOfficialAssetEventsV1(input: {
     const adapterResult = await input.storage.upsertMany(chunkRecords)
     assertOfficialAssetEventStorageWriteResultV1(adapterResult, chunkRecords)
     adapterResult.items.forEach((item, chunkIndex) => {
-      const originalIndex =
-        batch.uniqueInputIndexes[chunkStart + chunkIndex]
+      const originalIndex = batch.uniqueInputIndexes[chunkStart + chunkIndex]
       itemsByOriginalIndex.set(originalIndex, {
         ...item,
         inputIndex: originalIndex,
