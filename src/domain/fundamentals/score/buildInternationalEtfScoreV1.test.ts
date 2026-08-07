@@ -312,8 +312,230 @@ describe('buildInternationalEtfScoreV1 - premium/discount signal (DEC-092)', () 
   })
 })
 
+// Valores reais do N-CSR de VNQ (accession 0001104659-26-036013,
+// exercício encerrado em 31/01/2026) e da série `fred-dfii10` real em
+// produção (05/08/2026, 2,41%).
+const VNQ_DISTRIBUTION_POINT = {
+  ticker: 'VNQ',
+  fiscalYearEndDate: '2026-01-31',
+  totalDistributionsPerShare: { unscaledValue: 3472, scale: 3 },
+  netAssetValueEndOfPeriod: { unscaledValue: 9081, scale: 2 },
+}
+const TIPS_RATE = {
+  rateScaled: 2_410_000,
+  rateScale: 1_000_000,
+  pricedAt: '2026-08-05',
+}
+
+describe('buildInternationalEtfScoreV1 - DY vs TIPS spread signal', () => {
+  it('scores +2 for VNQ when the spread is above 1 percentage point', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [VNQ_DISTRIBUTION_POINT],
+      tipsRate: TIPS_RATE,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({
+      signalKey: 'etf_dy_tips_spread',
+      status: 'applied',
+      points: 2,
+    })
+    expect(score.totalPoints).toBe(2)
+  })
+
+  it('scores -2 when the spread is negative', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [VNQ_DISTRIBUTION_POINT],
+      tipsRate: { ...TIPS_RATE, rateScaled: 5_000_000 },
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({ status: 'applied', points: -2 })
+  })
+
+  it('scores 0 inside the 0 to 1 percentage point band the rules leave neutral', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [VNQ_DISTRIBUTION_POINT],
+      tipsRate: { ...TIPS_RATE, rateScaled: 3_500_000 },
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({ status: 'applied', points: 0 })
+  })
+
+  it('is wrong-regime for VOO and VEA (the rule applies only to the REIT ETF)', () => {
+    for (const [ticker, assetSegment] of [
+      ['VOO', 'indice-amplo-us'],
+      ['VEA', 'mercados-desenvolvidos-ex-us'],
+    ] as const) {
+      const score = buildInternationalEtfScoreV1({
+        assetId: `asset-${ticker.toLowerCase()}`,
+        ticker,
+        assetSegment,
+        capeHistory: [],
+        etfValuations: [],
+        distributionValues: [{ ...VNQ_DISTRIBUTION_POINT, ticker }],
+        tipsRate: TIPS_RATE,
+        rules: DEFAULT_ETF_SIGNAL_RULES,
+        now: NOW,
+      })
+
+      expect(score.signals[2]).toEqual({
+        signalKey: 'etf_dy_tips_spread',
+        status: 'unavailable',
+        reason: 'wrong-regime',
+      })
+    }
+  })
+
+  it('is unavailable (never a silent zero) when no distribution value is loaded', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [],
+      tipsRate: TIPS_RATE,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toEqual({
+      signalKey: 'etf_dy_tips_spread',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+    expect(score.totalPoints).toBe(0)
+  })
+
+  it('is unavailable when the TIPS rate is missing', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [VNQ_DISTRIBUTION_POINT],
+      tipsRate: null,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('only picks the row matching this ticker', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [{ ...VNQ_DISTRIBUTION_POINT, ticker: 'VOO' }],
+      tipsRate: TIPS_RATE,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({ reason: 'missing-input' })
+  })
+
+  it('picks the most recent fiscal year when several filings are loaded', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [
+        {
+          ...VNQ_DISTRIBUTION_POINT,
+          fiscalYearEndDate: '2025-01-31',
+          totalDistributionsPerShare: { unscaledValue: 3434, scale: 3 },
+          netAssetValueEndOfPeriod: { unscaledValue: 9061, scale: 2 },
+        },
+        VNQ_DISTRIBUTION_POINT,
+      ],
+      tipsRate: TIPS_RATE,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    const signal = score.signals[2]
+    expect(signal.status).toBe('applied')
+    expect(
+      signal.status === 'applied' ? signal.observedValue : null
+    ).toBeCloseTo(1.413367, 6)
+  })
+
+  it('is stale when the fiscal year end is past the N-CSR threshold', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [
+        { ...VNQ_DISTRIBUTION_POINT, fiscalYearEndDate: '2024-01-31' },
+      ],
+      tipsRate: TIPS_RATE,
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({
+      status: 'stale',
+      referenceDate: '2024-01-31',
+      staleAfterDays: 450,
+    })
+    expect(score.totalPoints).toBe(0)
+  })
+
+  it('is stale when the TIPS rate itself is past its own threshold', () => {
+    const score = buildInternationalEtfScoreV1({
+      assetId: 'asset-vnq',
+      ticker: 'VNQ',
+      assetSegment: 'reit-us',
+      capeHistory: [],
+      etfValuations: [],
+      distributionValues: [VNQ_DISTRIBUTION_POINT],
+      tipsRate: { ...TIPS_RATE, pricedAt: '2026-07-01' },
+      rules: DEFAULT_ETF_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[2]).toMatchObject({
+      status: 'stale',
+      referenceDate: '2026-07-01',
+      staleAfterDays: 5,
+    })
+  })
+})
+
 describe('buildInternationalEtfScoreV1 - out of ETF regime entirely', () => {
-  it('marks both signals unavailable for a non-ETF segment', () => {
+  it('marks every signal unavailable for a non-ETF segment', () => {
     const score = buildInternationalEtfScoreV1({
       assetId: 'asset-stock',
       ticker: 'BBAS3',
@@ -342,10 +564,15 @@ describe('buildInternationalEtfScoreV1 - out of ETF regime entirely', () => {
         status: 'unavailable',
         reason: 'wrong-regime',
       },
+      {
+        signalKey: 'etf_dy_tips_spread',
+        status: 'unavailable',
+        reason: 'wrong-regime',
+      },
     ])
   })
 
-  it('marks both signals unavailable for a null segment', () => {
+  it('marks every signal unavailable for a null segment', () => {
     const score = buildInternationalEtfScoreV1({
       assetId: 'asset-voo',
       ticker: 'VOO',
@@ -364,6 +591,11 @@ describe('buildInternationalEtfScoreV1 - out of ETF regime entirely', () => {
       },
       {
         signalKey: 'etf_premium_discount_vs_nav',
+        status: 'unavailable',
+        reason: 'wrong-regime',
+      },
+      {
+        signalKey: 'etf_dy_tips_spread',
         status: 'unavailable',
         reason: 'wrong-regime',
       },

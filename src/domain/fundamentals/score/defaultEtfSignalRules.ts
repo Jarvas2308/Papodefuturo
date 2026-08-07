@@ -42,4 +42,26 @@ export const DEFAULT_ETF_SIGNAL_RULES: readonly SignalRuleV1[] = [
     points: -1,
     enabled: true,
   },
+  // Spread de DY sobre a TIPS de 10 anos (VNQ) -
+  // docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md, secao 4: acima de
+  // 1 ponto percentual pontua +2, abaixo de zero pontua -2. A faixa
+  // intermediaria (0 a 1 p.p.) fica deliberadamente sem regra - o
+  // rascunho nao pontua ali, entao findMatchingRule devolve 0 pontos,
+  // sinal neutro e nao 'unavailable'. Valor observado em pontos
+  // percentuais (1,41 = 1,41 p.p.), mesma unidade de
+  // computeEtfDyTipsSpreadV1.
+  {
+    signalKey: 'etf_dy_tips_spread',
+    minValue: 1,
+    maxValue: null,
+    points: 2,
+    enabled: true,
+  },
+  {
+    signalKey: 'etf_dy_tips_spread',
+    minValue: null,
+    maxValue: 0,
+    points: -2,
+    enabled: true,
+  },
 ]

@@ -7,6 +7,7 @@ import {
 } from '../../../domain/fundamentals/score'
 import type {
   AssetScoreV1,
+  EtfDistributionValuePoint,
   EtfPremiumDiscountPoint,
   FiiMonthlyDividendYieldPointV1,
   ProventoDeclarationPointV1,
@@ -74,16 +75,19 @@ export function buildContributionAssetScoresV1(input: {
     readonly FiiMonthlyDividendYieldPointV1[]
   >
   ntnbRate?: { rateScaled: number; rateScale: number; pricedAt: string } | null
+  etfDistributionValues?: readonly EtfDistributionValuePoint[]
+  tipsRate?: { rateScaled: number; rateScale: number; pricedAt: string } | null
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1[] {
   const scores: AssetScoreV1[] = []
 
   for (const asset of input.assets) {
-    // ETF nao depende de fundamental_snapshots - CAPE e premio/desconto
-    // vem de fontes de mercado agregadas separadas (market_valuation_ratios,
-    // market_etf_valuations), avaliadas antes do requisito de factsAsset
-    // abaixo (que nao se aplica aqui).
+    // ETF nao depende de fundamental_snapshots - CAPE, premio/desconto e
+    // distribuicao anual vem de fontes separadas
+    // (market_valuation_ratios, market_etf_valuations,
+    // etf_distribution_values), avaliadas antes do requisito de
+    // factsAsset abaixo (que nao se aplica aqui).
     if (asset.category === 'international-etf') {
       scores.push(
         buildInternationalEtfScoreV1({
@@ -92,6 +96,8 @@ export function buildContributionAssetScoresV1(input: {
           assetSegment: asset.assetSegment ?? null,
           capeHistory: input.capeHistory,
           etfValuations: input.etfValuations,
+          distributionValues: input.etfDistributionValues ?? [],
+          tipsRate: input.tipsRate ?? null,
           rules: input.rules,
           now: input.now,
         })
