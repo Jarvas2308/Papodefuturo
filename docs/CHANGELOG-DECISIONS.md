@@ -4146,3 +4146,117 @@ persistedAttemptCount: 540`. Rodado 2026 pela primeira vez com o
   (`scripts/run-etf-distribution-values-backfill.ts`, preview por padrão,
   `--confirm` para escrita real) não rodou. Até lá o sinal fica
   `unavailable`, nunca zero silencioso.
+
+## DEC-104 — P/L vs própria série histórica: mecanismo completo, aguardando dado real em duas frentes
+
+- Data: 7 de agosto de 2026
+- Status: Aceita
+- Contexto: `stock_pl_vs_history` era o único sinal do rascunho de
+  pontuação (docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md, seção 3)
+  ainda sem implementação nenhuma — os outros 11 já pontuam com dado real
+  em produção. `composicao_capital` (ações emitidas) já estava real e
+  populada (`DEC-095`), e a viabilidade do preço de fechamento B3 anual
+  já tinha sido confirmada com dado real (`DEC-096`: BBAS3 fecha
+  30/12/2025, último pregão do ano, a R$ 21,92). Faltava escrever o
+  provider/wiring e confirmar se a profundidade real de DFP já
+  bastava para um quartil confiável.
+- Decisão:
+  - **Fórmula**: P/L = preço de fechamento B3 no último pregão do
+    exercício ÷ LPA do mesmo exercício (lucro líquido ÷ ações emitidas
+    da classe negociada, mesma fonte `issuedShares` de
+    `computeStockPayoutRatioScaledV1`). `computeStockPriceToEarningsScaledV1.ts`
+    — BigInt exato, escala `FUNDAMENTAL_RATIO_SCALE` (1e6),
+    arredondamento half-away-from-zero, mesma disciplina do resto do
+    motor de score. Lucro líquido não positivo lança em vez de devolver
+    P/L enganoso (a chamada degrada pra `unavailable` best-effort, como
+    todo o resto do motor).
+  - **Comparação com a própria série**: o rascunho pede "abaixo do
+    próprio quartil inferior", não um limiar fixo universal. Quartil
+    inferior calculado por "nearest-rank" (ordem estatística por índice,
+    `rank = ceil(0.25 × n)`, sem interpolação) sobre os valores de P/L
+    escalados da própria série, ordenados ascendentemente —
+    `computeStockPlQuartilePositionV1.ts`. Aritmética inteira exata, sem
+    ambiguidade de fronteira, adequada a amostras pequenas.
+  - **Amostra mínima = 5 exercícios anuais**: decisão técnica direta
+    (AGENTS.md seção 15), não de produto — com menos de 5 pontos o
+    quartil degenera (`rank` sempre aponta pro próprio valor mais baixo
+    ou perto dele, "abaixo do quartil inferior" fica quase sempre
+    verdadeiro por construção, não por sinal real de barateamento).
+    `STOCK_PL_HISTORY_MIN_POINTS = 5`, documentado no código, nunca
+    inferido em silêncio.
+  - **Reaproveitando `SignalRuleV1` com um marco dinâmico por ativo**: o
+    quartil inferior varia por empresa, mas `SignalRuleV1` só compara
+    contra faixas estáticas globais. Mesmo truque já usado por
+    `computeEtfCapeDeviationV1`/CAPE (`DEC-091`): o `observedValue`
+    exposto ao mecanismo de regras é o **desvio** (P/L atual − quartil
+    inferior da própria série), e a regra default é um limiar estático
+    em zero (`maxValue: 0 → +1`) — "abaixo" é sempre "desvio negativo",
+    não importa o valor absoluto do marco.
+  - **Regime**: não se aplica a banco (BBAS3) nem seguradora (PSSA3),
+    exatamente como o rascunho define (diferente de payout, que se
+    aplica a "Todos") — `wrong-regime`, nunca um número.
+  - **Preço histórico casado por `referenceDate` exata**: cada
+    exercício anual do DFP já tem `referenceDate` (sempre 31/12 neste
+    universo); o preço de fechamento é buscado pela mesma data exata em
+    `stock_historical_close_prices`. Exercício sem preço casado, sem
+    lucro líquido positivo ou sem ações emitidas é descartado
+    individualmente da amostra — nunca preenchido com um valor
+    inventado, mesmo que isso reduza a amostra abaixo do mínimo.
+  - **Provider de preço**: parser COTAHIST anual próprio em
+    `src/data/fundamentals/b3/` (`b3CotahistAnnualCloseSeriesV1.ts` +
+    `selectFiscalYearEndCloseV1.ts`) — mesmo layout de largura fixa e
+    mesmas constantes de campo de
+    `supabase/functions/refresh-market-data/b3CotahistParser.ts`, mas
+    **duplicado deliberadamente, não importado**: os dois vivem em
+    runtimes diferentes (Deno na Edge Function vs Node/Vite em `src`),
+    sem precedente neste repositório de import cruzando essa fronteira.
+    `selectFiscalYearEndCloseV1` escolhe o último pregão em OU ANTES da
+    data de exercício dentro do mesmo ano-calendário — a data de
+    exercício nem sempre é pregão (fim de semana, feriado), mesma
+    convenção confirmada com dado real em `DEC-096`.
+  - **Armazenamento**: tabela global nova `stock_historical_close_prices`
+    (migration `20260807140000_create_stock_historical_close_prices.sql`),
+    mesmo padrão de acesso de `etf_distribution_values` (`DEC-103`) — RLS,
+    select para `authenticated`, escrita só por `service_role` via
+    `upsert_stock_historical_close_prices_v1`. Chave
+    `(ticker, fiscal_year_end_date)`; `trading_date` preservado
+    separadamente (o pregão real usado, quando difere da data de
+    exercício).
+  - **Wiring**: `buildBrazilianStockScoreV1.ts` (novo signal key
+    `stock_pl_vs_history`), `defaultStockSignalRules.ts` (faixa
+    default), `buildContributionAssetScores.ts` e
+    `useContributionData.ts` (leitura de
+    `stock_historical_close_prices` por ticker, best-effort, mesmo
+    padrão dos demais sinais) até o dossiê.
+- Verificação: 34 testes novos/estendidos (`computeStockPriceToEarningsScaledV1.test.ts`,
+  `computeStockPlQuartilePositionV1.test.ts`, `b3CotahistAnnualCloseSeriesV1.test.ts`,
+  `selectFiscalYearEndCloseV1.test.ts`, `supabaseStockHistoricalClosePrices.test.ts`,
+  extensão de `buildBrazilianStockScoreV1.test.ts`) cobrindo cálculo exato,
+  arredondamento, amostra abaixo do mínimo, exercício sem preço casado,
+  regime errado (banco/seguradora), staleness e o caso real de produção
+  hoje (só 2 exercícios ingeridos). `npx tsc -b`, `npm run lint` e
+  `npm run build` passam.
+- Consequências: os 12 sinais do rascunho de pontuação têm mecanismo de
+  cálculo completo — fecha o item 3 de "Itens abertos sem prazo" do
+  `DEC-068`/`docs/ROADMAP.md`. O sinal `stock_pl_vs_history` continua
+  `unavailable` em produção por dois motivos reais, verificados nesta
+  sessão, não por falta de código:
+  1. **Migration versionada e não aplicada em produção**: a tabela
+     `stock_historical_close_prices` não existe em produção; nenhuma
+     linha foi escrita. O script
+     `scripts/run-stock-close-price-history-backfill.ts` roda em preview
+     por padrão (baixa e extrai o COTAHIST anual real, não escreve
+     nada) e exige `--confirm` mais `SUPABASE_URL`/
+     `SUPABASE_SERVICE_ROLE_KEY` pra escrita real.
+  2. **Profundidade de DFP insuficiente mesmo com a tabela aplicada**:
+     SQL somente leitura em produção (07/08/2026) confirmou só 2
+     exercícios anuais ingeridos por empresa hoje (`reference_date`
+     2024-12-31 e 2025-12-31, `source = 'cvm-dfp'`), contra o mínimo de
+     5 exigido pelo quartil. Aprofundar exige rodar
+     `run-fundamentals-ingestion.ts --provider=cvm-stocks --source=DFP
+--year=<ano>` pra 2019–2023, mesmo comando já usado pra 2024/2025 —
+     decisão e execução do usuário, fora da autoridade deste ciclo.
+     `src/lib/database.types.ts` permanece intocado (a tabela não existe em
+     produção ainda) — mesma disciplina de `etf_distribution_values`
+     (`DEC-103`), reforçada pela correção do PR #169 que precedeu este
+     ciclo.

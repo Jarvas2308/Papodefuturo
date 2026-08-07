@@ -13,6 +13,7 @@ import type {
   ProventoDeclarationPointV1,
   ShillerCapeHistoryPoint,
   SignalRuleV1,
+  StockClosePriceHistoryPointV1,
 } from '../../../domain/fundamentals/score'
 import type {
   FundamentalDerivedFactsV1,
@@ -69,6 +70,10 @@ export function buildContributionAssetScoresV1(input: {
   proventoDeclarationsByTicker: ReadonlyMap<
     string,
     readonly ProventoDeclarationPointV1[]
+  >
+  closePriceHistoryByTicker?: ReadonlyMap<
+    string,
+    readonly StockClosePriceHistoryPointV1[]
   >
   monthlyDividendYieldsByTicker?: ReadonlyMap<
     string,
@@ -145,6 +150,8 @@ export function buildContributionAssetScoresV1(input: {
           assetSegment: asset.assetSegment ?? null,
           proventoDeclarations:
             input.proventoDeclarationsByTicker.get(asset.ticker) ?? null,
+          closePriceHistory:
+            input.closePriceHistoryByTicker?.get(asset.ticker) ?? null,
           rules: input.rules,
           now: input.now,
         })

@@ -579,3 +579,16 @@ FK para `official_asset_events` (não existe evento SEC EDGAR em produção;
 a identidade documental — CIK, accession e URL — fica na própria linha).
 RPC de escrita: `upsert_etf_distribution_values_v1`. Nenhuma linha
 escrita até agora.
+
+Também **versionada e ainda NÃO aplicada em produção**:
+`stock_historical_close_prices` (migration
+`20260807140000_create_stock_historical_close_prices.sql`, `DEC-104`) —
+fechamento B3 do último pregão de cada exercício anual das 5 ações do
+universo fechado, extraído do arquivo `COTAHIST_A<ano>.ZIP`. Identidade
+`(ticker, fiscal_year_end_date)`; `trading_date` guardado separadamente
+(o pregão real usado, quando difere da data de exercício). RPC de
+escrita: `upsert_stock_historical_close_prices_v1`. Nenhuma linha
+escrita até agora, e mesmo depois de aplicada e do backfill rodar, o
+sinal `stock_pl_vs_history` que a consome continua `unavailable` até
+mais anos de DFP serem ingeridos (só 2 exercícios por empresa hoje,
+mínimo de 5 exigido pelo quartil).

@@ -1,18 +1,26 @@
 // Motor de score, ação BR - Sprint 16, Fase 5 (DEC-090, dívida/EBITDA
-// nesta entrada; payout, DEC-097, nesta entrada).
+// nesta entrada; payout, DEC-097, nesta entrada; P/L vs série histórica,
+// DEC-104 nesta entrada, fechando o item aberto sem prazo #3 do
+// DEC-068/ROADMAP).
 //
-// Cobre 3 dos 4 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
-// (secao 3): ROE, dívida líquida/EBITDA e payout (variação ano contra
-// ano). P/L vs serie historica (precisa serie de precos historicos por
-// periodo, nao so o mais recente) fica para a proxima fatia. ROE nao se
-// aplica a holding pura (ITSA4); dívida/EBITDA nao se aplica a banco
-// (BBAS3, índice de Basileia e' a metrica de alavancagem correta la, nao
-// esta) - cada sinal tem seu proprio regime, regime errado sempre gera
-// 'wrong-regime', nunca um numero. Payout se aplica a "Todos" por
+// Cobre os 4 sinais de docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md
+// (secao 3): ROE, dívida líquida/EBITDA, payout (variação ano contra
+// ano) e P/L vs própria série histórica. ROE nao se aplica a holding pura
+// (ITSA4); dívida/EBITDA nao se aplica a banco (BBAS3, índice de
+// Basileia e' a metrica de alavancagem correta la, nao esta); P/L nao se
+// aplica a banco nem seguradora (BBAS3/PSSA3 - regra explícita do
+// rascunho) - cada sinal tem seu proprio regime, regime errado sempre
+// gera 'wrong-regime', nunca um numero. Payout se aplica a "Todos" por
 // definicao do rascunho - sem restricao de regime.
 import { computeStockRoeScaledV1 } from './computeStockRoeScaledV1'
 import { computeStockNetDebtToEbitdaScaledV1 } from './computeStockNetDebtToEbitdaScaledV1'
 import { computeStockPayoutRatioScaledV1 } from './computeStockPayoutRatioScaledV1'
+import { computeStockPriceToEarningsScaledV1 } from './computeStockPriceToEarningsScaledV1'
+import {
+  computeStockPlQuartilePositionV1,
+  STOCK_PL_HISTORY_MIN_POINTS,
+  type StockPlHistoryPointV1,
+} from './computeStockPlQuartilePositionV1'
 import {
   computeProventoTrailingTwelveMonthValueV1,
   type ProventoDeclarationPointV1,
@@ -31,7 +39,20 @@ import type { AssetScoreSignal, AssetScoreV1, SignalRuleV1 } from './types'
 import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 
 export type BrazilianStockSignalKey =
-  'stock_roe' | 'stock_net_debt_to_ebitda' | 'stock_payout_yoy_change'
+  | 'stock_roe'
+  | 'stock_net_debt_to_ebitda'
+  | 'stock_payout_yoy_change'
+  | 'stock_pl_vs_history'
+
+// Fechamento histórico B3 (COTAHIST anual) por data de exercício do DFP
+// (mesma referenceDate das demonstrações anuais) - insumo externo, não
+// vem de `fundamental_snapshots`. `null` no mapa (chave ausente)
+// significa "sem preço para esse exercício", tratado como ponto perdido,
+// nunca como preço zero.
+export type StockClosePriceHistoryPointV1 = {
+  referenceDate: string
+  closePriceInMinorUnits: number
+}
 
 // 1 ponto percentual = 0.01 em razão, ou 10_000 em unidades escaladas por
 // FUNDAMENTAL_RATIO_SCALE (1e6) - divide o delta escalado por esse valor
@@ -347,10 +368,111 @@ function scoreNetDebtToEbitdaSignal(
   }
 }
 
+// P/L vs própria série histórica (docs/reference/REGRAS_DE_PONTUACAO_RASCUNHO.md,
+// seção 3): "abaixo do próprio quartil inferior" pontua +1. Não se aplica
+// a banco nem seguradora - regra explícita do rascunho, diferente de
+// payout ("Todos"). Combina cada demonstração anual (lucro líquido +
+// ações emitidas) com o fechamento B3 do mesmo exercício
+// (`closePriceHistory`, casado por `referenceDate` exata); exercícios sem
+// preço casado, sem lucro líquido positivo ou sem ações emitidas são
+// descartados individualmente, nunca preenchidos com um valor
+// inventado. Amostra resultante menor que `STOCK_PL_HISTORY_MIN_POINTS`
+// fica `unavailable` (dado insuficiente pra um quartil confiável, nunca
+// um número de amostra degenerada) - situação real da produção atual (só
+// 2 exercícios de DFP ingeridos por empresa, ver docs/ROADMAP.md).
+function scorePlVsHistorySignal(
+  assetSegment: AssetSegment | null,
+  annualFacts: readonly AnnualStockFacts[],
+  closePriceHistory: readonly StockClosePriceHistoryPointV1[] | null,
+  rules: readonly SignalRuleV1[],
+  now: string
+): AssetScoreSignal {
+  const signalKey = 'stock_pl_vs_history'
+
+  if (assetSegment === 'banco' || assetSegment === 'seguradora') {
+    return { signalKey, status: 'unavailable', reason: 'wrong-regime' }
+  }
+
+  if (closePriceHistory === null || closePriceHistory.length === 0) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const closePriceByReferenceDate = new Map(
+    closePriceHistory.map((point) => [
+      point.referenceDate,
+      point.closePriceInMinorUnits,
+    ])
+  )
+
+  const plHistory: StockPlHistoryPointV1[] = []
+  for (const facts of annualFacts) {
+    const closePriceInMinorUnits = closePriceByReferenceDate.get(
+      facts.referenceDate
+    )
+    if (
+      closePriceInMinorUnits === undefined ||
+      facts.netIncome === null ||
+      facts.issuedShares === null
+    ) {
+      continue
+    }
+    if (facts.netIncome.amountInMinorUnits <= 0) {
+      continue
+    }
+
+    let plScaled: number
+    try {
+      plScaled = computeStockPriceToEarningsScaledV1({
+        closePriceInMinorUnits,
+        issuedShares: facts.issuedShares,
+        netIncome: facts.netIncome,
+      })
+    } catch {
+      continue
+    }
+
+    plHistory.push({ referenceDate: facts.referenceDate, plScaled })
+  }
+
+  if (plHistory.length < STOCK_PL_HISTORY_MIN_POINTS) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  const position = computeStockPlQuartilePositionV1({ history: plHistory })
+  if (position === null) {
+    return { signalKey, status: 'unavailable', reason: 'missing-input' }
+  }
+
+  if (
+    isReferenceDateStale(
+      position.currentReferenceDate,
+      now,
+      CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS
+    )
+  ) {
+    return {
+      signalKey,
+      status: 'stale',
+      observedValue: position.deviationScaled,
+      referenceDate: position.currentReferenceDate,
+      staleAfterDays: CVM_FII_TRIMESTRAL_STALE_AFTER_DAYS,
+    }
+  }
+
+  const rule = findMatchingRule(rules, signalKey, position.deviationScaled)
+  return {
+    signalKey,
+    status: 'applied',
+    observedValue: position.deviationScaled,
+    points: rule?.points ?? 0,
+  }
+}
+
 export function buildBrazilianStockScoreV1(input: {
   asset: FundamentalFactsAsset
   assetSegment: AssetSegment | null
   proventoDeclarations: readonly ProventoDeclarationPointV1[] | null
+  closePriceHistory?: readonly StockClosePriceHistoryPointV1[] | null
   rules: readonly SignalRuleV1[]
   now: string
 }): AssetScoreV1 {
@@ -373,6 +495,13 @@ export function buildBrazilianStockScoreV1(input: {
       scorePayoutYoyChangeSignal(
         annualFacts,
         input.proventoDeclarations,
+        input.rules,
+        input.now
+      ),
+      scorePlVsHistorySignal(
+        input.assetSegment,
+        annualFacts,
+        input.closePriceHistory ?? null,
         input.rules,
         input.now
       ),
@@ -407,6 +536,13 @@ export function buildBrazilianStockScoreV1(input: {
     scorePayoutYoyChangeSignal(
       annualFacts,
       input.proventoDeclarations,
+      input.rules,
+      input.now
+    ),
+    scorePlVsHistorySignal(
+      input.assetSegment,
+      annualFacts,
+      input.closePriceHistory ?? null,
       input.rules,
       input.now
     ),

@@ -1,5 +1,15 @@
 export { buildFiiTijoloScoreV1 } from './buildFiiTijoloScoreV1'
-export { buildBrazilianStockScoreV1 } from './buildBrazilianStockScoreV1'
+export {
+  buildBrazilianStockScoreV1,
+  type StockClosePriceHistoryPointV1,
+} from './buildBrazilianStockScoreV1'
+export { computeStockPriceToEarningsScaledV1 } from './computeStockPriceToEarningsScaledV1'
+export {
+  computeStockPlQuartilePositionV1,
+  STOCK_PL_HISTORY_MIN_POINTS,
+  type StockPlHistoryPointV1,
+  type StockPlQuartilePositionV1,
+} from './computeStockPlQuartilePositionV1'
 export {
   buildInternationalEtfScoreV1,
   type EtfDistributionValuePoint,

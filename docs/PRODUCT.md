@@ -268,25 +268,40 @@ candidatos dentro do universo fechado — nunca um recomendador irrestrito
 (usuário mantém confirmação obrigatória, item 6 da filosofia). Estado atual
 (`DEC-085` a `DEC-087`):
 
-- cobre 11 dos 12 sinais do rascunho de pontuação, em três fatias
-  (`DEC-085` a `DEC-103`):
+- cobre o mecanismo de cálculo dos 12 sinais do rascunho de pontuação, em
+  três fatias (`DEC-085` a `DEC-104`) — 11 já pontuam com dado real em
+  produção; o 12º (P/L vs série histórica) tem código completo, testado
+  contra fixture, mas permanece `unavailable` em produção até dois
+  pré-requisitos de dado real, não de código:
   - FII tijolo (KNRI11, VISC11, XPLG11, HGRU11), 5 de 5: P/VP, vacância
     financeira, WALE (substituto documentado de "receita vencendo em 24
     meses"), concentração do maior inquilino e spread de DY sobre NTN-B
     (`DEC-097`, fechado em 07/08/2026: o DY mensal vem da coluna
     `Percentual_Dividend_Yield_Mes` do complemento do Informe Mensal da
     CVM, somado em janela de 12 meses; 72 linhas reais em produção);
-  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 3 de 4: ROE (todos os
-    regimes exceto holding pura) e dívida líquida/EBITDA (todos os
-    regimes exceto banco — insumos confirmados com dado real do DFP 2025:
-    `BPP_con` `2.01.04`/`2.02.01` "Empréstimos e Financiamentos", `BPA_con`
-    `1.01.01` "Caixa e Equivalentes de Caixa", `DRE_con` `3.05` "Resultado
-    Antes do Resultado Financeiro e dos Tributos", `DFC_MI_con` linha de
-    depreciação/amortização em allowlist fechada de 3 descrições) e
-    payout (`DEC-097`, fechado em 06/08/2026 pelo extrator do formulário
-    "Provento" da CVM). P/L vs série histórica segue bloqueado — amostra
-    insuficiente até acumular mais períodos ingeridos, e é o único dos
-    12 sinais ainda sem implementação;
+  - ação (BBAS3, ITSA4, TAEE11, WEGE3, PSSA3), 4 de 4 implementados em
+    código: ROE (todos os regimes exceto holding pura), dívida
+    líquida/EBITDA (todos os regimes exceto banco — insumos confirmados
+    com dado real do DFP 2025: `BPP_con` `2.01.04`/`2.02.01` "Empréstimos
+    e Financiamentos", `BPA_con` `1.01.01` "Caixa e Equivalentes de
+    Caixa", `DRE_con` `3.05` "Resultado Antes do Resultado Financeiro e
+    dos Tributos", `DFC_MI_con` linha de depreciação/amortização em
+    allowlist fechada de 3 descrições), payout (`DEC-097`, fechado em
+    06/08/2026 pelo extrator do formulário "Provento" da CVM) e P/L vs
+    própria série histórica (`DEC-104`, fechado em 07/08/2026: P/L =
+    preço de fechamento B3 no último pregão do exercício ÷ LPA do mesmo
+    exercício, comparado contra o quartil inferior da própria série —
+    "nearest-rank" sobre no mínimo 5 exercícios anuais casados por
+    `referenceDate`, decisão técnica documentada em
+    `computeStockPlQuartilePositionV1.ts`; não se aplica a banco nem
+    seguradora). O sinal de P/L fica `unavailable` em produção até dois
+    pré-requisitos reais: (a) a tabela `stock_historical_close_prices`
+    (fechamento anual B3 via COTAHIST, parser próprio em
+    `src/data/fundamentals/b3/`) está **versionada mas não aplicada em
+    produção**, sem nenhum backfill executado; (b) mesmo com a tabela
+    aplicada, só há 2 exercícios de DFP ingeridos por empresa hoje
+    (2024/2025) contra o mínimo de 5 exigido pelo quartil — amostra
+    insuficiente confirmada por SQL somente leitura em 07/08/2026;
   - ETF internacional (VOO, VNQ, VEA), 3 de 3: CAPE de VOO vs própria
     média de 10 anos (só `indice-amplo-us`), prêmio/desconto sobre NAV
     via site do emissor (Vanguard, aplicável aos 3 ETFs) e spread de DY
