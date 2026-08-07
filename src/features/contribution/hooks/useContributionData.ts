@@ -34,6 +34,9 @@ import {
 } from '../../../data/fundamentals'
 import { createSupabaseShillerCapeHistoryRepository } from '../../../data/fundamentals/supabaseShillerCapeSnapshots'
 import { createSupabaseEtfValuationRepository } from '../../../data/fundamentals/supabaseEtfValuationSnapshots'
+import { createSupabaseProventoDeclarationValueRepository } from '../../../data/fundamentals/supabaseProventoDeclarationValues'
+import { BRAZILIAN_STOCK_TICKER_ISIN_V1 } from '../../../data/fundamentals/provento/brazilianStockTickerIsinV1'
+import type { ProventoDeclarationPointV1 } from '../../../domain/fundamentals/score'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
 import type { AssetScoreV1 } from '../../../domain/fundamentals/score'
@@ -128,13 +131,49 @@ export async function loadContributionAssetScoresBestEffort(
     const capeHistoryRepository =
       createSupabaseShillerCapeHistoryRepository(client)
     const etfValuationRepository = createSupabaseEtfValuationRepository(client)
-    const [fiiSnapshots, stockSnapshots, capeHistory, etfValuations] =
-      await Promise.all([
-        fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
-        stockSnapshotRepository.listBrazilianStockSnapshots(assets),
-        capeHistoryRepository.listShillerCapeHistory(),
-        etfValuationRepository.listEtfValuations(),
-      ])
+    const proventoDeclarationRepository =
+      createSupabaseProventoDeclarationValueRepository(client)
+
+    const stockTickersWithIsin = assets
+      .filter((asset) => asset.category === 'brazilian-stock')
+      .map((asset) => ({
+        ticker: asset.ticker,
+        isin: (
+          BRAZILIAN_STOCK_TICKER_ISIN_V1 as Record<string, string | undefined>
+        )[asset.ticker],
+      }))
+      .filter(
+        (entry): entry is { ticker: string; isin: string } =>
+          entry.isin !== undefined
+      )
+
+    const [
+      fiiSnapshots,
+      stockSnapshots,
+      capeHistory,
+      etfValuations,
+      proventoEntries,
+    ] = await Promise.all([
+      fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
+      stockSnapshotRepository.listBrazilianStockSnapshots(assets),
+      capeHistoryRepository.listShillerCapeHistory(),
+      etfValuationRepository.listEtfValuations(),
+      Promise.all(
+        stockTickersWithIsin.map(
+          async ({ ticker, isin }) =>
+            [
+              ticker,
+              await proventoDeclarationRepository.listProventoDeclarationsByIsin(
+                isin
+              ),
+            ] as const
+        )
+      ),
+    ])
+    const proventoDeclarationsByTicker = new Map<
+      string,
+      readonly ProventoDeclarationPointV1[]
+    >(proventoEntries)
     const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
       generatedAt: now,
@@ -163,6 +202,7 @@ export async function loadContributionAssetScoresBestEffort(
         latestPricesByAsset,
         capeHistory,
         etfValuations,
+        proventoDeclarationsByTicker,
         rules,
         now,
       }),
