@@ -27,9 +27,7 @@ import type { AssetScoreSignal, AssetScoreV1, SignalRuleV1 } from './types'
 import { ASSET_SCORE_V1_SCHEMA_VERSION } from './types'
 
 export type InternationalEtfSignalKey =
-  | 'etf_cape_vs_10y_avg'
-  | 'etf_premium_discount_vs_nav'
-  | 'etf_dy_tips_spread'
+  'etf_cape_vs_10y_avg' | 'etf_premium_discount_vs_nav' | 'etf_dy_tips_spread'
 
 // Uma linha da tabela "Financial Highlights" da classe ETF do fundo, no
 // N-CSR anual da SEC (etf_distribution_values). Dado global por ticker,

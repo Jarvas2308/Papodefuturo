@@ -46,7 +46,9 @@ export function buildSecArchiveDocumentUrlV1(input: {
     throw new Error(`SEC accession number is malformed: ${accessionNumber}`)
   }
   if (!/^[\w.-]+$/.test(primaryDocument)) {
-    throw new Error(`SEC primary document name is malformed: ${primaryDocument}`)
+    throw new Error(
+      `SEC primary document name is malformed: ${primaryDocument}`
+    )
   }
   const archiveCik = registrantCik.replace(/^0+/, '')
   const accessionWithoutDashes = accessionNumber.replaceAll('-', '')

@@ -98,10 +98,8 @@ describe('extractEtfFinancialHighlightsV1 - fails closed', () => {
   })
 
   it('returns null when the printed page number before the heading is gone', () => {
-    const withoutPageNumber = VNQ_ETF_SHARES_FINANCIAL_HIGHLIGHTS_TEXT_V1.replace(
-      /^8 /,
-      ''
-    )
+    const withoutPageNumber =
+      VNQ_ETF_SHARES_FINANCIAL_HIGHLIGHTS_TEXT_V1.replace(/^8 /, '')
     expect(extractForTicker('VNQ', withoutPageNumber)).toBeNull()
   })
 

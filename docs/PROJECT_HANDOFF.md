@@ -178,6 +178,23 @@ adapter TypeScript, provider unificado, backfill dos valores contra os
 trailing-12-meses, integração nos 3 sinais de score — próximo passo
 natural de uma sessão nova.
 
+Ainda na mesma sessão, os três sinais foram fechados: payout de ação
+(PR #164/#166), spread de DY sobre NTN-B de FII (PR #167, com backfill
+real de 72 linhas em produção) e, por último, spread de DY sobre a TIPS
+de 10 anos de ETF (`DEC-103`). Este último NÃO dependia de provento: a
+premissa antiga estava errada nos dois sentidos — `official_asset_events`
+não tem nenhum evento de `VOO`/`VNQ`/`VEA` em produção (as 1.511 linhas
+são todas de CVM), e o número vem direto da tabela "Financial Highlights"
+do N-CSR anual da SEC. Migration
+`20260807130000_create_etf_distribution_values.sql` **versionada e não
+aplicada em produção**; `src/lib/database.types.ts` recebeu a entrada
+correspondente junto com a migration (mesmo procedimento da PR #167) e
+deve ser **regenerado pelo mecanismo oficial** depois que a migration for
+aplicada de verdade. Nenhuma linha escrita: o backfill
+(`scripts/run-etf-distribution-values-backfill.ts`) roda em preview por
+padrão e exige `--confirm` mais `SEC_USER_AGENT` e a service_role key.
+Até isso acontecer, o sinal fica `unavailable`.
+
 ## 1. Resumo executivo
 
 O Papo de Futuro é uma aplicação de inteligência para aportes de longo prazo em

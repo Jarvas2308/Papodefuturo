@@ -41,11 +41,15 @@ function decodeEntities(value: string): string {
     (match, body: string) => {
       if (body.startsWith('#x') || body.startsWith('#X')) {
         const codePoint = Number.parseInt(body.slice(2), 16)
-        return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match
+        return Number.isFinite(codePoint)
+          ? String.fromCodePoint(codePoint)
+          : match
       }
       if (body.startsWith('#')) {
         const codePoint = Number.parseInt(body.slice(1), 10)
-        return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match
+        return Number.isFinite(codePoint)
+          ? String.fromCodePoint(codePoint)
+          : match
       }
       return NAMED_ENTITIES[body] ?? match
     }

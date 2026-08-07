@@ -96,7 +96,9 @@ async function main(): Promise<void> {
     rows.push(row)
   }
 
-  console.log(`\nLinhas extraidas: ${rows.length} (esperado ate ${tickers.length})`)
+  console.log(
+    `\nLinhas extraidas: ${rows.length} (esperado ate ${tickers.length})`
+  )
 
   if (rows.length === 0) {
     console.log('Nada a escrever.')
@@ -136,7 +138,11 @@ async function main(): Promise<void> {
 
   console.log('\n=== ETF distribution values backfill: result ===')
   console.log(
-    JSON.stringify({ rowsExtracted: rows.length, rowsUpserted: upserted }, null, 2)
+    JSON.stringify(
+      { rowsExtracted: rows.length, rowsUpserted: upserted },
+      null,
+      2
+    )
   )
 }
 

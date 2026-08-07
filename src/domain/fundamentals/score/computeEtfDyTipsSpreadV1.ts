@@ -44,7 +44,9 @@ function assertExactDecimal(
     !Number.isSafeInteger(value.scale) ||
     value.scale < 0
   ) {
-    throw new RangeError(`${description} must use a safe-integer unscaled/scale`)
+    throw new RangeError(
+      `${description} must use a safe-integer unscaled/scale`
+    )
   }
 }
 

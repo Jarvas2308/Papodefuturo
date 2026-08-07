@@ -1275,6 +1275,11 @@ numeração de sprint.
 3. **4 sinais do motor de score (Sprint 16) — dado do valor de provento
    deixou de ser bloqueio, virou trabalho de wiring em andamento
    (`DEC-095`, 06/08/2026)**:
+   - **Correção (07/08/2026, `DEC-103`):** a premissa "spread de DY
+     sobre TIPS (ETF, `VNQ`) depende do valor do provento" estava
+     errada. O ETF não passa por provento nem por
+     `official_asset_events` — o número vem direto do N-CSR anual da
+     SEC. Sinal integrado; ver o item de 07/08/2026 acima.
    - Spread de DY sobre NTN-B (FII), payout (ação) e spread de DY sobre
      TIPS (ETF, `VNQ`) dependem do valor do provento. Nenhum CSV
      estruturado da CVM tem esse valor (FRE, Informe Mensal, DFIN —
@@ -1380,12 +1385,35 @@ numeração de sprint.
      fica `unavailable` até a CVM publicar jul/2026 (defasagem normal de
      1-2 meses de divulgação) — 11 meses no momento, precisa de 12,
      comportamento esperado, não bug.
-   - **Ainda bloqueado**: spread de DY sobre TIPS (ETF, `VNQ`) —
-     `official_asset_events` nunca teve evento `dividend-or-distribution`
-     ingerido pra `VNQ` (confirmado via SQL em produção, 06/08/2026).
-     Vem de SEC EDGAR (regulador americano, formato totalmente
-     diferente) — pipeline de ingestão novo, não pesquisado ainda. Taxa
-     TIPS (ETF) já resolvida via FRED (`DEC-093`), só falta essa metade.
+   - **Spread de DY sobre TIPS (ETF, `VNQ`) INTEGRADO em 07/08/2026
+     (`DEC-103`), aguardando aplicação da migration e backfill real.**
+     A premissa anterior ("depende do valor do provento, via
+     `official_asset_events`") estava errada por dois motivos, ambos
+     verificados com dado real: (a) `official_asset_events` não tem
+     NENHUM evento de `VOO`/`VNQ`/`VEA` em produção — as 1.511 linhas
+     são todas de CVM, 5 ações + 4 FIIs (SQL somente leitura,
+     07/08/2026), então não havia evento a enriquecer; (b) o valor não
+     precisa vir de evento nenhum: o N-CSR anual (relatório anual
+     auditado) da SEC publica, na tabela "Financial Highlights" da
+     classe ETF de cada fundo, "Total Distributions" e "Net Asset
+     Value, End of Period" por cota. Filing real baixado e inspecionado
+     (VNQ, accession `0001104659-26-036013`, exercício encerrado em
+     31/01/2026: distribuições 3,472 e NAV 90,81 → DY 3,82%; contra
+     TIPS de 2,41% em produção, spread de 1,41 p.p. → +2 pontos). O
+     formato se repete para `VOO` (500 Index Fund) e `VEA` (Developed
+     Markets Index Fund, cuja classe ETF se chama "FTSE Developed
+     Markets ETF Shares", não "ETF Shares") — os três estão no registry
+     e cobertos por fixture real, mas o rascunho aplica o sinal só a
+     `VNQ`, então `VOO`/`VEA` recebem `wrong-regime`.
+     Como não há agregação trailing-12-meses a fazer (o documento já
+     publica o total do exercício), a granularidade é anual e a chave é
+     `(ticker, fiscal_year_end_date)`.
+     **Versionado, não aplicado**: migration
+     `20260807130000_create_etf_distribution_values.sql` e o script
+     `scripts/run-etf-distribution-values-backfill.ts` existem no
+     repositório; a tabela ainda não existe em produção e nenhuma linha
+     foi escrita. Até o backfill rodar, o sinal fica `unavailable`
+     (comportamento esperado, não bug).
    - P/L vs série histórica (ação) — `composicao_capital` real dos 5
      tickers populado em produção (`DEC-095`), resolvendo uma das três
      peças que faltavam. Preço de fechamento histórico por data de
