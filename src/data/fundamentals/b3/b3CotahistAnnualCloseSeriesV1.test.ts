@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  extractCotahistLinesForTickers,
   normalizeCotahistTradingDateToCivilDate,
   parseCotahistAnnualCloseSeriesV1,
   parseCotahistPriceInMinorUnits,
@@ -116,5 +117,91 @@ describe('parseCotahistAnnualCloseSeriesV1', () => {
 
     const series = parseCotahistAnnualCloseSeriesV1(content, ['BBAS3'])
     expect(series.get('BBAS3')).toHaveLength(1)
+  })
+})
+
+describe('extractCotahistLinesForTickers', () => {
+  function toBytes(text: string): Uint8Array {
+    return Uint8Array.from(text, (character) => character.charCodeAt(0))
+  }
+
+  it('keeps only lines whose ticker matches the requested list', () => {
+    const content = [
+      buildRecord({ ticker: 'BBAS3' }),
+      buildRecord({ ticker: 'PETR4' }),
+      buildRecord({ ticker: 'ITSA4' }),
+    ].join('\n')
+
+    const extracted = extractCotahistLinesForTickers(toBytes(content), [
+      'BBAS3',
+      'ITSA4',
+    ])
+
+    const lines = extracted.split('\n')
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toBe(buildRecord({ ticker: 'BBAS3' }))
+    expect(lines[1]).toBe(buildRecord({ ticker: 'ITSA4' }))
+  })
+
+  it('never decodes the file into a single string of unmatched lines (byte-level filtering, not full decode)', () => {
+    // Simula um arquivo dominado por instrumentos fora do universo -
+    // exatamente o caso real (opções, termos, outras ações) que faz o
+    // arquivo anual completo estourar o limite de string do V8. Se a
+    // função decodificasse tudo antes de filtrar, isso ainda passaria
+    // neste teste pequeno; o que este teste garante é a correção do
+    // resultado, não a ausência de decode - a proteção real contra o
+    // limite de string vem de nunca chamar `TextDecoder.decode` sobre o
+    // buffer inteiro, que é a mudança estrutural desta função.
+    const noise = Array.from({ length: 500 }, (_unused, index) =>
+      buildRecord({ ticker: `NOISE${index % 10}` })
+    )
+    const content = [...noise, buildRecord({ ticker: 'WEGE3' })].join('\n')
+
+    const extracted = extractCotahistLinesForTickers(toBytes(content), [
+      'WEGE3',
+    ])
+
+    expect(extracted).toBe(buildRecord({ ticker: 'WEGE3' }))
+  })
+
+  it('handles CRLF line endings', () => {
+    const content = [
+      buildRecord({ ticker: 'BBAS3' }),
+      buildRecord({ ticker: 'ITSA4' }),
+    ].join('\r\n')
+
+    const extracted = extractCotahistLinesForTickers(toBytes(content), [
+      'ITSA4',
+    ])
+
+    expect(extracted).toBe(buildRecord({ ticker: 'ITSA4' }))
+  })
+
+  it('handles a file with no trailing newline', () => {
+    const content = buildRecord({ ticker: 'TAEE11' })
+
+    const extracted = extractCotahistLinesForTickers(toBytes(content), [
+      'TAEE11',
+    ])
+
+    expect(extracted).toBe(buildRecord({ ticker: 'TAEE11' }))
+  })
+
+  it('skips lines with the wrong fixed-width length', () => {
+    const content = ['too-short-line', buildRecord({ ticker: 'PSSA3' })].join(
+      '\n'
+    )
+
+    const extracted = extractCotahistLinesForTickers(toBytes(content), [
+      'PSSA3',
+    ])
+
+    expect(extracted).toBe(buildRecord({ ticker: 'PSSA3' }))
+  })
+
+  it('returns an empty string when nothing matches', () => {
+    const content = buildRecord({ ticker: 'PETR4' })
+
+    expect(extractCotahistLinesForTickers(toBytes(content), ['BBAS3'])).toBe('')
   })
 })

@@ -29,6 +29,66 @@ const FIELD_OFFSETS = {
   lastPrice: [108, 121], // PREULT: 109-121, N(11)V99
 } as const
 
+const NEWLINE_BYTE = 0x0a
+const CARRIAGE_RETURN_BYTE = 0x0d
+
+// O arquivo anual COTAHIST_A<ano>.ZIP cobre TODOS os instrumentos
+// negociados na B3 no ano (ações, opções, termos, índices), não só as 5
+// ações do universo fechado - descomprimido, pode superar o limite de
+// string do V8 (`0x1fffffe8` caracteres, ~536 milhões; `TextDecoder`
+// lança `ERR_STRING_TOO_LONG` ao tentar decodificar o buffer inteiro de
+// uma vez, achado real rodando contra os arquivos de 2024 e 2025 em
+// produção). Esta função nunca decodifica o arquivo inteiro: percorre o
+// buffer byte a byte procurando quebras de linha, decodifica só os 12
+// bytes do campo CODNEG (ticker) de cada linha de tamanho correto pra
+// checar contra a lista solicitada, e só decodifica a linha inteira
+// quando o ticker bate. Registros de outros tickers (a esmagadora
+// maioria do arquivo) nunca viram string.
+export function extractCotahistLinesForTickers(
+  archiveBytes: Uint8Array,
+  requestedTickers: readonly string[]
+): string {
+  const requested = new Set(
+    requestedTickers.map((ticker) => ticker.trim().toUpperCase())
+  )
+  const decoder = new TextDecoder('windows-1252')
+  const matchedLines: string[] = []
+
+  let lineStart = 0
+  for (let index = 0; index <= archiveBytes.length; index += 1) {
+    const atEnd = index === archiveBytes.length
+    if (!atEnd && archiveBytes[index] !== NEWLINE_BYTE) {
+      continue
+    }
+
+    let lineEnd = index
+    if (
+      lineEnd > lineStart &&
+      archiveBytes[lineEnd - 1] === CARRIAGE_RETURN_BYTE
+    ) {
+      lineEnd -= 1
+    }
+
+    if (lineEnd - lineStart === RECORD_SIZE) {
+      const tickerBytes = archiveBytes.subarray(
+        lineStart + FIELD_OFFSETS.ticker[0],
+        lineStart + FIELD_OFFSETS.ticker[1]
+      )
+      const ticker = decoder.decode(tickerBytes).trim().toUpperCase()
+
+      if (requested.has(ticker)) {
+        matchedLines.push(
+          decoder.decode(archiveBytes.subarray(lineStart, lineEnd))
+        )
+      }
+    }
+
+    lineStart = index + 1
+  }
+
+  return matchedLines.join('\n')
+}
+
 export type CotahistAnnualCloseRecord = {
   ticker: string
   tradingDate: string

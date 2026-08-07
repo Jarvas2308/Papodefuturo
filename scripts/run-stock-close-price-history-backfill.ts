@@ -36,7 +36,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { unzipSync } from 'fflate'
-import { parseCotahistAnnualCloseSeriesV1 } from '../src/data/fundamentals/b3/b3CotahistAnnualCloseSeriesV1'
+import {
+  extractCotahistLinesForTickers,
+  parseCotahistAnnualCloseSeriesV1,
+} from '../src/data/fundamentals/b3/b3CotahistAnnualCloseSeriesV1'
 import { selectFiscalYearEndCloseV1 } from '../src/data/fundamentals/b3/selectFiscalYearEndCloseV1'
 
 const COTAHIST_BASE_URL = 'https://bvmf.bmfbovespa.com.br/InstDados/SerHist/'
@@ -90,7 +93,7 @@ function extractCotahistText(archive: Uint8Array): string {
     throw new Error('Arquivo ZIP COTAHIST não contém um TXT válido.')
   }
 
-  return new TextDecoder('windows-1252').decode(entry[1])
+  return extractCotahistLinesForTickers(entry[1], UNIVERSE_TICKERS)
 }
 
 async function main(): Promise<void> {
