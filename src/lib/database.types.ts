@@ -226,6 +226,54 @@ export type Database = {
         }
         Relationships: []
       }
+      etf_distribution_values: {
+        Row: {
+          accession_number: string
+          extracted_at: string
+          fiscal_year_end_date: string
+          fund_name: string
+          id: number
+          net_asset_value_end_of_period_scale: number
+          net_asset_value_end_of_period_unscaled: number
+          registrant_cik: string
+          share_class_label: string
+          source_document_url: string
+          ticker: string
+          total_distributions_per_share_scale: number
+          total_distributions_per_share_unscaled: number
+        }
+        Insert: {
+          accession_number: string
+          extracted_at?: string
+          fiscal_year_end_date: string
+          fund_name: string
+          id?: number
+          net_asset_value_end_of_period_scale: number
+          net_asset_value_end_of_period_unscaled: number
+          registrant_cik: string
+          share_class_label: string
+          source_document_url: string
+          ticker: string
+          total_distributions_per_share_scale: number
+          total_distributions_per_share_unscaled: number
+        }
+        Update: {
+          accession_number?: string
+          extracted_at?: string
+          fiscal_year_end_date?: string
+          fund_name?: string
+          id?: number
+          net_asset_value_end_of_period_scale?: number
+          net_asset_value_end_of_period_unscaled?: number
+          registrant_cik?: string
+          share_class_label?: string
+          source_document_url?: string
+          ticker?: string
+          total_distributions_per_share_scale?: number
+          total_distributions_per_share_unscaled?: number
+        }
+        Relationships: []
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -1063,6 +1111,39 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_historical_close_prices: {
+        Row: {
+          close_price_in_minor_units: number
+          extracted_at: string
+          fiscal_year_end_date: string
+          id: number
+          source: string
+          source_archive: string
+          ticker: string
+          trading_date: string
+        }
+        Insert: {
+          close_price_in_minor_units: number
+          extracted_at?: string
+          fiscal_year_end_date: string
+          id?: number
+          source?: string
+          source_archive: string
+          ticker: string
+          trading_date: string
+        }
+        Update: {
+          close_price_in_minor_units?: number
+          extracted_at?: string
+          fiscal_year_end_date?: string
+          id?: number
+          source?: string
+          source_archive?: string
+          ticker?: string
+          trading_date?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           compact_view: boolean
@@ -1185,6 +1266,10 @@ export type Database = {
         Args: { targets: Json }
         Returns: undefined
       }
+      upsert_etf_distribution_values_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
       upsert_fii_monthly_dividend_yield_v1: {
         Args: { records: Json }
         Returns: Json
@@ -1215,6 +1300,10 @@ export type Database = {
         Returns: Json
       }
       upsert_provento_declaration_values_v1: {
+        Args: { records: Json }
+        Returns: Json
+      }
+      upsert_stock_historical_close_prices_v1: {
         Args: { records: Json }
         Returns: Json
       }

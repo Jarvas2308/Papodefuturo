@@ -1408,12 +1408,20 @@ numeração de sprint.
      Como não há agregação trailing-12-meses a fazer (o documento já
      publica o total do exercício), a granularidade é anual e a chave é
      `(ticker, fiscal_year_end_date)`.
-     **Versionado, não aplicado**: migration
-     `20260807130000_create_etf_distribution_values.sql` e o script
-     `scripts/run-etf-distribution-values-backfill.ts` existem no
-     repositório; a tabela ainda não existe em produção e nenhuma linha
-     foi escrita. Até o backfill rodar, o sinal fica `unavailable`
-     (comportamento esperado, não bug).
+     **Migration aplicada em produção em 07/08/2026** (`etf_distribution_values`,
+     RLS/grants confirmados sem achado novo em `get_advisors`,
+     `database.types.ts` regenerado pelo mecanismo oficial e os
+     repositories voltaram a usar `SupabaseClient<Database>`). Nenhum
+     dado real foi escrito ainda — falta rodar o backfill. Até lá, o
+     sinal fica `unavailable` (comportamento esperado, não bug):
+
+     ```bash
+     node --env-file=.env.server.local --import tsx \
+       scripts/run-etf-distribution-values-backfill.ts
+     node --env-file=.env.server.local --import tsx \
+       scripts/run-etf-distribution-values-backfill.ts --confirm
+     ```
+
    - **P/L vs série histórica (ação) INTEGRADO em 07/08/2026 (`DEC-104`),
      aguardando aplicação da migration, backfill real de preço E mais
      anos de DFP ingeridos.** Fecha o item 3 aberto do `DEC-068`. P/L =
@@ -1441,13 +1449,13 @@ numeração de sprint.
      documentada no código). Viabilidade da fonte já confirmada com
      dado real em `DEC-096` (BBAS3 fecha 30/12/2025, último pregão do
      ano, a R$ 21,92).
-     **Versionado, não aplicado**: migration
-     `20260807140000_create_stock_historical_close_prices.sql` e o
-     script `scripts/run-stock-close-price-history-backfill.ts` existem
-     no repositório; a tabela ainda não existe em produção e nenhuma
-     linha foi escrita.
-     **Mesmo com a tabela aplicada e o backfill rodado, o sinal
-     continuaria `unavailable`**: SQL somente leitura em 07/08/2026
+     **Migration aplicada em produção em 07/08/2026** (`stock_historical_close_prices`,
+     RLS/grants confirmados sem achado novo em `get_advisors`,
+     `database.types.ts` regenerado). Nenhum dado real escrito ainda —
+     falta rodar `scripts/run-stock-close-price-history-backfill.ts`
+     (preview, depois `--confirm`, um ano por vez).
+     **Mesmo com o backfill de preço rodado, o sinal continuaria
+     `unavailable`**: SQL somente leitura em 07/08/2026
      confirmou só 2 exercícios anuais de DFP ingeridos por empresa
      (2024-12-31 e 2025-12-31, via `cvm-dfp`) contra o mínimo de 5
      exigido pelo quartil — a mesma limitação de profundidade histórica

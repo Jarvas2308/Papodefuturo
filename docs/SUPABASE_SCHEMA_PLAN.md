@@ -566,29 +566,32 @@ depois da criação da RPC).
 
 Aplicadas em produção: `signal_rules` (esta é por usuário),
 `market_reference_rates`, `market_valuation_ratios`,
-`market_etf_valuations`, `provento_declaration_values` (`DEC-102`) e
-`fii_monthly_dividend_yield`.
+`market_etf_valuations`, `provento_declaration_values` (`DEC-102`),
+`fii_monthly_dividend_yield`, `etf_distribution_values` (`DEC-103`,
+aplicada em 07/08/2026) e `stock_historical_close_prices` (`DEC-104`,
+aplicada em 07/08/2026).
 
-**Versionada e ainda NÃO aplicada em produção**:
-`etf_distribution_values` (migration
-`20260807130000_create_etf_distribution_values.sql`, `DEC-103`) — valor
-anual de distribuição por cota e NAV de fim de exercício dos ETFs,
-extraídos do N-CSR da SEC. Identidade `(ticker, fiscal_year_end_date)`,
-sem coluna de versão (o documento publica um número por exercício) e sem
-FK para `official_asset_events` (não existe evento SEC EDGAR em produção;
-a identidade documental — CIK, accession e URL — fica na própria linha).
-RPC de escrita: `upsert_etf_distribution_values_v1`. Nenhuma linha
-escrita até agora.
+`etf_distribution_values` — valor anual de distribuição por cota e NAV
+de fim de exercício dos ETFs, extraídos do N-CSR da SEC. Identidade
+`(ticker, fiscal_year_end_date)`, sem coluna de versão (o documento
+publica um número por exercício) e sem FK para `official_asset_events`
+(não existe evento SEC EDGAR em produção; a identidade documental —
+CIK, accession e URL — fica na própria linha). RPC de escrita:
+`upsert_etf_distribution_values_v1`. `get_advisors` sem achado novo
+após a migration. `database.types.ts` regenerado pelo mecanismo
+oficial. Nenhuma linha escrita ainda — falta rodar o backfill
+(`scripts/run-etf-distribution-values-backfill.ts`, preview e depois
+`--confirm`).
 
-Também **versionada e ainda NÃO aplicada em produção**:
-`stock_historical_close_prices` (migration
-`20260807140000_create_stock_historical_close_prices.sql`, `DEC-104`) —
-fechamento B3 do último pregão de cada exercício anual das 5 ações do
-universo fechado, extraído do arquivo `COTAHIST_A<ano>.ZIP`. Identidade
-`(ticker, fiscal_year_end_date)`; `trading_date` guardado separadamente
-(o pregão real usado, quando difere da data de exercício). RPC de
-escrita: `upsert_stock_historical_close_prices_v1`. Nenhuma linha
-escrita até agora, e mesmo depois de aplicada e do backfill rodar, o
-sinal `stock_pl_vs_history` que a consome continua `unavailable` até
-mais anos de DFP serem ingeridos (só 2 exercícios por empresa hoje,
-mínimo de 5 exigido pelo quartil).
+`stock_historical_close_prices` — fechamento B3 do último pregão de
+cada exercício anual das 5 ações do universo fechado, extraído do
+arquivo `COTAHIST_A<ano>.ZIP`. Identidade `(ticker,
+fiscal_year_end_date)`; `trading_date` guardado separadamente (o pregão
+real usado, quando difere da data de exercício). RPC de escrita:
+`upsert_stock_historical_close_prices_v1`. `get_advisors` sem achado
+novo. `database.types.ts` regenerado. Nenhuma linha escrita ainda —
+falta rodar o backfill (`scripts/run-stock-close-price-history-backfill.ts`).
+Mesmo depois de aplicado e do backfill rodar, o sinal
+`stock_pl_vs_history` que a consome continua `unavailable` até mais
+anos de DFP serem ingeridos (só 2 exercícios por empresa hoje, mínimo
+de 5 exigido pelo quartil).

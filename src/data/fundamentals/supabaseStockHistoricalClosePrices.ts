@@ -1,24 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { StockClosePriceHistoryPointV1 } from '../../domain/fundamentals/score'
+import type { Database } from '../../lib/database.types'
 
-// `stock_historical_close_prices` migration
-// (supabase/migrations/20260807140000_create_stock_historical_close_prices.sql)
-// is versioned but NOT yet applied to production Supabase, so the table
-// does not exist in the real generated `Database` type yet (AGENTS.md
-// seção 11: não editar o type gerado manualmente para fingir que uma
-// tabela existe). This row shape is defined locally, matching the
-// migration's columns exactly, and the client is untyped for this
-// repository. Once the migration is applied and types are regenerated
-// for real, switch back to `SupabaseClient<Database>` and drop this
-// local type, same discipline as
-// `supabaseEtfDistributionValues.ts`/`supabaseFiiMonthlyDividendYield.ts`.
-type StockHistoricalClosePriceRow = {
-  ticker: string
-  fiscal_year_end_date: string
-  close_price_in_minor_units: number
-}
+// Migration `20260807140000_create_stock_historical_close_prices.sql`
+// aplicada em produção em 07/08/2026; `database.types.ts` regenerado
+// pelo mecanismo oficial (Database já inclui
+// `stock_historical_close_prices`).
 
-export type StockHistoricalClosePriceSupabaseClient = SupabaseClient
+export type StockHistoricalClosePriceSupabaseClient = SupabaseClient<Database>
 
 export type StockHistoricalClosePriceRepository = {
   listStockHistoricalClosePricesByTicker(
@@ -45,9 +34,7 @@ export function createSupabaseStockHistoricalClosePriceRepository(
         )
       }
 
-      const rows = (data ?? []) as StockHistoricalClosePriceRow[]
-
-      return rows.map((row) => ({
+      return (data ?? []).map((row) => ({
         referenceDate: row.fiscal_year_end_date,
         closePriceInMinorUnits: row.close_price_in_minor_units,
       }))
