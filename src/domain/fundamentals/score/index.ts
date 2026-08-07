@@ -10,7 +10,13 @@ export {
   computeProventoTrailingTwelveMonthValueV1,
   type ProventoDeclarationPointV1,
 } from './computeProventoTrailingTwelveMonthValueV1'
+export {
+  computeFiiTrailingTwelveMonthDividendYieldV1,
+  type FiiMonthlyDividendYieldPointV1,
+} from './computeFiiTrailingTwelveMonthDividendYieldV1'
+export { computeFiiDyNtnbSpreadV1 } from './computeFiiDyNtnbSpreadV1'
 export type { BrazilianStockSignalKey } from './buildBrazilianStockScoreV1'
+export type { FiiTijoloSignalKey } from './buildFiiTijoloScoreV1'
 export {
   computeEtfCapeDeviationV1,
   type ShillerCapeHistoryPoint,

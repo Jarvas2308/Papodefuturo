@@ -130,6 +130,11 @@ describe('buildFiiTijoloScoreV1', () => {
         points: 1,
       },
       { signalKey: 'fii_pvp', status: 'unavailable', reason: 'missing-input' },
+      {
+        signalKey: 'fii_dy_ntnb_spread',
+        status: 'unavailable',
+        reason: 'missing-input',
+      },
     ])
   })
 
@@ -182,6 +187,11 @@ describe('buildFiiTijoloScoreV1', () => {
         reason: 'wrong-regime',
       },
       { signalKey: 'fii_pvp', status: 'unavailable', reason: 'wrong-regime' },
+      {
+        signalKey: 'fii_dy_ntnb_spread',
+        status: 'unavailable',
+        reason: 'wrong-regime',
+      },
     ])
   })
 
@@ -227,6 +237,11 @@ describe('buildFiiTijoloScoreV1', () => {
         reason: 'missing-input',
       },
       { signalKey: 'fii_pvp', status: 'unavailable', reason: 'missing-input' },
+      {
+        signalKey: 'fii_dy_ntnb_spread',
+        status: 'unavailable',
+        reason: 'missing-input',
+      },
     ])
   })
 
@@ -538,5 +553,124 @@ describe('buildFiiTijoloScoreV1 - frescor por fonte (DEC-089)', () => {
     })
 
     expect(score.signals[0]).toMatchObject({ status: 'applied', points: 1 })
+  })
+})
+
+describe('buildFiiTijoloScoreV1 - DY-NTNB spread signal', () => {
+  function twelveMonthsEndingAugust2026(dividendYieldFraction: {
+    unscaledValue: number
+    scale: number
+  }) {
+    const months = [
+      '2025-09-01',
+      '2025-10-01',
+      '2025-11-01',
+      '2025-12-01',
+      '2026-01-01',
+      '2026-02-01',
+      '2026-03-01',
+      '2026-04-01',
+      '2026-05-01',
+      '2026-06-01',
+      '2026-07-01',
+      '2026-08-01',
+    ]
+    return months.map((referenceDate) => ({
+      referenceDate,
+      version: 1,
+      dividendYield: dividendYieldFraction,
+    }))
+  }
+
+  it('scores a negative spread as applied (DY 6% vs NTN-B 7.42%)', () => {
+    const asset = buildAsset([])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'tijolo',
+      monthlyDividendYields: twelveMonthsEndingAugust2026({
+        unscaledValue: 5,
+        scale: 3,
+      }), // 0.005 x 12 = 0.06 = 6%
+      ntnbRate: {
+        rateScaled: 7_420_000,
+        rateScale: 1_000_000,
+        pricedAt: '2026-08-04',
+      },
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[4]).toEqual({
+      signalKey: 'fii_dy_ntnb_spread',
+      status: 'applied',
+      observedValue: -1.42,
+      points: -2,
+    })
+  })
+
+  it('is unavailable when NTN-B rate was not resolved', () => {
+    const asset = buildAsset([])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'tijolo',
+      monthlyDividendYields: twelveMonthsEndingAugust2026({
+        unscaledValue: 5,
+        scale: 3,
+      }),
+      ntnbRate: null,
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[4]).toEqual({
+      signalKey: 'fii_dy_ntnb_spread',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('is unavailable with fewer than 12 months of dividend yield data', () => {
+    const asset = buildAsset([])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'tijolo',
+      monthlyDividendYields: twelveMonthsEndingAugust2026({
+        unscaledValue: 5,
+        scale: 3,
+      }).slice(0, 11),
+      ntnbRate: {
+        rateScaled: 7_420_000,
+        rateScale: 1_000_000,
+        pricedAt: '2026-08-04',
+      },
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[4]).toEqual({
+      signalKey: 'fii_dy_ntnb_spread',
+      status: 'unavailable',
+      reason: 'missing-input',
+    })
+  })
+
+  it('marks the spread wrong-regime for FII papel, same as the other tijolo signals', () => {
+    const asset = buildAsset([])
+
+    const score = buildFiiTijoloScoreV1({
+      asset,
+      assetType: 'papel',
+      rules: DEFAULT_FII_TIJOLO_SIGNAL_RULES,
+      now: NOW,
+    })
+
+    expect(score.signals[4]).toEqual({
+      signalKey: 'fii_dy_ntnb_spread',
+      status: 'unavailable',
+      reason: 'wrong-regime',
+    })
   })
 })

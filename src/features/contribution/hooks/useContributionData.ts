@@ -36,7 +36,12 @@ import { createSupabaseShillerCapeHistoryRepository } from '../../../data/fundam
 import { createSupabaseEtfValuationRepository } from '../../../data/fundamentals/supabaseEtfValuationSnapshots'
 import { createSupabaseProventoDeclarationValueRepository } from '../../../data/fundamentals/supabaseProventoDeclarationValues'
 import { BRAZILIAN_STOCK_TICKER_ISIN_V1 } from '../../../data/fundamentals/provento/brazilianStockTickerIsinV1'
-import type { ProventoDeclarationPointV1 } from '../../../domain/fundamentals/score'
+import { createSupabaseFiiMonthlyDividendYieldRepository } from '../../../data/fundamentals/supabaseFiiMonthlyDividendYield'
+import { createSupabaseMarketReferenceRateRepository } from '../../../data/fundamentals/supabaseMarketReferenceRates'
+import type {
+  FiiMonthlyDividendYieldPointV1,
+  ProventoDeclarationPointV1,
+} from '../../../domain/fundamentals/score'
 import { buildFundamentalFactsV1 } from '../../../domain/fundamentals'
 import { buildFundamentalDerivedFactsV1 } from '../../../domain/fundamentals/derived'
 import type { AssetScoreV1 } from '../../../domain/fundamentals/score'
@@ -133,6 +138,17 @@ export async function loadContributionAssetScoresBestEffort(
     const etfValuationRepository = createSupabaseEtfValuationRepository(client)
     const proventoDeclarationRepository =
       createSupabaseProventoDeclarationValueRepository(client)
+    const fiiMonthlyDividendYieldRepository =
+      createSupabaseFiiMonthlyDividendYieldRepository(client)
+    const marketReferenceRateRepository =
+      createSupabaseMarketReferenceRateRepository(client)
+
+    const fiiTijoloTickers = assets
+      .filter(
+        (asset) =>
+          asset.category === 'real-estate-fund' && asset.assetType === 'tijolo'
+      )
+      .map((asset) => asset.ticker)
 
     const stockTickersWithIsin = assets
       .filter((asset) => asset.category === 'brazilian-stock')
@@ -153,6 +169,8 @@ export async function loadContributionAssetScoresBestEffort(
       capeHistory,
       etfValuations,
       proventoEntries,
+      monthlyDividendYieldEntries,
+      ntnbRatePoint,
     ] = await Promise.all([
       fiiSnapshotRepository.listRealEstateFundSnapshots(assets),
       stockSnapshotRepository.listBrazilianStockSnapshots(assets),
@@ -169,11 +187,35 @@ export async function loadContributionAssetScoresBestEffort(
             ] as const
         )
       ),
+      Promise.all(
+        fiiTijoloTickers.map(
+          async (ticker) =>
+            [
+              ticker,
+              await fiiMonthlyDividendYieldRepository.listFiiMonthlyDividendYieldsByTicker(
+                ticker
+              ),
+            ] as const
+        )
+      ),
+      marketReferenceRateRepository.getLatestMarketReferenceRate('ntnb-longa'),
     ])
     const proventoDeclarationsByTicker = new Map<
       string,
       readonly ProventoDeclarationPointV1[]
     >(proventoEntries)
+    const monthlyDividendYieldsByTicker = new Map<
+      string,
+      readonly FiiMonthlyDividendYieldPointV1[]
+    >(monthlyDividendYieldEntries)
+    const ntnbRate =
+      ntnbRatePoint === null
+        ? null
+        : {
+            rateScaled: ntnbRatePoint.rateScaled,
+            rateScale: ntnbRatePoint.rateScale,
+            pricedAt: ntnbRatePoint.pricedAt,
+          }
     const now = new Date().toISOString()
     const facts = buildFundamentalFactsV1({
       generatedAt: now,
@@ -203,6 +245,8 @@ export async function loadContributionAssetScoresBestEffort(
         capeHistory,
         etfValuations,
         proventoDeclarationsByTicker,
+        monthlyDividendYieldsByTicker,
+        ntnbRate,
         rules,
         now,
       }),

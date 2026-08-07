@@ -513,11 +513,17 @@ describe('loadContributionAssetScoresBestEffort', () => {
       select: vi.fn(),
       eq: vi.fn(),
       in: vi.fn(),
-      order: vi.fn(async () => ({ data: rows, error: null })),
+      order: vi.fn(),
+      limit: vi.fn(),
+      maybeSingle: vi.fn(async () => ({ data: null, error: null })),
     }
     query.select.mockReturnValue(query)
     query.eq.mockReturnValue(query)
     query.in.mockReturnValue(query)
+    query.order.mockImplementation(() =>
+      Object.assign(Promise.resolve({ data: rows, error: null }), query)
+    )
+    query.limit.mockReturnValue(query)
     return { from: vi.fn(() => query) } as unknown as SupabaseBrowserClient
   }
 
